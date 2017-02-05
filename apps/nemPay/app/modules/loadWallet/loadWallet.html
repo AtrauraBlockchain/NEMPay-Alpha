@@ -1,0 +1,56 @@
+<ion-content scroll="false">
+  <div class="login-page text-center">
+    <img class="logo" src="images/logo.png"/>
+    <select selectclick class="full-width" ng-model="$ctrl.selectedWallet" ng-options="wallet.name group by (wallet.accounts[0].network | toNetworkName) for wallet in $ctrl._storage.wallets">
+      <option value="" disabled selected>{{ 'LOGIN_SELECT_WALLET' | translate }}</option>
+    </select>
+    <input class="item item-input item-floating-label full-width" type="password" ng-model="$ctrl.common.password" placeholder="{{ 'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}"  ng-keypress="$ctrl.onEnter($event)"/>
+
+
+    <button class="button button-block btn-nem button-light activated"
+            type="submit" ng-click="$ctrl.login($ctrl.selectedWallet)" ng-disabled="!$ctrl.selectedWallet">
+      {{ 'LOGIN_LOGIN_BUTTON' | translate }}
+    </button>
+
+    <div class="fileUpload btn btn-lg btn-import" style="outline:0;">
+      <span>{{ 'LOGIN_IMPORT_BUTTON' | translate }}</span>
+      <input type="file" accept="*/*" class="upload" multiple='multiple' read-wallet-files="$ctrl.loadWallet($fileContent, $isNCC)" />
+    </div>
+
+
+
+
+    <a id="downloadWallet" style="visibility:hidden" target="_blank"></a>
+
+  </div>
+
+  <!-- Upgrade account Modal 
+  <div id="upgradeWallet" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+
+      <!-- Modal content
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">{{ 'LOGIN_UPGRADE_TITLE' | translate }}</h4>
+        </div>
+        <p class="bg-danger" style="padding:10px;margin:0;">
+          <i class="fa fa-exclamation-triangle"></i> <span ng-bind-html="'LOGIN_UPGRADE_MESSAGE' | translate"></span>
+        </p>
+        <div class="modal-body">
+          <fieldset class="form-group">
+            <input class="form-control form-control-lg"
+                   type="password"
+                   placeholder="{{ 'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}"
+                   ng-model="$ctrl.common.password"/>
+          </fieldset>
+
+          <button class="btn btn-success" style="border-radius:0px;"
+                  type="submit" ng-disabled="$ctrl.okPressed || !$ctrl.common.password.length" ng-click="$ctrl.upgradeWallet()">
+            {{ 'LOGIN_UPGRADE_BUTTON' | translate }}
+          </button>
+        </div>
+      </div> 
+    </div>-->
+  </div>
+</ion-content>

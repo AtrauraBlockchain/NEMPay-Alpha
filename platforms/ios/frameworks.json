@@ -1,0 +1,7 @@
+{
+    "libz.dylib": 1,
+    "libc++.dylib": 1,
+    "SystemConfiguration.framework": 2,
+    "Security.framework": 1,
+    "CoreTelephony.framework": 1
+}
