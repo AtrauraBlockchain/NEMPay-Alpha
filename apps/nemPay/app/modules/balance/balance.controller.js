@@ -1,5 +1,5 @@
 class BalanceCtrl {
-    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $ionicLoading, $timeout) {
+    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $timeout, ionicMaterialInk, ionicMaterialMotion) {
         'ngInject';
 
         // Alert service
@@ -15,12 +15,6 @@ class BalanceCtrl {
         // DataBridge service
         this._DataBridge = DataBridge;
         this._NetworkRequests = NetworkRequests;
-       
-         $ionicLoading.show();
-
-         $timeout(function () {
-            $ionicLoading.hide();
-        }, 2000);
 
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {

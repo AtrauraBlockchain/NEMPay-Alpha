@@ -4,17 +4,31 @@
     <meta charset="utf-8">
     <title ng-bind="pageTitle"></title>
     <link rel="stylesheet" href="css/font-awesome.min.css">
-    <link rel="stylesheet" href="css/bootstrap.min.css">
+
+    <link href='https://fonts.googleapis.com/css?family=RobotoDraft:400,500,700,400italic' rel='stylesheet' type='text/css'>
+    <link href="lib/ionic/css/ionic.css" rel="stylesheet">
+    <link href="lib/ion-md-input/css/ion-md-input.min.css" rel="stylesheet">
+    <link href="lib/ionic-material/dist/ionic.material.min.css" rel="stylesheet">
+    
     <link rel="stylesheet" href="css/nano.css">
     <link rel="stylesheet" href="css/ngToast.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,400,700,900">
+
+
   </head>
 
-  <body app-background>
+  <body>
 
     <div ui-view></div>
     <toast></toast>
 
+    <!-- Ionic -->
+    <script src="lib/ionic/js/ionic.bundle.js"></script>
+
+    <!-- Material -->
+
+    <script src="lib/ionic-material/dist/ionic.material.min.js"></script>
+    <script src="lib/ion-md-input/js/ion-md-input.min.js"></script>
+    
     <!-- Crypto -->
     <script src="vendors/cryptoJS/core-min.js"></script>
     <script src="vendors/cryptoJS/x64-core-min.js"></script>

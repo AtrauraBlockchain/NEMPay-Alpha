@@ -57,6 +57,8 @@ const requires = [
     'ui.router',
     'templates',
     'app.layout',
+    'ionic-material', 
+    'ionMdInput',
     'app.components',
     'app.filters',
     //'app.home',

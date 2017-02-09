@@ -1,58 +1,72 @@
-<ion-nav-bar class="bar-stable" align-title="center">
-    <ion-nav-buttons side="left">
-        <a ui-sref="app.balance" class="button button-clear">
-            <i class="icon ion-ios-arrow-left"></i>
-        </a>
-    </ion-nav-buttons>
-    <ion-nav-title>
-        Transfer
-    </ion-nav-title>
-    <ion-nav-buttons side="right">
-        <a ui-sref="app.account" class="button button-clear">
-            <i class="icon ion-ios-person-outline"></i>
-        </a>
-    </ion-nav-buttons>
+<div class="bar bar-header bar-nem">
+<a ui-sref="app.balance">
+   <div class="buttons buttons-left header-item">
+                    <button class="button button-icon button-clear ion-navicon">
+                </button>
+
+   </div> 
+</a>
+<div class="h1 title title-center light">
+Transfer</div> 
+<div class="buttons buttons-right header-item">
+<span class="right-buttons"> 
+<button class="button button-icon button-clear ion-android-more-vertical"> </button> </span>
+</div> 
+</div>
+
 </ion-nav-bar>
 <ion-content class="has-header">
-    <div class="page-transfer">
-            <div>
-                <!--  recipient address -->
-                <div>
-                    <b>To</b>
-                    <!-- Delayed input with debounce -->
-                    <input class="item item-input item-floating-label full-width form-control-lg" type="text" placeholder="{{'FORM_RECIPIENT_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.rawRecipient" ng-model-options="{debounce:3000}" ng-change="$ctrl.processRecipientInput()" />
-                </div>
-                <div ng-show="$ctrl.showAlias">
-                    <b>Alias</b>
-                    <input class="item item-input item-floating-label full-width form-control-lg" type="text" ng-model="$ctrl.aliasAddress" readOnly/>
-                </div>
-                <!-- Amount of XEM to send -->
-                <div>
-                    <div style="width: 49%; float: left;margin-right: 1%;">
-                                            <b>Amount</b>
+   <div class="page-transfer">
+   <div class="container">
+   <div class="content double-padding">
+      <div class="list">
+         <!--  recipient address -->
+         <div>
+            <label class="item item-input item-floating-label">
+            <span class="input-label">To</span>
+            <input type="text" placeholder="{{'FORM_RECIPIENT_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.rawRecipient" ng-model-options="{debounce:3000}" ng-change="$ctrl.processRecipientInput()"/>
+            </label>
+         </div>
+         <div ng-show="$ctrl.showAlias" class="gap">
+            <label class="item item-input item-floating-label">
+            <span class="input-label">Alias</span>
+            <input type="text" placeholder="Alias" type="text" ng-model="$ctrl.aliasAddress" readOnly/>
+            </label>
+         </div>
+         <!-- Amount of XEM to send -->
+         <div class="gap">
+            <div style="width: 49%; float: left;margin-right: 1%;">
+               <label class="item item-input item-floating-label">
+               <span class="input-label">Amount</span>
+               <input type="text" placeholder="Amount" type="number" ng-model="$ctrl.formData.amount" min="0" ng-disabled="$ctrl.formData.isMosaicTransfer">
+               </label>
+            </div>
+            <div style="width: 49%; float: left; margin-left: 1%; margin-top: 30px;">
+               <div>
+                  <label class="item item-input item-select">
+                     <div class="input-label">
+                        <!--Currency-->
+                     </div>
+                     <select selectclick ng-options="mos for mos in $ctrl.currentAccountMosaicNames" ng-model="$ctrl.selectedMosaic" ng-change="$ctrl.updateMosaicUnitToTransfer();"></select>
+               </div>
+               </label>
+            </div>
+            <!-- Message Field -->
+         </div>
+         <div class="gap">
+            <label class="item item-input item-floating-label">
+            <span class="input-label">Message</span>
+            <textarea rows="5" type="text" ng-model="$ctrl.formData.message" placeholder="{{'FORM_MESSAGE_PLACEHOLDER' | translate}}"></textarea>
+            </label>                
+         </div>
+                  <div class="gap">
 
-                        <input class="item item-input item-floating-label full-width form-control-lg" type="number" ng-model="$ctrl.formData.amount" min="0" ng-disabled="$ctrl.formData.isMosaicTransfer" />
-                    </div>
-                    <div class="width: 49%; float: left; margin-left: 1%;">
-                        <div>
-                        <b>Currency</b>
-                        <select selectclick ng-options="mos for mos in $ctrl.currentAccountMosaicNames" ng-model="$ctrl.selectedMosaic" ng-change="$ctrl.updateMosaicUnitToTransfer();" style="width:50%;"></select></div>
-                    </div>
-                    <!-- Message Field -->
-                </div>
-                <div>
-                    <b>Message</b>
-                    <textarea class="form-control" ng-model="$ctrl.formData.message" placeholder="{{'FORM_MESSAGE_PLACEHOLDER' | translate}}" rows="5" style="max-height: 100%;"></textarea>
-                </div>
-                         </div>
-
-
-    </div>
+          <a ng-click="$ctrl.moveToTransferConfirm()" class="button button-block button-positive button-nem ink" type="submit" ng-disabled="$ctrl.okPressed || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length">
+    NEXT 
+   </a>
+   </div>
+   </div>
+   </div>
+      </div>
+   </div>
 </ion-content>
-
-
-<div class="fixed-bottom-button">
-    <a ng-click="$ctrl.moveToTransferConfirm()" class="button button-block button-light btn-nem activated" style="width:100%;" type="submit" ng-disabled="$ctrl.okPressed || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length">
-        <i class="fa fa-send"></i> SEND
-    </a>
-</div>

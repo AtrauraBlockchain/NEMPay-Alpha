@@ -1,42 +1,28 @@
-  <ion-nav-bar class="bar-stable" align-title="center">
-<!--       <ion-nav-buttons side="left">
-      <a ui-sref="app.balance" class="button button-clear">
-        <i class="icon ion-ios-arrow-left"></i>
-      </a>
-  </ion-nav-buttons>
- -->    <ion-nav-title>
-    Current Balance
-</ion-nav-title>
-
-    <ion-nav-buttons side="right">
- <a ui-sref="app.account" class="button button-clear">
-        <i class="icon ion-ios-person-outline"></i>
-    </a>    </ion-nav-buttons>
-
-  </ion-nav-bar>
-
-
-<ion-content class="has-header">
-    <div class="page-balance page-gap">
-            <ion-list ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-                <ion-item ng-repeat="mos in $ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-                    <b>{{mos.mosaicId.namespaceId}}</b>:{{mos.mosaicId.name}}
-                        <span class="pull-right">{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[0]}}<span class="text-muted">.{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1]}}</span></span>
-                </ion-item>
-            </ion-list>
-
-            <div class="panel-body" ng-show="!$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-                <p style="margin:0;">{{ 'GENERAL_NO_RESULTS' | translate }}</p>
-            </div>
-
- 
-        <div class="text-center gap view-transactions">
-            <a ui-sref="app.transactions">View Transactions</a>
-        </div>
-               </div>
-</ion-content>
-<div class="fixed-bottom-button">
-    <a ui-sref="app.transfer" class="button button-block button-light btn-nem activated" type="submit" ng-click="#">
-    NEW TRANSACTION
-    </a>
+<div class="bar bar-header bar-nem">
+<div class="h1 title title-center light">
+Current Balance</div> 
+<div class="buttons buttons-right header-item">
+<span class="right-buttons"> 
+<button class="button button-icon button-clear ion-android-more-vertical"> </button> </span>
+</div> 
 </div>
+                
+<ion-content class="has-header">
+   <div class="page-balance">
+      <div class="content" >
+         <div class="list"  ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
+            <div class="item item-avatar item-icon-right" ng-repeat="mos in $ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
+               <img src="images/nem.png"/>
+               <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[0]}}<span class="text-muted">.{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1]}}</span></h2>
+               <p><b>{{mos.mosaicId.namespaceId}}</b>:{{mos.mosaicId.name}}</p>
+            </div>
+         </div>
+         <div class="panel-body" ng-show="!$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
+            <p style="margin:0;">{{ 'GENERAL_NO_RESULTS' | translate }}</p>
+         </div>
+      </div>
+   </div>
+</ion-content>
+ <div style="position: absolute; bottom: 0px; width: 100%;">
+    <div style="float: right; margin-right: 18px; margin-bottom: 18px;"> <a ui-sref="app.transfer" class="button button-fab button-energized icon ion-paper-airplane" style="font-size: 50px;"></a></div>
+ </div>

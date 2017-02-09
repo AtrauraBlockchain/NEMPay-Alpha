@@ -102,7 +102,7 @@ gulp.task('html', function() {
 
 // Cache template
 gulp.task('views', function() {
-  return gulp.src(viewFiles2)
+  return gulp.src([viewFiles,viewFiles2])
       .pipe(templateCache({
         standalone: true
       }))
