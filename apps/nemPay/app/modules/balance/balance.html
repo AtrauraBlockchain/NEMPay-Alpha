@@ -24,6 +24,6 @@
       </div>
    </div>
 </ion-content>
- <div style="position: absolute; bottom: 0px; width: 100%;" ng-show="!$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
+ <div style="position: absolute; bottom: 0px; width: 100%;" ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
     <div style="float: right; margin-right: 18px; margin-bottom: 18px;"> <a ui-sref="app.transfer" class="button button-fab button-nem icon ion-paper-airplane" style="font-size: 50px;"></a></div>
  </div>

@@ -27,6 +27,7 @@ import '../../nanowallet/src/app/components';
 import '../../nanowallet/src/app/filters';
 import '../../nanowallet/src/app/services';
 
+
 // Import our app modules
 //import '../../nanowallet/src/app/modules/home';
 import '../../nanowallet/src/app/modules/dashboard';
@@ -44,6 +45,9 @@ import '../../nanowallet/src/app/modules/explorer';
 import '../../nanowallet/src/app/modules/importanceTransfer';
 import '../../nanowallet/src/app/modules/changelly';
 import '../../nanowallet/src/app/modules/faq';
+
+
+import './components/';
 
 /* CUSTOM */
 import './modules/loadWallet';
@@ -100,6 +104,7 @@ const requires = [
 
 
     /* CUSTOM */
+    'app.componentsnempay',
     'app.loadWallet',
     'app.balance',
     'app.transactions',
