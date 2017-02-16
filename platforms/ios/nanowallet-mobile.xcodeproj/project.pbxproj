@@ -5,7 +5,6 @@
 	};
 	objectVersion = 46;
 	objects = {
-
 /* Begin PBXBuildFile section */
 		0207DA581B56EA530066E2B4 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0207DA571B56EA530066E2B4 /* Images.xcassets */; };
 		0B4D07A1853F4B13A82A1310 /* CDVFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 668AFE4DA2674FF9B2BB671A /* CDVFile.m */; };
@@ -33,6 +32,7 @@
 		DD5F2EBF767D4070B64EA21D /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F075CBF495B470F9F1C983D /* SystemConfiguration.framework */; };
 		EA9CDC2537B64962AE452DBF /* CDVLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = C4E0E7420E3E4A10AC075403 /* CDVLogger.m */; };
 		F2B772A49C6B4A2AB7582207 /* CDVSplashScreen.m in Sources */ = {isa = PBXBuildFile; fileRef = 8772C0DA898C48A98D87AFED /* CDVSplashScreen.m */; };
+		F4E6BE96185D40998576931E /* CDVInAppBrowser.m in Sources */ = {isa = PBXBuildFile; fileRef = E28B19FC8B4448D5A3F442FB /* CDVInAppBrowser.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +103,8 @@
 		EEE8411293B44ACD9CD8A803 /* IonicKeyboard.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = IonicKeyboard.h; path = "ionic-plugin-keyboard/IonicKeyboard.h"; sourceTree = "<group>"; };
 		F5C8823548494785924EA602 /* libz.dylib */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		F840E1F0165FE0F500CFE078 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = config.xml; path = "nanowallet-mobile/config.xml"; sourceTree = "<group>"; };
+		E28B19FC8B4448D5A3F442FB /* CDVInAppBrowser.m */ = {isa = PBXFileReference; name = "CDVInAppBrowser.m"; path = "cordova-plugin-inappbrowser/CDVInAppBrowser.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
+		6199B83EAD4049CABA805290 /* CDVInAppBrowser.h */ = {isa = PBXFileReference; name = "CDVInAppBrowser.h"; path = "cordova-plugin-inappbrowser/CDVInAppBrowser.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -243,6 +245,8 @@
 				A2259F14A0A246F6BA9B7E83 /* CDVReachability.m */,
 				28D962F285BB4306973C2568 /* CDVConnection.h */,
 				A1F37F7A2E9540ECA1459F40 /* CDVReachability.h */,
+				E28B19FC8B4448D5A3F442FB /* CDVInAppBrowser.m */,
+				6199B83EAD4049CABA805290 /* CDVInAppBrowser.h */,
 			);
 			name = Plugins;
 			path = "nanowallet-mobile/Plugins";
@@ -286,7 +290,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0810;
+				LastUpgradeCheck = 810;
 				TargetAttributes = {
 					1D6058900D05DD3D006BFB54 = {
 						DevelopmentTeam = C574KEMHHR;
@@ -392,6 +396,7 @@
 				63A56DBE386A4C19A51E38D9 /* CDVAssetLibraryFilesystem.m in Sources */,
 				417959720458412DB280B3B4 /* CDVConnection.m in Sources */,
 				0D477D518FD041AFBE119F5F /* CDVReachability.m in Sources */,
+				F4E6BE96185D40998576931E /* CDVInAppBrowser.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

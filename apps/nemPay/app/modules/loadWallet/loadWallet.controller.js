@@ -3,7 +3,7 @@ import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
 import Network from '../../../../nanowallet/src/app/utils/Network';
 
 class LoadWalletCtrl {
-    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge) {
+    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $scope) {
         'ngInject';
 
         // Local storage

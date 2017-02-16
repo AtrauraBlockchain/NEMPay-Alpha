@@ -10,7 +10,7 @@
 Transfer</div> 
 <div class="buttons buttons-right header-item">
 <span class="right-buttons"> 
-<button class="button button-icon button-clear ion-android-more-vertical"> </button> </span>
+<button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
 </div> 
 </div>
 
@@ -62,7 +62,7 @@ Transfer</div>
                   <div class="gap">
 
           <a ng-click="$ctrl.moveToTransferConfirm()" class="button button-block button-positive button-nem ink" type="submit" ng-disabled="$ctrl.okPressed || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length">
-    NEXT 
+    CONTINUE 
    </a>
    </div>
    </div>

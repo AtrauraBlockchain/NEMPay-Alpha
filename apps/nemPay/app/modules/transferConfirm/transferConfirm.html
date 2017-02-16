@@ -10,29 +10,25 @@
 Transfer</div> 
 <div class="buttons buttons-right header-item">
 <span class="right-buttons"> 
-<button class="button button-icon button-clear ion-android-more-vertical"> </button> </span>
+<button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
 </div> 
 </div>
 <ion-content class="has-header">
    <div class="page-transfer-confirm">
    <div class="container">
-      <div class="mid-bar dark-bg z1 padding">
-         <h3 ng-hide="!$ctrl.aliasAddress">{{$ctrl.aliasAddress}}</h3>
-         <h3 ng-show="!$ctrl.aliasAddress">{{$ctrl.formData.recipient}}</h3>
-         <p>{{$ctrl.formData.amount}} {{$ctrl.unit}}</p>
-      </div>
       <div class="content double-padding">
-         <p>One last confirmation! Check the transaction information is correct and press confirm in order to send</p>
+         <h2 class="text-center">Confirm Transaction</h2>
+
          <h4 ng-show="$ctrl.aliasAddress" class="nem-color">To</h4>
+         <p><span ng-hide="!$ctrl.aliasAddress">{{$ctrl.aliasAddress}}</span></p>
          <p class="text-muted">
             {{$ctrl.formData.recipient}}
          </p>
-         <h4 class="nem-color">Message</h4>
-         <p class="text-muted">
-            {{$ctrl.formData.message}}
-         </p>
+
+         <h4 class="nem-color">Amount</h4>
+         <p>{{$ctrl.formData.amount}} {{$ctrl.unit}}</p>
          <h4 class="nem-color">Fee</h4>
-         <p class="text-muted">
+            <p class="text-muted">
             <span style="margin-right:10px;">
                <!-- Multisig fee  -->
                <span ng-show="$ctrl.formData.isMultisig">{{($ctrl.formData.innerFee | fmtNemValue)[0]}}.{{($ctrl.formData.innerFee | fmtNemValue)[1]}} + 
@@ -41,14 +37,21 @@ Transfer</div>
                <span style="color: #000">{{($ctrl.formData.fee | fmtNemValue)[0]}}.{{($ctrl.formData.fee | fmtNemValue)[1]}}  <span style="color: #fff">XEM</span> <span ng-show="$ctrl.formData.encryptMessage">(+ encryption fees)</span></span>
             </span>
          </p>
+
+         <h4 class="nem-color">Message</h4>
+         <p class="text-muted">
+            {{$ctrl.formData.message}}
+         </p>
          <!-- Password Field -->
-         <h4 class="nem-color">Password</h4>
+
+
+         <h5 class="nem-color text-center">Enter your password to confirm transaction </h5>
          
         <!-- Send button disabled if already pressed or no password or no clean recipient address or message is supposed to be encrypted but no recipient public key or is a mosaic transfer and no mosaics in array -->
 
          <input class="item item-input item-floating-label full-width form-control-lg" type="password" placeholder="{{ 'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-model="$ctrl.common.password" />
          <div class="gap">
-            <a class="button button-block button-energized ink" type="submit" ng-disabled="$ctrl.okPressed || !$ctrl.common.password.length || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length" ng-click="$ctrl.send()">
+            <a class="button button-block button-nem ink" type="submit" ng-disabled="$ctrl.okPressed || !$ctrl.common.password.length || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length" ng-click="$ctrl.send()">
             <i class="fa fa-send"></i> CONFIRM
             </a>
          </div>

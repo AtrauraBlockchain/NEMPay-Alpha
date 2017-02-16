@@ -1,0 +1,31 @@
+<div class="bar bar-header bar-nem">
+  <a ui-sref="app.balance">
+   <div class="buttons buttons-left header-item">
+    <button class="button button-icon button-clear ion-navicon">
+    </button>
+
+  </div> 
+</a>
+<div class="h1 title title-center light">
+  Transfer</div> 
+  <div class="buttons buttons-right header-item">
+    <span class="right-buttons"> 
+      <button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
+    </div> 
+  </div>
+
+</ion-nav-bar>
+<ion-content class="has-header">
+ <div class="page-account">
+   <div class="container">
+     <div class="content double-padding">
+       <div class="account-page">
+        <div id="accountInfoQR"></div>
+
+        <p><b>{{ 'GENERAL_ADDRESS' | translate }}</b><br><span show-account-data="address"></span></p>
+        <p><b>{{ 'GENERAL_PUBLIC_KEY' | translate }}</b><br> <span show-account-data="publicKey"></span></p>
+      </div>
+    </div>
+  </div>
+</div>
+</ion-content>

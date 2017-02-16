@@ -4,7 +4,7 @@ import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
 import Network from '../../../../nanowallet/src/app/utils/Network';
 
 class TransferConfirmCtrl {
-    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $stateParams, $state, $ionicLoading, $timeout) {
+    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $stateParams, $state, $ionicLoading, $timeout, $scope, $ionicPopover) {
         'ngInject';
 
         // Alert service
@@ -21,6 +21,15 @@ class TransferConfirmCtrl {
         this._DataBridge = DataBridge;
         
         this._state = $state;
+
+        //menu
+        var template = '<ion-popover-view> <ion-content><div class="list"><a ui-sref="app.balance" class="item">Balance</a><a ui-sref="app.transfer" class="item">Transfer</a><a ui-sref="app.transactions" class="item">Transactions</a><a ui-sref="app.account" class="item">Account</a></div></ion-content></ion-popover-view>';
+
+        this.popover = $ionicPopover.fromTemplate(template, {
+            scope: $scope
+        });
+
+       
 
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
@@ -93,7 +102,21 @@ class TransferConfirmCtrl {
 
         this.updateFees();
     }
-
+    
+    /**
+     * openPopover() Opens popover
+     */
+    openPopover(event) {
+            this.popover.show(event);
+    };
+    
+    /**
+     * closePopover() Closes popover
+     */
+    
+    closePopover() {
+        this.popover.hide();
+    };
 
     /**
      * updateFees() Update transaction fee

@@ -4,7 +4,7 @@ import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
 import Network from '../../../../nanowallet/src/app/utils/Network';
 
 class TransferCtrl {
-    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $state, $ionicLoading, $timeout) {
+    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $state, $ionicLoading, $timeout,$ionicPopover,$scope) {
         'ngInject';
         // Alert service
         this._Alert = Alert;
@@ -19,6 +19,12 @@ class TransferCtrl {
         // DataBridge service
         this._DataBridge = DataBridge;
 
+        //menu
+        var template = '<ion-popover-view> <ion-content><div class="list"><a ui-sref="app.balance" class="item">Balance</a><a ui-sref="app.transfer" class="item">Transfer</a><a ui-sref="app.transactions" class="item">Transactions</a><a ui-sref="app.account" class="item">Account</a></div></ion-content></ion-popover-view>';
+
+        this.popover = $ionicPopover.fromTemplate(template, {
+            scope: $scope
+        });
 
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
@@ -87,6 +93,21 @@ class TransferCtrl {
         this.updateCurrentAccountMosaics();
 
     }
+
+    /**
+     * openPopover() Opens popover
+     */
+    openPopover(event) {
+            this.popover.show(event);
+    };
+    
+    /**
+     * closePopover() Closes popover
+     */
+    
+    closePopover() {
+        this.popover.hide();
+    };
 
     /**
      * processRecipientInput() Process recipient input and get data from network

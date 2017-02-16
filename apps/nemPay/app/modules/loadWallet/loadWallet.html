@@ -9,13 +9,13 @@
 
          <label class="item item-input item-md-label" type="text">
             <select selectclick ng-model="$ctrl.selectedWallet" ng-options="wallet.name group by (wallet.accounts[0].network | toNetworkName) for wallet in $ctrl._storage.wallets">
-               <option value="" disabled selected>{{ 'LOGIN_SELECT_WALLET' | translate }}</option>
+               <option value="" disabled selected>Select a wallet</option>
             </select>
          </label>
 
          <label class="item item-input item-md-label" placeholder="Wallet Password" highlight-color="energized" type="password">
             <input type="password" ng-model="$ctrl.common.password" placeholder="Wallet Password"  ng-keypress="$ctrl.onEnter($event)"/>
-            <div class="highlight highlight-energized"></div>
+            <div class="highlight highlight-nem"></div>
          </label>
       </div>
       <div style="padding: 12px;">
@@ -25,11 +25,12 @@
          </button>
       </div>
       <div class="padding">
-         <div class="fileUpload button button-small" style="background-color: transparent; color: #fff;">
+        <div class="form-group">
+         <button class="fileUpload btn-import" style="background-color: transparent; color: #fff; border: 0px; font-size: 16px; letter-spacing: 4px; text-transform: uppercase;">
             <span>{{ 'LOGIN_IMPORT_BUTTON' | translate }}</span>
             <input type="file" accept="*/*" class="upload" multiple='multiple' read-wallet-files="$ctrl.loadWallet($fileContent, $isNCC)" />
+         </button>
          </div>
-         <a id="downloadWallet" style="visibility:hidden" target="_blank"></a>
       </div>
    </div>
 </ion-content>
