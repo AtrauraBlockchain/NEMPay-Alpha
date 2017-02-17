@@ -41,14 +41,6 @@ class TransferCtrl {
         }
         this._state = $state;
 
-
-        $ionicLoading.show();
-
-         $timeout(function () {
-            $ionicLoading.hide();
-        }, 1000);
-
-
         /**
          * Default transfer transaction properties 
          */

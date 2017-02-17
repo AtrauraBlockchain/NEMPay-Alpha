@@ -38,11 +38,11 @@ class TransactionsCtrl {
             }
         }
 
-        $ionicLoading.show();
+       /* $ionicLoading.show();
 
         $timeout(function () {
             $ionicLoading.hide();
-        }, 1000);
+        }, 1000);*/
 
 
 

@@ -46,13 +46,6 @@ class TransferConfirmCtrl {
             }
         }
 
-        $ionicLoading.show();
-
-         $timeout(function () {
-            $ionicLoading.hide();
-        }, 1000);
-
-
         /**
          * Default transfer transaction properties 
          */
