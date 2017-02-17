@@ -48,6 +48,7 @@ import '../../nanowallet/src/app/modules/faq';
 
 
 import './components/';
+import './filters/';
 
 /* CUSTOM */
 import './modules/loadWallet';
@@ -105,6 +106,7 @@ const requires = [
 
     /* CUSTOM */
     'app.componentsnempay',
+    'app.filtersnempay',
     'app.loadWallet',
     'app.balance',
     'app.transactions',

@@ -208,36 +208,18 @@ h2 {
 .account-page b {
   color: #0090da; }
 
+#accountInfoQR img {
+  margin: 0 auto;
+  display: block; }
+
 /* TRANSACTIONS */
 .transactions-page {
   background-color: #fff; }
 
-.transactions-page button {
-  min-width: inherit;
-  width: inherit; }
+.transactions-page h2 {
+  display: inherit;
+  font-size: 22px;
+  color: #009688; }
 
-.transactions-page .list-group.list-group-root {
-  padding: 0;
-  overflow: hidden;
-  border-top: none;
-  margin-bottom: 0px; }
-
-.transactions-page .list-group.list-group-root .list-group {
-  margin-bottom: 0; }
-
-.transactions-page .list-group.list-group-root .well {
-  margin-bottom: 0px; }
-
-.transactions-page .list-group.list-group-root .list-group-item {
-  border-radius: 0;
-  border-width: 1px 0 0 0;
-  padding: 5px 15px; }
-
-.transactions-page .list-group.list-group-root > .list-group-item:first-child {
-  border-top-width: 0; }
-
-.transactions-page .list-group.list-group-root > .list-group > .list-group-item {
-  padding-left: 30px; }
-
-.transactions-page .list-group.list-group-root > .list-group > .list-group > .list-group-item {
-  padding-left: 45px; }
+.transactions-page .send-card h2 {
+  color: #F44336; }
