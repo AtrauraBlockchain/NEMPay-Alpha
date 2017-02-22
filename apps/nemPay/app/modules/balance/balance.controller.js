@@ -1,5 +1,5 @@
 class BalanceCtrl {
-    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $timeout, ionicMaterialInk, ionicMaterialMotion,$ionicPopover) {
+    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $timeout, ionicMaterialInk, ionicMaterialMotion,$ionicPopover,$ionicLoading) {
         'ngInject';
 
         // Alert service
@@ -14,8 +14,11 @@ class BalanceCtrl {
         this._Transactions = Transactions;
         // DataBridge service
         this._DataBridge = DataBridge;
+
         this._NetworkRequests = NetworkRequests;
         
+        this.showNotAssetMessage = false;
+
         //menu
         var template = '<ion-popover-view> <ion-content><div class="list"><a ui-sref="app.balance" class="item">Balance</a><a ui-sref="app.transfer" class="item">Transfer</a><a ui-sref="app.transactions" class="item">Transactions</a><a ui-sref="app.account" class="item">Account</a></div></ion-content></ion-popover-view>';
 
@@ -31,24 +34,30 @@ class BalanceCtrl {
 
         if(window.Connection) {
             if(navigator.connection.type == Connection.NONE) {
-            this._Alert.noInternet();
-            this._location.path('/');
-
+                this._Alert.noInternet();
+                this._location.path('/');
             }
         }
-    }
+
+        var wait = function(){
+            this.showNotAssetMessage = true;
+        }.bind(this);
+
+        $timeout(wait, 600);
+
+    };
         /**
      * openPopover() Opens popover
      */
-    openPopover(event) {
-            this.popover.show(event);
+     openPopover(event) {
+        this.popover.show(event);
     };
     
     /**
      * closePopover() Closes popover
      */
-    
-    closePopover() {
+
+     closePopover() {
         this.popover.hide();
     };
 

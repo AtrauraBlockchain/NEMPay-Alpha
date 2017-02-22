@@ -1,12 +1,11 @@
 <ion-content scroll="false">
    <div class="login-page text-center" style="background-image: url('images/bg-blue.jpg'); background-size: cover;">
-      <div class="hero no-header flat">
+      <div class="hero no-header flat hide-on-keyboard-open">
          <div class="content">
             <img class="logo" src="images/logo.png"/>
          </div>
       </div>
       <div class="list">
-
          <label class="item item-input item-md-label" type="text">
             <select selectclick ng-model="$ctrl.selectedWallet" ng-options="wallet.name group by (wallet.accounts[0].network | toNetworkName) for wallet in $ctrl._storage.wallets">
                <option value="" disabled selected>Select a wallet</option>
@@ -18,15 +17,16 @@
             <div class="highlight highlight-nem"></div>
          </label>
       </div>
-      <div style="padding: 12px;">
-         <button class="button button-block button-light waves-effect waves-button waves-light"
-            type="submit" ng-click="$ctrl.login($ctrl.selectedWallet)" ng-disabled="!$ctrl.selectedWallet" style="border-radius: 0px;">
+      <div class="small-padding">
+         <button class="button button-block button-light waves-effect waves-button waves-light border-radius-none"
+            type="submit" ng-click="$ctrl.login($ctrl.selectedWallet)" ng-disabled="!$ctrl.selectedWallet">
          {{ 'LOGIN_LOGIN_BUTTON' | translate }}
          </button>
       </div>
+
       <div class="padding">
         <div class="form-group">
-         <button class="fileUpload btn-import" style="background-color: transparent; color: #fff; border: 0px; font-size: 16px; letter-spacing: 4px; text-transform: uppercase;">
+         <button class="fileUpload btn-import">
             <span>{{ 'LOGIN_IMPORT_BUTTON' | translate }}</span>
             <input type="file" accept="*/*" class="upload" multiple='multiple' read-wallet-files="$ctrl.loadWallet($fileContent, $isNCC)" />
          </button>

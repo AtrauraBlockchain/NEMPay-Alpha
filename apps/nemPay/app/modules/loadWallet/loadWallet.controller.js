@@ -69,6 +69,7 @@ class LoadWalletCtrl {
         } else {
             // Set wallet in local storage
             this._storage.wallets = this._storage.wallets.concat(wallet);
+            this.selectedWallet = this._storage.wallets[0];
             this._Alert.loadWalletSuccess();
         }
     }

@@ -7,23 +7,28 @@
 <img class="logo-balance" src="images/logo.png"/>
 </div>
                 
-<ion-content class="has-header" style="top: 150px;">
+<ion-content class="has-header initial">
    <div class="page-balance">
       <div class="content" >
          <div class="list"  ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
             <div class="item item-avatar item-icon-right" ng-repeat="mos in $ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-               <img src="images/nem.png"/>
+
+               <img ng-src="images/assets/{{mos.mosaicId.name}}.png" ng-if="mos.mosaicId.name == 'xem' || mos.mosaicId.name == 'php' || mos.mosaicId.name == 'euro' || mos.mosaicId.name == 'usd'  || mos.mosaicId.name == 'sgd' || mos.mosaicId.name == 'thb' || mos.mosaicId.name == 'myr'"/>
+
+               <img ng-if="mos.mosaicId.name != 'xem' && mos.mosaicId.name != 'php' && mos.mosaicId.name != 'euro' &&  mos.mosaicId.name != 'usd'  &&  mos.mosaicId.name != 'sgd' && mos.mosaicId.name != 'thb' &&  mos.mosaicId.name != 'myr'" ng-src="images/assets/xem.png"/>
+
                <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[0]}}<span class="text-muted">.{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1]}}</span> <span class="mosaic-name">{{mos.mosaicId.name}}</span></h2>
                <p><b>{{mos.mosaicId.namespaceId}}</b>:{{mos.mosaicId.name}}</p>
             </div>
          </div>
          <div class="panel-body" ng-show="!$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-            <h2 style="margin-top: 40px; margin-bottom: 20px;" class="text-center">You don't have any assets yet!</h2>
-            <h4 class="text-center"><a href="#" onclick="window.open('https://www.nem.io/buy.html', '_blank');">Buy XEM</a></h4>
+            <h2>Loading...</h2>
+            <p ng-if="$ctrl.showNotAssetMessage" class="text-center no-assets-yet">You don't have any assets yet!</p>
+            </h4>
          </div>
       </div>
    </div>
 </ion-content>
- <div style="position: absolute; bottom: 0px; width: 100%;" ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-    <div style="float: right; margin-right: 18px; margin-bottom: 18px;"> <a ui-sref="app.transfer" class="button button-fab button-nem icon ion-paper-airplane" style="font-size: 50px;"></a></div>
+ <div class="button-bottom-container" ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
+    <div class="button-position"> <a ui-sref="app.transfer" class="button button-fab button-nem icon ion-paper-airplane"></a></div>
  </div>

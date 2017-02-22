@@ -22,6 +22,7 @@ function NemPayTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions
         template: '<ng-include src="templateUri"/>',
         link: (scope) => {
             if (scope.d.transaction.type == 4100) {
+                console.log(scope.d.transaction.type);
                 scope.tx = scope.d.transaction.otherTrans;
                 scope.meta = scope.d.meta;
                 scope.parent = scope.d.transaction;

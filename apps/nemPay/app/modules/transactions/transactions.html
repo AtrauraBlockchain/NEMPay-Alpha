@@ -22,14 +22,14 @@
     <tbody>
      <div ng-show="$ctrl.tabConfirmed">
       <div ng-repeat="tx in $ctrl._DataBridge.transactions | orderBy:'-transaction.timeStamp'">
-       <nempay-transaction d="tx" z="$ctrl._Wallet.currentAccount.address" h="$ctrl._DataBridge" tooltip-position="'left'"></nempay-transaction>
+       <nempay-transaction ng-if="tx.transaction.type == 257" d="tx" z="$ctrl._Wallet.currentAccount.address" h="$ctrl._DataBridge" tooltip-position="'left'"></nempay-transaction>
      </div>
    </div>
 </tbody>
 </table>
 
 <div class="panel-body" ng-show="$ctrl._DataBridge.transactions.length == 0 && $ctrl.tabConfirmed">
-  <p style="margin:0;">{{ 'GENERAL_NO_RESULTS' | translate }}</p>
+  <p>{{ 'GENERAL_NO_RESULTS' | translate }}</p>
 </div>
 
 </div>

@@ -29,12 +29,12 @@ Transfer</div>
          <p>{{$ctrl.formData.amount}} {{$ctrl.unit}}</p>
          <h4 class="nem-color">Fee</h4>
             <p class="text-muted">
-            <span style="margin-right:10px;">
+            <span class="margin-right-10">
                <!-- Multisig fee  -->
                <span ng-show="$ctrl.formData.isMultisig">{{($ctrl.formData.innerFee | fmtNemValue)[0]}}.{{($ctrl.formData.innerFee | fmtNemValue)[1]}} + 
                </span> 
                <!-- Transaction fee -->
-               <span style="color: #000">{{($ctrl.formData.fee | fmtNemValue)[0]}}.{{($ctrl.formData.fee | fmtNemValue)[1]}}  <span style="color: #fff">XEM</span> <span ng-show="$ctrl.formData.encryptMessage">(+ encryption fees)</span></span>
+               <span class="color-black">{{($ctrl.formData.fee | fmtNemValue)[0]}}.{{($ctrl.formData.fee | fmtNemValue)[1]}}  <span style="color: #fff">XEM</span> <span ng-show="$ctrl.formData.encryptMessage">(+ encryption fees)</span></span>
             </span>
          </p>
 

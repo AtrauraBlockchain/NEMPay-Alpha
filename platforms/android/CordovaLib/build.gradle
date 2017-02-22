@@ -21,11 +21,11 @@
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
+        jcenter();
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.2.1'
     }
 
 }

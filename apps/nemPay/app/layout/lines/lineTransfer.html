@@ -1,10 +1,10 @@
-<table id="txTable" class="table table-bordered table-hover" title="{{ 'TRANSFER_TRANSACTION_NAME' | translate }}" style="cursor:pointer;outline:0;margin-bottom:0;table-layout:fixed;min-height: 48px; margin: 16px; width: 100%;" ng-click="displayTransactionDetails(parent, tx, meta)">
+<table id="txTable" class="table table-bordered table-hover transaction-row" title="{{ 'TRANSFER_TRANSACTION_NAME' | translate }}" ng-click="displayTransactionDetails(parent, tx, meta)">
     <tbody style="outline:0;">
         <tr data-toggle="collapse" data-target="#table{{number}}" style="outline:0">
-            <td style="width: 100%; padding-right: 54px; padding-left:30px;">
+            <td>
                 <span ng-show="tx.mosaics.length">
             <span ng-repeat="mos in tx.mosaics">
-                <span><h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2> <span class="text-lowercase" style="font-weight: 200; font-size: 18px;">{{mos.mosaicId.name}}</span></span>
+                <span><h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2> <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span></span>
             </span>
                 </span>
                 <div ng-class="{'send-card': tx.recipient !== mainAccount && !parent}">
@@ -16,7 +16,7 @@
                         <span ng-show="tx.recipient === mainAccount">
                             <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>
                         </span>
-                        <span class="text-lowercase" style="font-weight: 200; font-size: 18px;"> xem</span>
+                        <span class="text-lowercase mosaic-name"> xem</span>
                     </span>
                     <span ng-show="parent">
                         <span ng-show="parent.otherTrans.recipient !== mainAccount">
@@ -25,7 +25,7 @@
                         <span ng-show="parent.otherTrans.recipient === mainAccount">
                             <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>
                         </span>
-                        <span class="text-lowercase" style="font-weight: 200; font-size: 18px;"> xem</span>
+                        <span class="text-lowercase mosaic-name"> xem</span>
                     </span>
                     <span class="pull-right">
                     {{tx.timeStamp | fmtNemPayDate}}
@@ -36,8 +36,9 @@
                     </div>
                     <div>
 
-                                <small style="overflow:hidden;text-overflow: ellipsis; white-space: nowrap;" ng-show="tx.recipient !== mainAccount && !parent"> <b>To:</b> {{tx.recipient | fmtAddress}}</small>
-            <small style="overflow:hidden;text-overflow: ellipsis;  white-space: nowrap;" ng-show="tx.recipient === mainAccount && !parent && !parent"><b>From:</b> {{tx.signer | fmtPubToAddress:networkId | fmtAddress}}</span></small>
+                                <small class="address"  ng-show="tx.recipient !== mainAccount && !parent"> <b>To:</b> {{tx.recipient | fmtAddress}}</small>
+
+            <small ng-class="selectable address" ng-show="tx.recipient === mainAccount && !parent && !parent"><b>From:</b> {{tx.signer | fmtPubToAddress:networkId | fmtAddress}}</span></small>
 
                     </div>
                 </span>
@@ -49,7 +50,6 @@
                     {{decoded | fmtHexMessage}}
                 </div>
             </td>-->
-            <td></td>
         </tr>
     </tbody>
 </table>

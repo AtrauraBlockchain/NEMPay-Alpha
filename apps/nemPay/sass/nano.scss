@@ -25,6 +25,13 @@ h2{
 	margin-top: 0px;
 }
 
+.color-black{
+  color: #000;
+}
+.border-radius-none{
+  border-radius: 0px;
+}
+
 .popover{
   height: 210px;
 }
@@ -66,10 +73,22 @@ h2{
 }
 
 /* SPACING */
+
+.has-header.initial{
+  top:150px;
+}
+
 .page-top-gap{
 	margin-top:20px;
 }
 
+.small-padding{
+  padding: 12px;
+}
+
+.margin-right-10{
+  margin-right:10px;
+}
 .gap{
 	margin-top: 20px;
 }
@@ -237,7 +256,14 @@ h2{
 .fileUpload {
     position: relative;
     overflow: hidden;
+    background-color: transparent; 
+    color: #fff;
+    border: 0px;
+    font-size: 16px;
+    letter-spacing: 4px; 
+    text-transform: uppercase;
 }
+
 .fileUpload input.upload {
     position: absolute;
     top: 0;
@@ -283,6 +309,27 @@ h2{
 	text-decoration: underline;
 }
 
+.no-assets-yet{
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+.button-bottom-container{
+  position: absolute; 
+  bottom: 0px; 
+  width: 100%;
+}
+
+.button-position{
+  float: right; 
+  margin-right: 18px; 
+  margin-bottom: 18px;
+}
+
+.button-position .button{
+  font-size: 50px;
+}
+
 /* TRANSFER */
 
 .page-transfer select{
@@ -296,6 +343,11 @@ h2{
 
 .account-page b{
 	color: $blue;
+}
+
+#accountInfoQR{
+  display: block;
+  margin: 0 auto;
 }
 
 #accountInfoQR img{
@@ -318,3 +370,30 @@ h2{
   color: $transationsent;
 }
 
+
+.transaction-row{
+  cursor:pointer;
+  outline:0;
+  margin-bottom:0;
+  table-layout:fixed;
+  min-height: 48px; 
+  margin: 16px; 
+  width: 100%;
+}
+
+.transaction-row td{
+  width: 100%; 
+  padding-right: 54px; 
+  padding-left:30px;;
+}
+
+.transaction-row .mosaic-name{
+  font-weight: 200; 
+  font-size: 18px;
+}
+
+.transaction-row .address{
+  overflow:hidden;
+  text-overflow: ellipsis;
+   white-space: nowrap;
+}

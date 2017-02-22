@@ -18,9 +18,9 @@
    <div class="container">
      <div class="content double-padding">
        <div class="account-page">
-        <div id="accountInfoQR" style="display: block; margin: 0 auto;"></div>
+        <div id="accountInfoQR"></div>
         <h4 class="nem-color">{{ 'GENERAL_ADDRESS' | translate }}</h4>
-        <p><span show-account-data="address"></span></p>
+        <p><span show-account-data="address" ng-class="selectable"></span></p>
       </div>
     </div>
   </div>

@@ -1,23 +1,18 @@
-function AppRun(AppConstants, $rootScope, $timeout, Wallet) {
+function AppRun(AppConstants, $rootScope, $timeout, Wallet,$ionicPlatform) {
     'ngInject';
 
-    // change page title based on state
-    $rootScope.$on('$stateChangeSuccess', (event, toState) => {
-        $rootScope.setPageTitle(toState.title);
-        $timeout( function() {
-            $('[data-toggle="tooltip"]').tooltip()
+        $ionicPlatform.ready(function () {
+            // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
+            // for form inputs)
+            if (window.cordova && window.cordova.plugins.Keyboard) {
+                cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
+            }
+            if (window.StatusBar) {
+                // org.apache.cordova.statusbar required
+                StatusBar.styleDefault();
+            }
         });
-    });
 
-    // Helper method for setting the page's title
-    $rootScope.setPageTitle = (title) => {
-        $rootScope.pageTitle = '';
-        if (title) {
-            $rootScope.pageTitle += title;
-            $rootScope.pageTitle += ' \u2014 ';
-        }
-        $rootScope.pageTitle += AppConstants.appName;
-    };
 }
 
 export default AppRun;
