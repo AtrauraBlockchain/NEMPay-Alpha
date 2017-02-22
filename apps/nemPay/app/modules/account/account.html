@@ -7,7 +7,7 @@
   </div> 
 </a>
 <div class="h1 title title-center light">
-  Transfer</div> 
+  Account</div> 
   <div class="buttons buttons-right header-item">
     <span class="right-buttons"> 
       <button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
@@ -21,6 +21,10 @@
         <div id="accountInfoQR"></div>
         <h4 class="nem-color">{{ 'GENERAL_ADDRESS' | translate }}</h4>
         <p><span show-account-data="address" ng-class="selectable"></span></p>
+        </br>
+        <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-positive button-nem ink">Share Address</button>
+
+
       </div>
     </div>
   </div>

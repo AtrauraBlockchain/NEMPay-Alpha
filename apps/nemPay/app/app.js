@@ -67,6 +67,7 @@ const requires = [
     'ionMdInput',
     'app.components',
     'app.filters',
+    'ngCordova',
     //'app.home',
     'app.dashboard',
     'app.transferTransaction',

@@ -27,6 +27,12 @@
         },
         "ionic-plugin-keyboard": {
             "PACKAGE_NAME": "com.atraura.nanowalletmobile"
+        },
+        "com.verso.cordova.clipboard": {
+            "PACKAGE_NAME": "com.atraura.nanowalletmobile"
+        },
+        "cordova-plugin-x-socialsharing": {
+            "PACKAGE_NAME": "com.atraura.nanowalletmobile"
         }
     },
     "dependent_plugins": {}

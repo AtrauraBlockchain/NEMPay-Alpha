@@ -3,7 +3,7 @@ import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
 import Network from '../../../../nanowallet/src/app/utils/Network';
 
 class AccountCtrl {
-    constructor(AppConstants, $localStorage, $location, Alert, Wallet, Connector, DataBridge, $timeout, $ionicPopover, $scope) {
+    constructor(AppConstants, $localStorage, $location, Alert, Wallet, Connector, DataBridge, $timeout, $ionicPopover, $scope, $cordovaSocialSharing,ngToast) {
         'ngInject';
 
         // Application constants
@@ -23,12 +23,17 @@ class AccountCtrl {
         // $timeout for async digest
         this._$timeout = $timeout;
 
+        this._$cordovaSocialSharing = $cordovaSocialSharing;
+
+        this._ngToast = ngToast;
+
 
          //menu
-        var template = '<ion-popover-view> <ion-content><div class="list"><a ui-sref="app.balance" class="item">Balance</a><a ui-sref="app.transfer" class="item">Transfer</a><a ui-sref="app.transactions" class="item">Transactions</a><a ui-sref="app.account" class="item">Account</a></div></ion-content></ion-popover-view>';
+        var template = '<ion-popover-view> <ion-content><div class="list" ng-click="popover.hide();"><a ui-sref="app.balance" class="item">Balance</a><a ui-sref="app.transfer" class="item">Transfer</a><a ui-sref="app.transactions" class="item">Transactions</a><a ui-sref="app.account" class="item">Account</a></div></ion-content></ion-popover-view>';
 
         this.popover = $ionicPopover.fromTemplate(template, {
-            scope: $scope
+            scope: $scope,
+            popover: this.popover
         });
 
         // Default account properties
@@ -296,6 +301,12 @@ class AccountCtrl {
         };
         this.showPrivateKeyField = false;
         this.newAccountLabel = "";
+    }
+
+    shareAnywhere(){
+
+        this._$cordovaSocialSharing.share(this._Wallet.currentAccount.address, "My Wallet address", "", "");
+
     }
 
 

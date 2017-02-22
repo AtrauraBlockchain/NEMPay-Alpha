@@ -20,6 +20,11 @@
 		BAB268AFD8AE4472BC38B167 /* CDVSplashScreen.m in Sources */ = {isa = PBXBuildFile; fileRef = 87C6D25FF9EB4F22A88E7D4D /* CDVSplashScreen.m */; };
 		C449B17C47EB4AE9B9F390EE /* CDVViewController+SplashScreen.m in Sources */ = {isa = PBXBuildFile; fileRef = 67902CE19D424508B8255190 /* CDVViewController+SplashScreen.m */; };
 		CA8BBCB6049E45ABB861553B /* CDVInAppBrowser.m in Sources */ = {isa = PBXBuildFile; fileRef = C37C06A364E54CCFACFB14D4 /* CDVInAppBrowser.m */; };
+		59852EFB1FFF4E9EB79377B3 /* CDVClipboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B5E33AE39144E0598F6E182 /* CDVClipboard.m */; };
+		70EBF43039CB440DA0545983 /* NSString+URLEncoding.m in Sources */ = {isa = PBXBuildFile; fileRef = 6255417168AD4F3EA4B24FEE /* NSString+URLEncoding.m */; };
+		48E8E4BB9CE0401B992C44FC /* SocialSharing.m in Sources */ = {isa = PBXBuildFile; fileRef = 0C01D5CAA335416D87EEF131 /* SocialSharing.m */; };
+		9D2D90BC88DC44EF9CAAA2CD /* Social.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E1300779C2542B6943F649F /* Social.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		1545FEAB7ADB49C4B8D46549 /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D7D9BED8D7F74048A3318C7E /* MessageUI.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +79,14 @@
 		EB87FDF41871DAF40020F90C /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = config.xml; path = ../../config.xml; sourceTree = "<group>"; };
 		ED33DF2A687741AEAF9F8254 /* Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
 		F840E1F0165FE0F500CFE078 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = config.xml; path = nempay/config.xml; sourceTree = "<group>"; };
+		2B5E33AE39144E0598F6E182 /* CDVClipboard.m */ = {isa = PBXFileReference; name = "CDVClipboard.m"; path = "com.verso.cordova.clipboard/CDVClipboard.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
+		B4BD11E3E81B4CF58FA6F440 /* CDVClipboard.h */ = {isa = PBXFileReference; name = "CDVClipboard.h"; path = "com.verso.cordova.clipboard/CDVClipboard.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
+		6255417168AD4F3EA4B24FEE /* NSString+URLEncoding.m */ = {isa = PBXFileReference; name = "NSString+URLEncoding.m"; path = "cordova-plugin-x-socialsharing/NSString+URLEncoding.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
+		0C01D5CAA335416D87EEF131 /* SocialSharing.m */ = {isa = PBXFileReference; name = "SocialSharing.m"; path = "cordova-plugin-x-socialsharing/SocialSharing.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
+		FCF83D56D40244F4AD64F47B /* NSString+URLEncoding.h */ = {isa = PBXFileReference; name = "NSString+URLEncoding.h"; path = "cordova-plugin-x-socialsharing/NSString+URLEncoding.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
+		A9E6DF4D8546437DA82A461C /* SocialSharing.h */ = {isa = PBXFileReference; name = "SocialSharing.h"; path = "cordova-plugin-x-socialsharing/SocialSharing.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
+		9E1300779C2542B6943F649F /* Social.framework */ = {isa = PBXFileReference; name = "Social.framework"; path = "System/Library/Frameworks/Social.framework"; sourceTree = SDKROOT; fileEncoding = undefined; lastKnownFileType = wrapper.framework; explicitFileType = undefined; includeInIndex = 0; };
+		D7D9BED8D7F74048A3318C7E /* MessageUI.framework */ = {isa = PBXFileReference; name = "MessageUI.framework"; path = "System/Library/Frameworks/MessageUI.framework"; sourceTree = SDKROOT; fileEncoding = undefined; lastKnownFileType = wrapper.framework; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +95,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				301BF552109A68D80062928A /* libCordova.a in Frameworks */,
+				9D2D90BC88DC44EF9CAAA2CD /* Social.framework in Frameworks */,
+				1545FEAB7ADB49C4B8D46549 /* MessageUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -152,6 +167,8 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9E1300779C2542B6943F649F /* Social.framework */,
+				D7D9BED8D7F74048A3318C7E /* MessageUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -191,6 +208,12 @@
 				766CBFC633144F25BE017EE6 /* CDVStatusBar.h */,
 				B039DD7C80354B32B301C3E6 /* IonicKeyboard.m */,
 				90D7D8EB8D334BDC9B1D5914 /* IonicKeyboard.h */,
+				2B5E33AE39144E0598F6E182 /* CDVClipboard.m */,
+				B4BD11E3E81B4CF58FA6F440 /* CDVClipboard.h */,
+				6255417168AD4F3EA4B24FEE /* NSString+URLEncoding.m */,
+				0C01D5CAA335416D87EEF131 /* SocialSharing.m */,
+				FCF83D56D40244F4AD64F47B /* NSString+URLEncoding.h */,
+				A9E6DF4D8546437DA82A461C /* SocialSharing.h */,
 			);
 			name = Plugins;
 			path = nempay/Plugins;
@@ -318,6 +341,9 @@
 				C449B17C47EB4AE9B9F390EE /* CDVViewController+SplashScreen.m in Sources */,
 				3F47E5A12DD84B688C334598 /* CDVStatusBar.m in Sources */,
 				4A25FA7363CC40DB987DCF82 /* IonicKeyboard.m in Sources */,
+				59852EFB1FFF4E9EB79377B3 /* CDVClipboard.m in Sources */,
+				70EBF43039CB440DA0545983 /* NSString+URLEncoding.m in Sources */,
+				48E8E4BB9CE0401B992C44FC /* SocialSharing.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

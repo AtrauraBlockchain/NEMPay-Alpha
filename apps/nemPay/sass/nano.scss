@@ -16,6 +16,9 @@ html {
 
 
 /* GENERAL */
+* {
+  font-family: "-apple-system", "Helvetica Neue", "Roboto", "Segoe UI", sans-serif;
+}
 
 hr {
 	border-color: #444;
@@ -370,6 +373,13 @@ h2{
   color: $transationsent;
 }
 
+.transactions-page h2:before{
+  content: '+';
+}
+
+.transactions-page .send-card h2:before{
+  content: '-';
+}
 
 .transaction-row{
   cursor:pointer;
