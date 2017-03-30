@@ -1,38 +1,38 @@
 <div class="bar bar-header bar-nem">
-  <a ui-sref="app.balance">
-   <div class="buttons buttons-left header-item">
-    <button class="button button-icon button-clear ion-navicon">
-    </button>
+    <a ui-sref="app.balance">
+        <div class="buttons buttons-left header-item">
+            <button class="button button-icon button-clear ion-navicon">
+            </button>
 
-  </div> 
-</a>
-<div class="h1 title title-center light">
-  Transactions</div> 
-  <div class="buttons buttons-right header-item">
+        </div>
+    </a>
+    <div class="h1 title title-center light">
+        Transactions</div>
+    <div class="buttons buttons-right header-item">
     <span class="right-buttons"> 
       <button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
-    </div> 
-  </div>
-
-  <ion-content class="has-header">
-   <div class="transactions-page">
-    <div class="content" >
-
-  <table class="table">
-    <tbody>
-     <div ng-show="$ctrl.tabConfirmed">
-      <div ng-repeat="tx in $ctrl._DataBridge.transactions | orderBy:'-transaction.timeStamp'">
-       <nempay-transaction ng-if="tx.transaction.type == 257" d="tx" z="$ctrl._Wallet.currentAccount.address" h="$ctrl._DataBridge" tooltip-position="'left'"></nempay-transaction>
-     </div>
-   </div>
-</tbody>
-</table>
-
-<div class="panel-body" ng-show="$ctrl._DataBridge.transactions.length == 0 && $ctrl.tabConfirmed">
-  <p>{{ 'GENERAL_NO_RESULTS' | translate }}</p>
+    </div>
 </div>
 
-</div>
-</div>
-</div>
+<ion-content class="has-header">
+    <div class="transactions-page">
+        <div class="content" >
+
+            <table class="table">
+                <tbody>
+                <div ng-show="$ctrl.tabConfirmed">
+                    <div ng-repeat="tx in $ctrl._DataBridge.transactions | orderBy:'-transaction.timeStamp'">
+                        <nempay-transaction ng-if="tx.transaction.type == 257" d="tx" z="$ctrl._Wallet.currentAccount.address" h="$ctrl._DataBridge" tooltip-position="'left'"></nempay-transaction>
+                    </div>
+                </div>
+                </tbody>
+            </table>
+
+            <div class="panel-body" ng-show="$ctrl._DataBridge.transactions.length == 0 && $ctrl.tabConfirmed">
+                <p>{{ 'GENERAL_NO_RESULTS' | translate }}</p>
+            </div>
+
+        </div>
+    </div>
+    </div>
 </ion-content>

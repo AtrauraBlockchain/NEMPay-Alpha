@@ -1,5 +1,5 @@
 <ion-content scroll="false">
-   <div class="login-page text-center" style="background-image: url('images/bg-blue.jpg'); background-size: cover;">
+   <div class="login-page text-center" style="background-color: #434F66; background-size: cover;">
       <div class="hero no-header flat hide-on-keyboard-open">
          <div class="content">
             <img class="logo" src="images/logo-b.png"/>
@@ -18,19 +18,29 @@
          </label>
       </div>
       <div class="small-padding">
-         <button class="button button-block button-light waves-effect waves-button waves-light border-radius-none"
-            type="submit" ng-click="$ctrl.login($ctrl.selectedWallet)" ng-disabled="!$ctrl.selectedWallet">
-         {{ 'LOGIN_LOGIN_BUTTON' | translate }}
+         <button class="button button-block button-light border-radius-none"
+                 type="submit" ng-click="$ctrl.login($ctrl.selectedWallet)" ng-disabled="!$ctrl.selectedWallet">
+            {{ 'LOGIN_LOGIN_BUTTON' | translate }}
          </button>
       </div>
 
-      <div class="padding">
-        <div class="form-group">
-         <button class="fileUpload btn-import">
-            <span>{{ 'LOGIN_IMPORT_BUTTON' | translate }}</span>
-            <input type="file" accept="*/*" class="upload" multiple='multiple' read-wallet-files="$ctrl.loadWallet($fileContent, $isNCC)" />
-         </button>
-         </div>
+
+      <div class="small-padding">
+         <a  ui-sref="app.register" class="button button-block button-light button-outline-light border-radius-none" style="display: block;"
+             type="submit" ng-click="$ctrl.login($ctrl.selectedWallet)">
+            SIGN UP
+         </a>
       </div>
+
+
+      <div class="padding">
+         <a class="form-group">
+            <a class="fileUpload btn-import" ui-sref="app.register">
+               <span>{{ 'LOGIN_IMPORT_BUTTON' | translate }}</span>
+               <input type="file" accept="*/*" class="upload" multiple='multiple' read-wallet-files="$ctrl.loadWallet($fileContent, $isNCC)" />
+            </a>
+         </a>
+      </div>
+
    </div>
 </ion-content>

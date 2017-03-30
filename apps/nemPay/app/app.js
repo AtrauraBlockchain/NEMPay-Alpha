@@ -57,6 +57,7 @@ import './modules/transactions';
 import './modules/transfer';
 import './modules/transferConfirm';
 import './modules/account';
+import './modules/register';
 
 // Create and bootstrap application
 const requires = [
@@ -114,6 +115,7 @@ const requires = [
     'app.transfer',
     'app.account',
     'app.transferConfirm',
+    'app.register'
 
 ];
 

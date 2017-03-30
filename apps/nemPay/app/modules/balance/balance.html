@@ -1,12 +1,12 @@
 <div class="bar bar-header bar-nem long">
-<div class="h1 title title-center light"></div> 
-<div class="buttons buttons-right header-item">
+   <div class="h1 title title-center light"></div>
+   <div class="buttons buttons-right header-item">
 <span class="right-buttons"> 
 <button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
-</div> 
-<img class="logo-balance" src="images/logo.png"/>
+   </div>
+   <img class="logo-balance" src="images/logo.png"/>
 </div>
-                
+
 <ion-content class="has-header initial">
    <div class="page-balance">
       <div class="content" >
@@ -21,14 +21,9 @@
                <p><b>{{mos.mosaicId.namespaceId}}</b>:{{mos.mosaicId.name}}</p>
             </div>
          </div>
-         <div class="panel-body" ng-show="!$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-            <h2>Loading...</h2>
-            <p ng-if="$ctrl.showNotAssetMessage" class="text-center no-assets-yet">You don't have any assets yet!</p>
-            </h4>
-         </div>
       </div>
    </div>
 </ion-content>
- <div class="button-bottom-container" ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
-    <div class="button-position"> <a ui-sref="app.transfer" class="button button-fab button-nem icon ion-paper-airplane"></a></div>
- </div>
+<div class="button-bottom-container" ng-show="$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]">
+   <div class="button-position"> <a ui-sref="app.transfer" class="button button-fab button-nem icon ion-paper-airplane"></a></div>
+</div>

@@ -1,0 +1,230 @@
+<div class="bar bar-header bar-nem">
+  <a ui-sref="app.loadWallet">
+    <div class="buttons buttons-left header-item">
+      <button class="button button-icon button-clear ion-navicon">
+      </button>
+
+    </div>
+  </a>
+  <div class="h1 title title-center light">
+    Register</div>
+</div>
+
+<ion-content class="has-header">
+  <div class="register-page">
+
+    <div class="loading-overlay" ng-show="$ctrl.okPressed">
+      <div class="loader text-center">
+        <img src="images/logomark.png" class="loader-image"/>
+        <p class="loading-text">{{ 'GENERAL_PROCESSING' | translate }}</p>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div ng-show="$ctrl._selectedType.type == 1">
+        <!-- SIMPLE WALLET -->
+        <form>
+          <!-- WALLET NAME -->
+
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'FORM_WALLET_NAME_FIELD_PLACEHOLDER' | translate}}</span>
+            <input type="text" placeholder="{{'FORM_WALLET_NAME_FIELD_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.walletName"/>
+          </label>
+
+          <!-- SELECT NETWORK -->
+
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'SIGNUP_NETWORK_SELECT' | translate}}</span>
+            <select ng-model="$ctrl.network"
+                    ng-change="$ctrl.changeNetwork($ctrl.network)"
+                    ng-options="network.id as (network.id | toNetworkName) for network in $ctrl.networks">
+              <option value="" disabled selected>{{'SIGNUP_NETWORK_SELECT' | translate}}</option>
+            </select>
+          </label>
+
+          <!-- PASSWORD FIELD -->
+
+
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{ 'FORM_PASSWORD' | translate }}</span>
+            <input type="password"
+                   placeholder="{{'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.password" ng-model="$ctrl.formData.password"/>
+          </label>
+
+
+          <!-- PASSWORD FIELD CONFIRM -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">Confirm {{ 'FORM_PASSWORD' | translate }}:</span>
+            <input type="password"
+                   placeholder="{{'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.confirmPassword"/>
+          </label>
+
+          <!-- SIMPLE WALLET WARNING -->
+          <p class="bg-info">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span ng-bind-html="'SIGNUP_CREATE_WALLET_WARNING' | translate"></span>
+          </p>
+
+          <div class="small-padding">
+            <button class="button button-block button-positive button-nem ink"
+                    type="submit" ng-click="$ctrl.createWallet()">
+              {{'SIGNUP_CREATE_WALLET_BUTTON' | translate}}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div ng-show="$ctrl._selectedType.type == 2">
+        <!-- BRAIN WALLET -->
+        <form>
+
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'FORM_WALLET_NAME_FIELD_PLACEHOLDER' | translate}}</span>
+            <input type="text"
+                   placeholder="{{'FORM_WALLET_NAME_FIELD_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.walletName"/>
+          </label>
+
+
+          <!-- SELECT NETWORK -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'SIGNUP_NETWORK_SELECT' | translate}}</span>
+            <select ng-model="$ctrl.network"
+                    ng-change="$ctrl.changeNetwork($ctrl.network)"
+                    ng-options="network.id as (network.id | toNetworkName) for network in $ctrl.networks">
+              <option value="" disabled selected>{{'SIGNUP_NETWORK_SELECT' | translate}}</option>
+            </select>
+          </label>
+
+          <!-- PASSWORD FIELD -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{ 'FORM_PASSWORD' | translate }}</span>
+            <input type="password"
+                   placeholder="{{'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.password" ng-model="$ctrl.formData.password"/>
+          </label>
+
+
+          <!-- PASSWORD FIELD CONFIRM -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">Confirm {{ 'FORM_PASSWORD' | translate }}:</span>
+            <input type="password"
+                   placeholder="{{'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.confirmPassword"/>
+          </label>
+          <!-- BRAIN WALLET WARNING -->
+          <p class="bg-info">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span ng-bind-html="'SIGNUP_BRAIN_WALLET_WARNING' | translate"></span>
+          </p>
+          <!-- CONFIRM BUTTON -->
+          <div class="small-padding">
+
+            <button class="button button-block button-positive button-nem ink"
+                    type="submit" ng-click="$ctrl.createBrainWallet()">
+              {{'SIGNUP_BRAIN_WALLET_BUTTON' | translate}}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div ng-show="$ctrl._selectedType.type == 3">
+        <!-- PRIVATE KEY WALLET -->
+        <form>
+
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'FORM_WALLET_NAME_FIELD_PLACEHOLDER' | translate}}</span>
+            <input type="text"
+                   placeholder="{{'FORM_WALLET_NAME_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.walletName"/>
+          </label>
+
+
+          <!-- ADDRESS TO ADD -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'FORM_ADDRESS_FIELD_PLACEHOLDER' | translate}}</span>
+            <input type="text"
+                   placeholder="{{'FORM_ADDRESS_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.address" />
+
+          </label>
+
+          <!-- PRIVATE KEY OF ADDRESS TO ADD -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER' | translate}}</span>
+            <input type="password"
+                   placeholder="{{'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.privateKey" />
+
+          </label>
+
+
+
+          <!-- SELECT NETWORK -->
+          <!-- SELECT NETWORK -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{'SIGNUP_NETWORK_SELECT' | translate}}</span>
+            <select ng-model="$ctrl.network"
+                    ng-change="$ctrl.changeNetwork($ctrl.network)"
+                    ng-options="network.id as (network.id | toNetworkName) for network in $ctrl.networks">
+              <option value="" disabled selected>{{'SIGNUP_NETWORK_SELECT' | translate}}</option>
+            </select>
+          </label>
+
+          <!-- PASSWORD FIELD -->
+
+          <label class="item item-input item-floating-label">
+            <span class="input-label">{{ 'FORM_PASSWORD' | translate }}</span>
+            <input type="password"
+                   placeholder="{{'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.password" ng-model="$ctrl.formData.password"/>
+          </label>
+
+
+          <!-- PASSWORD FIELD CONFIRM -->
+          <label class="item item-input item-floating-label">
+            <span class="input-label">Confirm {{ 'FORM_PASSWORD' | translate }}:</span>
+            <input type="password"
+                   placeholder="{{'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER' | translate}}"
+                   ng-model="$ctrl.formData.confirmPassword"/>
+          </label>
+
+          <!-- PRIVATE KEY WALLET WARNING -->
+          <p class="bg-info">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span ng-bind-html="'SIGNUP_PRIVATE_KEY_WALLET_WARNING' | translate"></span>
+          </p>
+
+
+          <!-- CONFIRM BUTTON -->
+          <div class="small-padding">
+            <button class="button button-block button-positive button-nem"
+                    type="submit"
+                    ng-click="$ctrl.createPrivateKeyWallet()">
+              {{'SIGNUP_PRIVATE_KEY_WALLET_BUTTON' | translate}}
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <a id="downloadWallet" target="_blank"></a>
+</ion-content>
+
+<div class="tabs">
+
+  <ion-tabs class="tabs-positive  tabs-nem tabs-icon-top">
+
+    <ion-tab title="{{'SIGNUP_CREATE_WALLET_TITLE' | translate}}" ng-click="$ctrl.changeWalletType(1)" icon-on="ion-ios-filing" icon-off="ion-ios-filing-outline"></ion-tab>
+
+    <ion-tab title="{{'SIGNUP_BRAIN_WALLET_TITLE' | translate}}" ng-click="$ctrl.changeWalletType(2)" icon-on="ion-ios-clock" icon-off="ion-ios-clock-outline"></ion-tab>
+
+    <ion-tab title="{{'SIGNUP_PRIVATE_KEY_WALLET_TITLE' | translate}}" ng-click="$ctrl.changeWalletType(3)" icon-on="ion-ios-gear" icon-off="ion-ios-gear-outline"></ion-tab>
+
+  </ion-tabs>
+
+</div>

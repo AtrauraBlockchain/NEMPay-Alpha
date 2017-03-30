@@ -16,7 +16,7 @@ class BalanceCtrl {
         this._DataBridge = DataBridge;
 
         this._NetworkRequests = NetworkRequests;
-        
+
         this.showNotAssetMessage = false;
 
         //menu
@@ -38,26 +38,30 @@ class BalanceCtrl {
                 this._location.path('/');
             }
         }
-
-        var wait = function(){
+/*
+        $ionicLoading.show({
+            template: '<h3 class="text-center">Loading...</h3>',
+            duration: 600
+        }).then(function(){
             this.showNotAssetMessage = true;
-        }.bind(this);
+        });
+*/
 
-        $timeout(wait, 600);
+        //$timeout(wait, 600);
 
     };
-        /**
+    /**
      * openPopover() Opens popover
      */
-     openPopover(event) {
+    openPopover(event) {
         this.popover.show(event);
     };
-    
+
     /**
      * closePopover() Closes popover
      */
 
-     closePopover() {
+    closePopover() {
         this.popover.hide();
     };
 
