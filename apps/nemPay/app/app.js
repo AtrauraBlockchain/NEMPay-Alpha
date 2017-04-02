@@ -22,29 +22,29 @@ import 'angular-mocks';
 import './app.templates';
 
 // Import our app functionalities
-import '../../nanowallet/src/app/layout';
+// import '../../nanowallet/src/app/layout';
 import '../../nanowallet/src/app/components';
 import '../../nanowallet/src/app/filters';
 import '../../nanowallet/src/app/services';
 
 
 // Import our app modules
-//import '../../nanowallet/src/app/modules/home';
-import '../../nanowallet/src/app/modules/dashboard';
-import '../../nanowallet/src/app/modules/signup';
-import '../../nanowallet/src/app/modules/login';
+// //import '../../nanowallet/src/app/modules/home';
+// import '../../nanowallet/src/app/modules/dashboard';
+// import '../../nanowallet/src/app/modules/signup';
+// import '../../nanowallet/src/app/modules/login';
 import '../../nanowallet/src/app/modules/languages';
-import '../../nanowallet/src/app/modules/transferTransaction';
-import '../../nanowallet/src/app/modules/portal';
-import '../../nanowallet/src/app/modules/apostille';
-import '../../nanowallet/src/app/modules/account';
-import '../../nanowallet/src/app/modules/multisignature';
-import '../../nanowallet/src/app/modules/namespaces';
-import '../../nanowallet/src/app/modules/mosaics';
-import '../../nanowallet/src/app/modules/explorer';
-import '../../nanowallet/src/app/modules/importanceTransfer';
-import '../../nanowallet/src/app/modules/changelly';
-import '../../nanowallet/src/app/modules/faq';
+// import '../../nanowallet/src/app/modules/transferTransaction';
+// import '../../nanowallet/src/app/modules/portal';
+// import '../../nanowallet/src/app/modules/apostille';
+// import '../../nanowallet/src/app/modules/account';
+// import '../../nanowallet/src/app/modules/multisignature';
+// import '../../nanowallet/src/app/modules/namespaces';
+// import '../../nanowallet/src/app/modules/mosaics';
+// import '../../nanowallet/src/app/modules/explorer';
+// import '../../nanowallet/src/app/modules/importanceTransfer';
+// import '../../nanowallet/src/app/modules/changelly';
+// import '../../nanowallet/src/app/modules/faq';
 
 
 import './components/';
@@ -63,39 +63,39 @@ import './modules/register';
 const requires = [
     'ui.router',
     'templates',
-    'app.layout',
+    // 'app.layout',
     'ionic-material', 
     'ionMdInput',
     'app.components',
     'app.filters',
     'ngCordova',
     //'app.home',
-    'app.dashboard',
-    'app.transferTransaction',
-    'app.createMultisig',
-    'app.editMultisig',
-    'app.namespaces',
-    'app.renewNamespaces',
-    'app.createMosaic',
-    'app.editMosaic',
-    'app.portal',
-    'app.explorerHome',
-    'app.explorerApostilles',
-    'app.explorerNamespacesMosaics',
-    'app.accountsExplorer',
-    'app.signup',
-    'app.login',
+    // 'app.dashboard',
+    // 'app.transferTransaction',
+    // 'app.createMultisig',
+    // 'app.editMultisig',
+    // 'app.namespaces',
+    // 'app.renewNamespaces',
+    // 'app.createMosaic',
+    // 'app.editMosaic',
+    // 'app.portal',
+    // 'app.explorerHome',
+    // 'app.explorerApostilles',
+    // 'app.explorerNamespacesMosaics',
+    // 'app.accountsExplorer',
+    // 'app.signup',
+    // 'app.login',
     'app.services',
-    'app.faq',
-    'app.account',
-    'app.createApostille',
-    'app.auditApostille',
-    'app.apostilleHistory',
-    'app.apostilleMessage',
-    'app.transferApostille',
-    'app.updateApostille',
-    'app.importanceTransfer',
-    'app.multisigImportanceTransfer',
+    // 'app.faq',
+    // 'app.account',
+    // 'app.createApostille',
+    // 'app.auditApostille',
+    // 'app.apostilleHistory',
+    // 'app.apostilleMessage',
+    // 'app.transferApostille',
+    // 'app.updateApostille',
+    // 'app.importanceTransfer',
+    // 'app.multisigImportanceTransfer',
     'ngAnimate',
     'ngSanitize',
     'ngToast',
@@ -103,7 +103,7 @@ const requires = [
     'chart.js',
     'pascalprecht.translate',
     'app.lang',
-    'app.changelly',
+    // 'app.changelly',
 
 
     /* CUSTOM */

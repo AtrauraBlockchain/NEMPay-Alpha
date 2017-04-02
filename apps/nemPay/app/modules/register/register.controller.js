@@ -3,7 +3,7 @@ import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
 import Network from '../../../../nanowallet/src/app/utils/Network';
 
 class RegisterCtrl {
-    constructor(AppConstants, $state, Alert, WalletBuilder, $localStorage, $timeout) {
+    constructor(AppConstants, $state, Alert, WalletBuilder, $localStorage, $timeout,$ionicLoading) {
         'ngInject';
 
         //Local storage
@@ -27,6 +27,8 @@ class RegisterCtrl {
         this._storage.wallets = this._storage.wallets || [];
         // Needed to prevent user to click twice on send when already processing
         this.okPressed = false;
+
+        this.ionicLoading = $ionicLoading;
 
         // Wallet types
         this.walletTypes = [{
@@ -116,6 +118,7 @@ class RegisterCtrl {
         }
 
         this.okPressed = true;
+        this.ionicLoading.show();
 
         // Create the wallet from form data
         return this._WalletBuilder.createWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
@@ -130,6 +133,7 @@ class RegisterCtrl {
                 this.download(wallet);
                 console.log(this._storage.wallets);
                 this.okPressed = false;
+                this.ionicLoading.hide();
                 // Redirect to login
                 this._$state.go("app.loadWallet");
             }
@@ -138,6 +142,7 @@ class RegisterCtrl {
         (err) => {
             this._Alert.createWalletFailed(err);
             this.okPressed = false;
+            this.ionicLoading.hide();
         });
     }
 
@@ -164,6 +169,7 @@ class RegisterCtrl {
         }
 
         this.okPressed = true;
+        this.ionicLoading.show();
 
         // Create the wallet from form data
         return this._WalletBuilder.createBrainWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
@@ -178,6 +184,8 @@ class RegisterCtrl {
                 this.download(wallet)
                 console.log(this._storage.wallets);
                 this.okPressed = false;
+                this.ionicLoading.hide();
+
                 // Redirect to login
                 this._$state.go("app.loadWallet");
             }
@@ -186,6 +194,8 @@ class RegisterCtrl {
         (err) => {
             this._Alert.createWalletFailed(err);
             this.okPressed = false;
+            this.ionicLoading.hide();
+
         });
     }
 
@@ -218,6 +228,7 @@ class RegisterCtrl {
         }
 
         this.okPressed = true;
+        this.ionicLoading.show();
 
         // Create the wallet from form data
         return this._WalletBuilder.createPrivateKeyWallet(this.formData.walletName, this.formData.password, this.formData.address, this.formData.privateKey, this.network).then((wallet) => {
@@ -240,6 +251,8 @@ class RegisterCtrl {
         (err) => {
             this._Alert.createWalletFailed(err);
             this.okPressed = false;
+            this.ionicLoading.hide();
+
         });
     }
 

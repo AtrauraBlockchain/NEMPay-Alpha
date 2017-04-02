@@ -38,14 +38,12 @@ class BalanceCtrl {
                 this._location.path('/');
             }
         }
-/*
         $ionicLoading.show({
             template: '<h3 class="text-center">Loading...</h3>',
             duration: 600
         }).then(function(){
             this.showNotAssetMessage = true;
         });
-*/
 
         //$timeout(wait, 600);
 

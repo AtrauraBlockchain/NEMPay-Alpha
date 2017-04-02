@@ -127,9 +127,9 @@ gulp.task('build', ['html', 'browserify'], function() {
 // Run Tasks
 gulp.task('default', ['html','js', 'sass', 'images', 'browserify'], function() {
 
-  gulp.watch("apps/nanowallet/index.html", ['html']);
-  gulp.watch("apps/nanowallet/sass/**/*.scss", ['sass']);
-  gulp.watch(viewFiles, ['views']);
-  gulp.watch(jsFiles, ['browserify']);
+  gulp.watch("www/index.html", ['html']);
+  gulp.watch("apps/nempay/sass/**/*.scss", ['sass']);
+  gulp.watch(viewFiles2, ['views']);
+  gulp.watch(jsFiles2, ['browserify']);
 
 });
