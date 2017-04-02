@@ -306,9 +306,14 @@ h2{
     margin: 0 auto;
     display: block;
 }
+
+.page-balance .item-avatar{
+  padding-left: 60px !important;
+}
+
 .page-balance .item-avatar img{
 	border-radius: 0px !important;
-  left: 30px !important;
+    left: 0px !important;
 }
 
 .page-balance h2{

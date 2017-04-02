@@ -220,9 +220,12 @@ h2 {
   margin: 0 auto;
   display: block; }
 
+.page-balance .item-avatar {
+  padding-left: 60px !important; }
+
 .page-balance .item-avatar img {
   border-radius: 0px !important;
-  left: 30px !important; }
+  left: 0px !important; }
 
 .page-balance h2 {
   font-size: 22px; }
@@ -294,13 +297,10 @@ h2 {
   margin-bottom: 0;
   table-layout: fixed;
   min-height: 48px;
-  margin: 16px;
   width: 100%; }
 
 .transaction-row td {
-  width: 100%;
-  padding-right: 54px;
-  padding-left: 30px; }
+  width: 100%; }
 
 .transaction-row .mosaic-name {
   font-weight: 200;
