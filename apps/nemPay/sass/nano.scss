@@ -1,6 +1,5 @@
 $blue: rgb(0, 144, 218);
-$main: #3e65ac;
-$secondary: #273238;
+$main: #434F66;
 
 $transactionreceive: #009688;
 
@@ -71,8 +70,8 @@ h2 {
 }
 
 .bar-nem {
-  border-color: $secondary;
-  background-color: $secondary;
+  border-color: $main;
+  background-color: $main;
   background-image: linear-gradient(0deg, #273238, #273238 50%, transparent 50%);
   color: #fff;
 }
@@ -160,7 +159,7 @@ h2 {
 /* LOAD WALLET */
 .login-page {
   height: 100vh;
-  background-color: $secondary;
+  background-color: $main;
   background-size: cover;
 }
 
@@ -424,7 +423,7 @@ h2 {
 }
 
 .tabs-nem > .tabs {
-  border-color: $secondary !important;
-  background-color: $secondary !important;
-  background-image: linear-gradient(0deg, $secondary, $secondary 50%, transparent 50%) !important;
+  border-color: $main !important;
+  background-color: $main !important;
+  background-image: linear-gradient(0deg, $main, $main 50%, transparent 50%) !important;
 }
