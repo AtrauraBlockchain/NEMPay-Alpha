@@ -7,7 +7,9 @@ function TransactionsConfig($stateProvider) {
             controller: 'TransactionsCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/transactions/transactions.html',
-            title: 'Transactions Board'
+            title: 'Transactions',
+            activetab: 'transactions'
+
         });
 
 };

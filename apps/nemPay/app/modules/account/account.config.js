@@ -7,7 +7,8 @@ function AccountConfig($stateProvider) {
             controller: 'AccountCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/account/account.html',
-            title: 'Account'
+            title: 'Account',
+            activetab: 'account'
         });
 
 };

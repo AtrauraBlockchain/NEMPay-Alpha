@@ -49,6 +49,7 @@ import '../../nanowallet/src/app/modules/languages';
 
 import './components/';
 import './filters/';
+import './layout/';
 
 /* CUSTOM */
 import './modules/loadWallet';
@@ -63,7 +64,7 @@ import './modules/register';
 const requires = [
     'ui.router',
     'templates',
-    // 'app.layout',
+    'app.layout',
     'ionic-material', 
     'ionMdInput',
     'app.components',

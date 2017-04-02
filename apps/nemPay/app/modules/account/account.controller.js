@@ -28,14 +28,6 @@ class AccountCtrl {
         this._ngToast = ngToast;
 
 
-         //menu
-        var template = '<ion-popover-view> <ion-content><div class="list" ng-click="popover.hide();"><a ui-sref="app.balance" class="item">Balance</a><a ui-sref="app.transfer" class="item">Transfer</a><a ui-sref="app.transactions" class="item">Transactions</a><a ui-sref="app.account" class="item">Account</a></div></ion-content></ion-popover-view>';
-
-        this.popover = $ionicPopover.fromTemplate(template, {
-            scope: $scope,
-            popover: this.popover
-        });
-
         // Default account properties
         this.selectedWallet = '';
         this.moreThanOneAccount = false;
@@ -114,23 +106,6 @@ class AccountCtrl {
         this.encodeQrCode(this.walletString, "wallet");
         this.encodeQrCode(this.accountString, "accountInfo");
     }
-
-
-    /**
-     * openPopover() Opens popover
-     */
-    openPopover(event) {
-            this.popover.show(event);
-    };
-    
-    /**
-     * closePopover() Closes popover
-     */
-    
-    closePopover() {
-        this.popover.hide();
-    };
-
 
     /**
      * Generate the mobile wallet QR

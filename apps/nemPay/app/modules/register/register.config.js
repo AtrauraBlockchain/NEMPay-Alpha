@@ -7,7 +7,9 @@ function RegisterConfig($stateProvider) {
             controller: 'RegisterCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/register/register.html',
-            title: 'Register'
+            title: 'Register',
+            activetab: 'register'
+
         });
 
 };

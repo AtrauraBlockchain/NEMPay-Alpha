@@ -7,7 +7,8 @@ function TransferConfirmConfig($stateProvider) {
             controller: 'TransferConfirmCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/transferConfirm/transferConfirm.html',
-            title: 'Send & Receive'
+            title: 'Transfer',
+            activetab: 'transferConfirm'
         });
 
 };

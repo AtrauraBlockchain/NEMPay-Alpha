@@ -1,9 +1,10 @@
-import Network from '../utils/Network';
-import helpers from '../utils/helpers';
-import Nodes from '../utils/nodes';
+import Newtork from '../../../nanowallet/src/app/utils/Network';
+import helpers from '../../../nanowallet/src/app/utils/helpers';
+import nodes from '../../../nanowallet/src/app/utils/nodes';
+
 
 class AppHeaderCtrl {
-    constructor(AppConstants, Alert, $localStorage, $translate, Wallet, $scope, $location, Connector, DataBridge, $filter) {
+    constructor(AppConstants, Alert, $localStorage, $translate, Wallet, $location, Connector, DataBridge, $filter,$ionicPopover,$state, $scope) {
         'ngInject';
 
         // Navbar app name
@@ -35,29 +36,47 @@ class AppHeaderCtrl {
         // Available languages
         this.languages = AppConstants.languages;
 
+        // Popover
+        var template = '<ion-popover-view> ' +
+            '<ion-content>' +
+            '<div class="list" ng-click="$ctrl.closePopover()">' +
+            '<a ui-sref="app.balance" class="item">Balance</a>' +
+            '<a ui-sref="app.transfer" class="item">Transfer</a>' +
+            '<a ui-sref="app.transactions" class="item">Transactions</a>' +
+            '<a ui-sref="app.account" class="item">Account</a>' +
+            '</div>' +
+            '</ion-content>' +
+            '</ion-popover-view>';
+
+        this.popover = $ionicPopover.fromTemplate(template, {
+            scope: $scope
+        });
+
+        //route
+        this.route = $state;
         /**
          * Watch if a wallet is set and set the right nodes
          */
         $scope.$watch('Wallet.current', (val) => {
             if (!val) {
-                return;
-            }
+            return;
+        }
 
-            // Show right nodes list according to network
-            if (Wallet.network == Network.data.Mainnet.id) {
-                this.nodes = Nodes.mainnetNodes;
-            } else if (Wallet.network == Network.data.Testnet.id) {
-                this.nodes = Nodes.testnetNodes;
-            } else {
-                this.nodes = Nodes.mijinNodes;
-            }
+        // Show right nodes list according to network
+        if (Wallet.network == Network.data.Mainnet.id) {
+            this.nodes = Nodes.mainnetNodes;
+        } else if (Wallet.network == Network.data.Testnet.id) {
+            this.nodes = Nodes.testnetNodes;
+        } else {
+            this.nodes = Nodes.mijinNodes;
+        }
 
-            // Get default node
-            this.currentNode = Wallet.node;
+        // Get default node
+        this.currentNode = Wallet.node;
 
-            // Set wallet name
-            this.walletName = val.name;
-        });
+        // Set wallet name
+        this.walletName = val.name;
+    });
 
         /**
          * Fix dropdown closing if click on select
@@ -73,7 +92,7 @@ class AppHeaderCtrl {
      */
     purge() {
         if (confirm(this._$filter('translate')('HEADER_PURGE_MESSAGE')) == true) {
-           this._storage.wallets = [];
+            this._storage.wallets = [];
             this._Alert.successPurge();
         } else {
             this._Alert.purgeCancelled();
@@ -165,6 +184,21 @@ class AppHeaderCtrl {
         }, this._Wallet.currentAccount.address);
         this._DataBridge.openConnection(connector);
     }
+
+    /**
+     * openPopover() Opens popover
+     */
+    openPopover(event) {
+        this.popover.show(event);
+    };
+
+    /**
+     * closePopover() Closes popover
+     */
+
+    closePopover() {
+        this.popover.hide();
+    };
 
 }
 

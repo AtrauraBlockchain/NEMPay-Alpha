@@ -7,7 +7,9 @@ function TransferConfig($stateProvider) {
             controller: 'TransferCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/transfer/transfer.html',
-            title: 'Send & Receive'
+            title: 'Transfer',
+            activetab: 'transfer'
+
         });
 
 };

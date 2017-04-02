@@ -16,14 +16,6 @@ class TransactionsCtrl {
         this._DataBridge = DataBridge;
         this._NetworkRequests = NetworkRequests;
 
-
-        //menu
-        var template = '<ion-popover-view> <ion-content><div class="list"><a ui-sref="app.balance" class="item">Balance</a><a ui-sref="app.transfer" class="item">Transfer</a><a ui-sref="app.transactions" class="item">Transactions</a><a ui-sref="app.account" class="item">Account</a></div></ion-content></ion-popover-view>';
-
-        this.popover = $ionicPopover.fromTemplate(template, {
-            scope: $scope
-        });
-
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
             this._Alert.noWalletLoaded();
@@ -105,20 +97,6 @@ class TransactionsCtrl {
         }
 
     }
-    /**
-     * openPopover() Opens popover
-     */
-    openPopover(event) {
-            this.popover.show(event);
-    };
-    
-    /**
-     * closePopover() Closes popover
-     */
-    
-    closePopover() {
-        this.popover.hide();
-    };
 
     /**
      * refreshMarketInfo() Fetch data from CoinMarketCap api to refresh market information

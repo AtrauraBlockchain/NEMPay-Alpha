@@ -1,0 +1,31 @@
+<div class="bar bar-header bar-nem" ng-show="$ctrl.route.current.activetab != 'loadWallet' && $ctrl.route.current.activetab != 'balance'">
+    <a ui-sref="app.balance">
+        <div class="buttons buttons-left header-item">
+            <button class="button button-icon button-clear ion-navicon">
+            </button>
+
+        </div>
+    </a>
+    <div class="h1 title title-center light">
+        {{$ctrl.route.current.title}}
+    </div>
+    <div class="buttons buttons-right header-item">
+    <span class="right-buttons" ng-show="$ctrl.route.current.activetab != 'register'">
+      <button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
+    </div>
+</div>
+
+{{$ctrl.route.current.activetab}}
+
+
+<div class="bar bar-header bar-nem long" ng-show="$ctrl.route.current.activetab == 'balance'">
+    <div class="h1 title title-center light"></div>
+    <div class="buttons buttons-right header-item">
+<span class="right-buttons">
+<button class="button button-icon button-clear ion-android-more-vertical" ng-click="$ctrl.openPopover($event)"> </button> </span>
+    </div>
+    <img class="logo-balance" src="images/logo.png"/>
+</div>
+
+
+

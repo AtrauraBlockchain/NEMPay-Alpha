@@ -7,7 +7,9 @@ function BalanceConfig($stateProvider) {
             controller: 'BalanceCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/balance/balance.html',
-            title: 'Balance'
+            title: 'Balance',
+            activetab: 'balance'
+
         });
 
 };

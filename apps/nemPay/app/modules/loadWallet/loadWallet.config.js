@@ -7,7 +7,9 @@ function LoadWalletConfig($stateProvider) {
             controller: 'LoadWalletCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/loadWallet/loadWallet.html',
-            title: 'Load Wallet'
+            title: 'Load Wallet',
+            activetab: 'loadWallet'
+
         });
 
 };
