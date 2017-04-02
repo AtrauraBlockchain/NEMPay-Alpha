@@ -28,6 +28,7 @@ class RegisterCtrl {
         // Needed to prevent user to click twice on send when already processing
         this.okPressed = false;
 
+        //Ionic Loader
         this.ionicLoading = $ionicLoading;
 
         // Wallet types

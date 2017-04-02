@@ -55,14 +55,14 @@ h2 {
   color: #fff; }
 
 .bar-nem.long {
-  height: 150px; }
+  height: 150px !important; }
 
 .buttons-left button {
   top: 5px; }
 
 /* SPACING */
 .has-header.initial {
-  top: 150px; }
+  top: 150px !important; }
 
 .page-top-gap {
   margin-top: 20px; }
@@ -262,9 +262,6 @@ h2 {
 
 /* TRANSFER CONFIRM */
 /* ACCOUNT */
-.account-page b {
-  color: #0090da; }
-
 #accountInfoQR {
   display: block;
   margin: 0 auto; }
@@ -279,12 +276,13 @@ h2 {
 
 .transactions-page h2 {
   display: inherit;
-  font-size: 22px;
-  color: #009688; }
+  font-size: 22px; }
 
+/*
 .transactions-page .send-card h2 {
-  color: #F44336; }
-
+  color: $transationsent;
+}
+*/
 .transactions-page h2:before {
   content: '+'; }
 
