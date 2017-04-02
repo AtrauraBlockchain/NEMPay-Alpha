@@ -21,7 +21,7 @@
                 </div>
             </td>
             <td></td>
-            <td>{{tx.timeStamp |  fmtNemDate}}</td>
+            <td>{{tx.timeStamp |  fmtNemPayDate}}</td>
         </tr>
         </tody>
 </table>
@@ -142,7 +142,7 @@
                 <div class="row">
                     <div class="col-sm-1">&nbsp;</div>
                     <div class="col-sm-3"><b>{{ 'LINE_TX_DETAILS_TIMESTAMP' | translate }}</b></div>
-                    <div class="col-sm-8">{{sig.timeStamp |  fmtNemDate}}</div>
+                    <div class="col-sm-8">{{sig.timeStamp |  fmtNemPayDate}}</div>
                 </div>
             </div>
 

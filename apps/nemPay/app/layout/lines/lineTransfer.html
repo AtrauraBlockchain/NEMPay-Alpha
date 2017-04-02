@@ -1,56 +1,63 @@
 <table id="txTable" class="table table-bordered table-hover transaction-row" title="{{ 'TRANSFER_TRANSACTION_NAME' | translate }}" ng-click="displayTransactionDetails(parent, tx, meta)">
    <tbody style="outline:0;">
-      <tr data-toggle="collapse" data-target="#table{{number}}" style="outline:0">
-         <td>
-            <span ng-show="tx.mosaics.length">
-               <span ng-repeat="mos in tx.mosaics">
-                  <span>
-                     <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2>
-                     <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>
+   <tr data-toggle="collapse" data-target="#table{{number}}" style="outline:0">
+      <td>
+         <span ng-show="tx.mosaics.length">
+            <span ng-repeat="mos in tx.mosaics">
+               <span>
+                  <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2>
+                  <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>
+                   <span class="pull-right" ng-show="tx.mosaics.length">
+                  {{tx.timeStamp | fmtNemPayDate}}
+                  <span ng-repeat="sig in parent.signatures">
+                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>
+                  </span>
+               </span>
+               </span>
+            </span>
+         </span>
+         <div ng-class="{'send-card': tx.recipient !== mainAccount && !parent}" class="transition-card">
+            <span ng-hide="tx.mosaics.length">
+               <span ng-show="!parent">
+                  <span ng-show="tx.recipient !== mainAccount">
+                     <h2>{{((tx.amount+tx.fee) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount+tx.fee) | fmtNemValue)[1]}}</span></h2>
+                  </span>
+                  <span ng-show="tx.recipient === mainAccount">
+                     <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>
+                  </span>
+                  <span class="text-lowercase mosaic-name"> xem</span>
+               </span>
+               <span ng-show="parent">
+                  <span ng-show="parent.otherTrans.recipient !== mainAccount">
+                     <h2> {{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[1]}}</span></h2>
+                  </span>
+                  <span ng-show="parent.otherTrans.recipient === mainAccount">
+                     <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>
+                  </span>
+                  <span class="text-lowercase mosaic-name"> xem</span>
+               </span>
+               <span class="pull-right">
+                  {{tx.timeStamp | fmtNemPayDate}}
+                  <span ng-repeat="sig in parent.signatures">
+                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>
                   </span>
                </span>
             </span>
-            <div ng-class="{'send-card': tx.recipient !== mainAccount && !parent}" class="transition-card">
-               <span ng-hide="tx.mosaics.length">
-                  <span ng-show="!parent">
-                     <span ng-show="tx.recipient !== mainAccount">
-                        <h2>{{((tx.amount+tx.fee) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount+tx.fee) | fmtNemValue)[1]}}</span></h2>
-                     </span>
-                     <span ng-show="tx.recipient === mainAccount">
-                        <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>
-                     </span>
-                     <span class="text-lowercase mosaic-name"> xem</span>
-                  </span>
-                  <span ng-show="parent">
-                     <span ng-show="parent.otherTrans.recipient !== mainAccount">
-                        <h2> {{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[1]}}</span></h2>
-                     </span>
-                     <span ng-show="parent.otherTrans.recipient === mainAccount">
-                        <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class="text-muted">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>
-                     </span>
-                     <span class="text-lowercase mosaic-name"> xem</span>
-                  </span>
-                  <span class="pull-right">
-                  {{tx.timeStamp | fmtNemPayDate}}
-                  <span ng-repeat="sig in parent.signatures">
-                  <span>{{sig.timeStamp |  fmtNemDate}}</span>
-                  </span>
-                  </span>
-            </div>
-            <div>
+         </div>
+         <div>
             <small class="address"  ng-show="tx.recipient !== mainAccount && !parent"> <b>To:</b> {{tx.recipient | fmtAddress | limitTo: 15}} ...</small>
             <small class="selectable address" ng-show="tx.recipient === mainAccount && !parent && !parent"><b>From:</b> {{tx.signer | fmtPubToAddress:networkId | fmtAddress | limitTo: 15}} ...</span></small>
-            </div>
-            <div>
-               <span  ng-show="tx.message.type === 1">{{tx.message | fmtHexMessage}}</span>
-               <span ng-show="tx.message.type === 2" id="line-{{tx.timeStamp}}">
-                  {{ 'LINE_TX_DETAILS_MESS_ENC' | translate }}
-                  <div ng-show="!requiresKey">
-                     {{decoded | fmtHexMessage}}
-                  </div>
-               </span>
-            </div>
-         </td>
-      </tr>
+         </div>
+         <div>
+            <span  ng-show="tx.message.type === 1">{{tx.message | fmtHexMessage}}</span>
+            <span ng-show="tx.message.type === 2" id="line-{{tx.timeStamp}}">
+               {{ 'LINE_TX_DETAILS_MESS_ENC' | translate }}
+               <div ng-show="!requiresKey">
+                  {{decoded | fmtHexMessage}}
+               </div>
+            </span>
+         </div>
+      </td>
+   </tr>
    </tbody>
 </table>
