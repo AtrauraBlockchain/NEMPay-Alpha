@@ -10,10 +10,7 @@
                                 <span class="input-label">To</span>
                                 <input type="text" placeholder="{{'FORM_RECIPIENT_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.rawRecipient" ng-model-options="{debounce:3000}" ng-change="$ctrl.processRecipientInput()"/>
                             </label>
-                        </div>
-                        <div ng-show="$ctrl.showAlias" class="gap">
-                            <label class="item item-input item-floating-label">
-                                <span class="input-label">Alias</span>
+                            <label class="item item-input item-floating-label" ng-show="$ctrl.showAlias" class="gap">
                                 <input type="text" placeholder="Alias" type="text" ng-model="$ctrl.aliasAddress" readOnly/>
                             </label>
                         </div>

@@ -48,7 +48,10 @@ class TransferConfirmCtrl {
         this.formData.recipient = $stateParams.to;
         console.log($stateParams.to);
         this.formData.recipientPubKey = '';
-        this.formData.message = $stateParams.message;
+        if($stateParams.message){
+            this.formData.message =    $stateParams.message;
+        }
+        else this.formData.message = '';
         this.formData.amount = $stateParams.amount;
         this.formData.fee = 0;
         this.formData.encryptMessage = false;
