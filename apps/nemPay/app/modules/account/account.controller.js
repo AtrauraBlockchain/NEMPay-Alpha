@@ -20,7 +20,7 @@ class AccountCtrl {
         this._WalletBuilder = WalletBuilder;
 
         // $location to redirect
-        this._location = $location;
+        this._$location = $location;
         //Local storage
         this._storage = $localStorage;
         // Alert service
@@ -51,7 +51,7 @@ class AccountCtrl {
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
             this._Alert.noWalletLoaded();
-            this._location.path('/');
+            this._$location.path('/');
             return;
         }
 
@@ -250,7 +250,7 @@ class AccountCtrl {
     });
 
         // Redirect to dashboard
-        this._location.path('/dashboard');
+        this._$location.path('/dashboard');
     }
 
     /**
@@ -465,10 +465,28 @@ class AccountCtrl {
     });
     }
 
+    /**
+     * logout() Delete current wallet stored in Wallet service and redirect to home logged out
+     */
+    logout() {
+        // Close connector
+        this._DataBridge.connector.close();
+        // Set connection status to false
+        this._DataBridge.connectionStatus = false;
+        // Show success alert
+        this._Alert.successLogout();
+        // Reset data in DataBridge service
+        this._DataBridge.reset();
+        // Reset data in Wallet service
+        this._Wallet.reset();
+        // Redirect to home
+        this._$location.path('/')
+    }
+
+
     shareAnywhere(){
 
         this._$cordovaSocialSharing.share(this._Wallet.currentAccount.address, "My Wallet address", "", "");
-
     }
 
 }

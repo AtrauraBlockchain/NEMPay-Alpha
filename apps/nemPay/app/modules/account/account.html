@@ -6,13 +6,10 @@
                     <div id="accountInfoQR"></div>
                     <h4>{{ 'GENERAL_ADDRESS' | translate }}</h4>
                     <p><span show-account-data="address" ng-class="selectable"></span></p>
-                    </br>
-                    <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-positive button-nem ink">Share Address</button
-                    </br>
                     <h4>{{ 'ACCOUNT_ALIAS_TITLE' | translate }}</h4>
                     <div class="form-group">
-                        <p class="bg-info"><span ng-bind-html="'ACCOUNT_ALIAS_NOTE' | translate"></span>
-                            <br/><small>Cost: ~500 XEM/Year</small><br/><small style="color:red">This operation can only be done <b>ONCE</b> per account</small></p>
+                        <p class="bg-info">
+                            <small>Cost: ~500 XEM/Year</small><br/><small style="color:red">This operation can only be done <b>ONCE</b> per account</small></p>
                         <div class="input-group" ng-if="!$ctrl.showAliasField">
                             <!-- PASSWORD -->
                             <span class="input-group-btn "><label>{{ 'FORM_PASSWORD' | translate }}:</label></span>
@@ -28,6 +25,11 @@
                             <span ng-if="!$ctrl.hasAlias" class="input-group-btn showHide"><button class="btn btn-primary" type="button" ng-show="$ctrl.aliasSpinningButton" ng-disabled='true'><i class="fa fa-spinner"></i></button><button class="btn btn-primary" type="button" ng-show="!$ctrl.aliasSpinningButton" ng-click="$ctrl.setAlias()" ng-disabled="$ctrl.disableAliasSave" title="{{ 'ACCOUNT_ALIAS_SET' | translate }}"><i class="fa fa-floppy-o"></i></button></span>
                         </div>
                     </div>
+                    </br>
+                    <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-positive button-nem">Share Address</button
+                    </br>
+                    <button  ng-click="$ctrl.logout()" class="button button-block button-positive button-nem">Logout</button
+                    </br>
                 </div>
             </div>
         </div>
