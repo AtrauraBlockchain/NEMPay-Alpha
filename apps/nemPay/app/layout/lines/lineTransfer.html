@@ -45,8 +45,8 @@
             </span>
          </div>
          <div>
-            <small class="address"  ng-show="tx.recipient !== mainAccount && !parent"> <b>To:</b> {{tx.recipient | fmtAddress | limitTo: 15}} ...</small>
-            <small class="selectable address" ng-show="tx.recipient === mainAccount && !parent && !parent"><b>From:</b> {{tx.signer | fmtPubToAddress:networkId | fmtAddress | limitTo: 15}} ...</span></small>
+            <small class="address"  ng-show="tx.recipient !== mainAccount && !parent"> <b>To:</b> <span  ng-bind-html='tx.recipient | fmtAlias'></span></small>
+            <small class="selectable address" ng-show="tx.recipient === mainAccount && !parent && !parent"><b>From:</b>  <span ng-bind-html='tx.signer | fmtPubToAddress:networkId | fmtAlias'></span></small>
          </div>
          <div>
             <span  ng-show="tx.message.type === 1">{{tx.message | fmtHexMessage}}</span>

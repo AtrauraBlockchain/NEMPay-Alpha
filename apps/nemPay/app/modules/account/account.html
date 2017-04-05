@@ -1,17 +1,35 @@
 <ion-content class="has-header">
- <div class="page-account">
-   <div class="container">
-     <div class="content double-padding">
-       <div class="account-page">
-        <div id="accountInfoQR"></div>
-        <h4 class="nem-color">{{ 'GENERAL_ADDRESS' | translate }}</h4>
-        <p><span show-account-data="address" ng-class="selectable"></span></p>
-        </br>
-        <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-positive button-nem ink">Share Address</button>
+    <div class="page-account">
+        <div class="container">
+            <div class="content double-padding">
+                <div class="account-page">
+                    <div id="accountInfoQR"></div>
+                    <h4>{{ 'GENERAL_ADDRESS' | translate }}</h4>
+                    <p><span show-account-data="address" ng-class="selectable"></span></p>
+                    </br>
+                    <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-positive button-nem ink">Share Address</button
+                    </br>
+                    <h4>{{ 'ACCOUNT_ALIAS_TITLE' | translate }}</h4>
+                    <div class="form-group">
+                        <p class="bg-info"><span ng-bind-html="'ACCOUNT_ALIAS_NOTE' | translate"></span>
+                            <br/><small>Cost: ~500 XEM/Year</small><br/><small style="color:red">This operation can only be done <b>ONCE</b> per account</small></p>
+                        <div class="input-group" ng-if="!$ctrl.showAliasField">
+                            <!-- PASSWORD -->
+                            <span class="input-group-btn "><label>{{ 'FORM_PASSWORD' | translate }}:</label></span>
+                            <input class="form-control" type="password" ng-model="$ctrl.common.password" placeholder="{{'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}"/>
+                            <span class="input-group-btn showHide"><button class="btn btn-primary" type="button" ng-click="$ctrl.showAlias()" title="{{'ACCOUNT_ALIAS_SHOW' | translate }}"><i class="fa fa-plus"></i></button></span>
+                        </div>
+                        <div class="input-group" ng-if="$ctrl.showAliasField">
+                            <!-- ALIAS -->
+                            <span class="input-group-btn"><label>Alias: </label></span>
+                            <!-- New alias field -->
+                            <input class="form-control" type="text" ng-model="$ctrl.alias" placeholder="alias" ng-model-options="{debounce:500}" ng-change="$ctrl.isAliasAvaliable()" ng-readonly="$ctrl.hasAlias"/>
 
-
-      </div>
+                            <span ng-if="!$ctrl.hasAlias" class="input-group-btn showHide"><button class="btn btn-primary" type="button" ng-show="$ctrl.aliasSpinningButton" ng-disabled='true'><i class="fa fa-spinner"></i></button><button class="btn btn-primary" type="button" ng-show="!$ctrl.aliasSpinningButton" ng-click="$ctrl.setAlias()" ng-disabled="$ctrl.disableAliasSave" title="{{ 'ACCOUNT_ALIAS_SET' | translate }}"><i class="fa fa-floppy-o"></i></button></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 </ion-content>

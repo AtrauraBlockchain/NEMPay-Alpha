@@ -8,8 +8,10 @@ function TransferConfig($stateProvider) {
             controllerAs: '$ctrl',
             templateUrl: 'modules/transfer/transfer.html',
             title: 'Transfer',
-            activetab: 'transfer'
-
+            activetab: 'transfer',
+            params: {
+                address: ''
+            }
         });
 
 };

@@ -33,6 +33,60 @@ exports.default = AppBackground;
 },{}],2:[function(require,module,exports){
 'use strict';
 
+importAddressBookFile.$inject = ["$parse", "Alert"];
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _helpers = require('../utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function importAddressBookFile($parse, Alert) {
+    'ngInject';
+
+    return {
+        restrict: 'A',
+        scope: false,
+        link: function link(scope, element, attrs) {
+            var fn = $parse(attrs.importAddressBookFile);
+
+            element.on('change', function (onChangeEvent) {
+
+                for (var i = 0; i < (onChangeEvent.srcElement || onChangeEvent.target).files.length; i++) {
+                    var reader = new FileReader();
+                    reader.onload = function (file) {
+                        return function (onLoadEvent) {
+                            scope.$apply(function () {
+                                fn(scope, {
+                                    $fileContent: onLoadEvent.target.result
+                                });
+                            });
+                        };
+                    }((onChangeEvent.srcElement || onChangeEvent.target).files[i]);
+
+                    if (_helpers2.default.getExtension((onChangeEvent.srcElement || onChangeEvent.target).files[i].name) == "adb") {
+                        console.log("Loading file");
+                        reader.readAsText((onChangeEvent.srcElement || onChangeEvent.target).files[i]);
+                    } else {
+                        console.log("Invalid file format");
+                        scope.$apply(function () {
+                            Alert.invalidAddressBookFile();
+                        });
+                    }
+                }
+            });
+        }
+    };
+}
+
+exports.default = importAddressBookFile;
+
+},{"../utils/helpers":39}],3:[function(require,module,exports){
+'use strict';
+
 ImportApostilleFiles.$inject = ["$parse", "Alert"];
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -61,7 +115,13 @@ function ImportApostilleFiles($parse, Alert) {
                         };
                     }((onChangeEvent.srcElement || onChangeEvent.target).files[i]);
 
-                    reader.readAsDataURL((onChangeEvent.srcElement || onChangeEvent.target).files[i]);
+                    if ((onChangeEvent.srcElement || onChangeEvent.target).files[i].size / 1000000 > 100) {
+                        scope.$apply(function () {
+                            Alert.fileSizeError((onChangeEvent.srcElement || onChangeEvent.target).files[i].name);
+                        });
+                    } else {
+                        reader.readAsDataURL((onChangeEvent.srcElement || onChangeEvent.target).files[i]);
+                    }
                 }
             });
         }
@@ -70,7 +130,7 @@ function ImportApostilleFiles($parse, Alert) {
 
 exports.default = ImportApostilleFiles;
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 importNtyFile.$inject = ["$parse", "Alert"];
@@ -124,7 +184,7 @@ function importNtyFile($parse, Alert) {
 
 exports.default = importNtyFile;
 
-},{"../utils/helpers":35}],4:[function(require,module,exports){
+},{"../utils/helpers":39}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -175,6 +235,10 @@ var _importNtyFile = require('./importNtyFile.directive');
 
 var _importNtyFile2 = _interopRequireDefault(_importNtyFile);
 
+var _importAddressBookFile = require('./importAddressBookFile.directive');
+
+var _importAddressBookFile2 = _interopRequireDefault(_importAddressBookFile);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // Create the module where our functionality can attach to
@@ -220,9 +284,13 @@ componentsModule.directive('importApostilleFiles', _importApostilleFiles2.defaul
 
 componentsModule.directive('importNtyFile', _importNtyFile2.default);
 
+// Set import-address-book-file directive
+
+componentsModule.directive('importAddressBookFile', _importAddressBookFile2.default);
+
 exports.default = componentsModule;
 
-},{"./appBackground.directive":1,"./importApostilleFiles.directive":2,"./importNtyFile.directive":3,"./readWalletFiles.directive":5,"./show-authed.directive":6,"./showAccountData.directive":7,"./showBlockHeight.directive":8,"./showNetworkStatus.directive":9,"./tagLevy.directive":10,"./tagTransaction.directive":11,"angular":80}],5:[function(require,module,exports){
+},{"./appBackground.directive":1,"./importAddressBookFile.directive":2,"./importApostilleFiles.directive":3,"./importNtyFile.directive":4,"./readWalletFiles.directive":6,"./show-authed.directive":7,"./showAccountData.directive":8,"./showBlockHeight.directive":9,"./showNetworkStatus.directive":10,"./tagLevy.directive":11,"./tagTransaction.directive":12,"angular":84}],6:[function(require,module,exports){
 'use strict';
 
 ReadWalletFiles.$inject = ["$parse", "Alert"];
@@ -283,7 +351,7 @@ function ReadWalletFiles($parse, Alert) {
 
 exports.default = ReadWalletFiles;
 
-},{"../utils/helpers":35}],6:[function(require,module,exports){
+},{"../utils/helpers":39}],7:[function(require,module,exports){
 'use strict';
 
 ShowAuthed.$inject = ["Wallet"];
@@ -327,7 +395,7 @@ function ShowAuthed(Wallet) {
 
 exports.default = ShowAuthed;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 ShowAccountData.$inject = ["DataBridge", "$filter"];
@@ -347,7 +415,7 @@ function ShowAccountData(DataBridge, $filter) {
                     if (attrs.showAccountData === 'balance') {
                         element.html("<span><b>" + $filter('fmtNemValue')(val.account.balance)[0] + "." + $filter('fmtNemValue')(val.account.balance)[1] + " XEM</b></span>");
                     } else if (attrs.showAccountData === 'importance') {
-                        element.html("<span>" + $filter('fmtNemImportanceScore')(val.account.importance) + "* 10<sup>(-5)</sup></span>");
+                        element.html("<span>" + $filter('fmtNemImportanceScore')(val.account.importance)[0] + "." + $filter('fmtNemImportanceScore')(val.account.importance)[1] + "* 10<sup>(-4)</sup></span>");
                     } else if (attrs.showAccountData === 'harvestedBlocks') {
                         element.html("<span>" + val.account.harvestedBlocks + "</span>");
                     } else if (attrs.showAccountData === 'address') {
@@ -365,7 +433,7 @@ function ShowAccountData(DataBridge, $filter) {
                     if (attrs.showAccountData === 'balance') {
                         element.html("<span><b>" + $filter('fmtNemValue')(0) + "." + $filter('fmtNemValue')(1) + " XEM</b></span>");
                     } else if (attrs.showAccountData === 'importance') {
-                        element.html("<span><b>" + $filter('fmtNemImportanceScore')(0) + "* 10<sup>(-5)</sup></b></span>");
+                        element.html("<span><b>" + $filter('fmtNemImportanceScore')(0) + "* 10<sup>(-4)</sup></b></span>");
                     } else if (attrs.showAccountData === 'harvestedBlocks') {
                         element.html("<span><b>0</b></span>");
                     }
@@ -385,7 +453,7 @@ function ShowAccountData(DataBridge, $filter) {
 
 exports.default = ShowAccountData;
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 ShowBlockHeight.$inject = ["DataBridge"];
@@ -409,7 +477,7 @@ function ShowBlockHeight(DataBridge) {
 
 exports.default = ShowBlockHeight;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 
 ShowNetworkStatus.$inject = ["DataBridge"];
@@ -428,7 +496,7 @@ function ShowNetworkStatus(DataBridge) {
                 // If user detected
                 if (val) {
                     element.css({
-                        color: '#5cb85c'
+                        color: 'green'
                     });
                 } else {
                     element.css({
@@ -442,7 +510,7 @@ function ShowNetworkStatus(DataBridge) {
 
 exports.default = ShowNetworkStatus;
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 TagLevy.$inject = ["AppConstants"];
@@ -497,7 +565,7 @@ function TagLevy(AppConstants) {
 
 exports.default = TagLevy;
 
-},{"../utils/helpers":35}],11:[function(require,module,exports){
+},{"../utils/helpers":39}],12:[function(require,module,exports){
 'use strict';
 
 TagTransaction.$inject = ["NetworkRequests", "Alert", "Wallet", "$filter", "Transactions", "$timeout", "$state"];
@@ -605,6 +673,10 @@ function TagTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions, $
                     } else {
                         recipientPubKey = tx.signer;
                     }
+                    if (!recipientPubKey) {
+                        Alert.noPublicKeyForDecoding();
+                        return;
+                    }
                     var decoded = _CryptoHelpers2.default.decode(scope.walletScope.common.privateKey, recipientPubKey, tx.message.payload);
                     // Decode the message
                     if (!decoded) {
@@ -693,7 +765,7 @@ function TagTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions, $
 
 exports.default = TagTransaction;
 
-},{"../utils/Address":27,"../utils/CryptoHelpers":28,"../utils/KeyPair":29,"../utils/Network":30,"../utils/helpers":35}],12:[function(require,module,exports){
+},{"../utils/Address":31,"../utils/CryptoHelpers":32,"../utils/KeyPair":33,"../utils/Network":34,"../utils/helpers":39}],13:[function(require,module,exports){
 'use strict';
 
 var _convert = require('../utils/convert');
@@ -740,6 +812,60 @@ var fmtAddress = function fmtAddress() {
         return input && input.toUpperCase().replace(/-/g, '').match(/.{1,6}/g).join('-');
     };
 };
+
+/**
+* fmtAlias() Check's an address alias or returns a fmtAddress
+*
+* @param input: A NEM address
+*
+* @return either an alias or a formatted NEM address
+*/
+var fmtAlias = ['Alias', function (Alias) {
+    var aliasDict = {};
+    var serviceInvoked = {};
+
+    function formatAddr(address) {
+        return address && address.toUpperCase().replace(/-/g, '').match(/.{1,6}/g).join('-');
+    }
+    function parse(address) {
+        // If not yet parsed or still parsing
+        if (!(address in aliasDict) || serviceInvoked[address] == true) {
+            return formatAddr(address) + "&nbsp;<img height='20px' width='20px' src='https://mir-s3-cdn-cf.behance.net/project_modules/disp/585d0331234507.564a1d239ac5e.gif'/>";
+        } else {
+            return aliasDict[address];
+        }
+    }
+
+    function filterAddress(address) {
+        if (!(address in aliasDict)) {
+            if (!(address in serviceInvoked)) {
+                serviceInvoked[address] = true;
+
+                // We don't want the addr to appear blank while it loads, plus we want the loader
+                aliasDict[address] = parse(address);
+                Alias.fetchAddress(address).then(function (result) {
+                    // Loading has finished
+                    serviceInvoked[address] = false;
+
+                    if (result) {
+                        // Format the alias
+                        aliasDict[address] = "@" + result;
+                    } else {
+                        // Format the address (no loader)
+                        aliasDict[address] = formatAddr(address);
+                    }
+                });
+            }
+            // Default before loading: formated address
+            return parse(address);
+        }
+        // Default: formated address if already fetched
+        else return parse(address);
+    }
+    filterAddress.$stateful = true;
+
+    return filterAddress;
+}];
 
 /**
 * fmtNemDate() Format a timestamp to NEM date
@@ -824,7 +950,7 @@ var fmtLevyFee = ['fmtSupplyFilter', function (fmtSupplyFilter) {
 *
 * @param data: The importance score
 *
-* @return a formatted importance score at 10^-5
+* @return a formatted importance score at 10^-4
 */
 var fmtNemImportanceScore = function fmtNemImportanceScore() {
     return function fmtNemImportanceScore(data) {
@@ -1094,12 +1220,13 @@ module.exports = {
     fmtNemDate: fmtNemDate,
     fmtPubToAddress: fmtPubToAddress,
     fmtAddress: fmtAddress,
+    fmtAlias: fmtAlias,
     toHostname: toHostname,
     currencyFormat: currencyFormat,
     btcFormat: btcFormat
 };
 
-},{"../utils/Address":27,"../utils/Network":30,"../utils/convert":34,"../utils/helpers":35}],13:[function(require,module,exports){
+},{"../utils/Address":31,"../utils/Network":34,"../utils/convert":38,"../utils/helpers":39}],14:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1119,6 +1246,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var filtersModule = _angular2.default.module('app.filters', []);
 
 filtersModule.filter('fmtAddress', _filters2.default.fmtAddress);
+filtersModule.filter('fmtAlias', _filters2.default.fmtAlias);
 filtersModule.filter('fmtPubToAddress', _filters2.default.fmtPubToAddress);
 filtersModule.filter('fmtNemDate', _filters2.default.fmtNemDate);
 filtersModule.filter('fmtSupply', _filters2.default.fmtSupply);
@@ -1142,7 +1270,7 @@ filtersModule.filter('btcFormat', _filters2.default.btcFormat);
 
 exports.default = filtersModule;
 
-},{"./filters":12,"angular":80}],14:[function(require,module,exports){
+},{"./filters":13,"angular":84}],15:[function(require,module,exports){
 'use strict';
 
 ChineseProvider.$inject = ["$translateProvider"];
@@ -1180,6 +1308,7 @@ function ChineseProvider($translateProvider) {
                 HEADER_NODE_CUSTOM: '自定义节点',
                 HEADER_NODE_CONNECT: '连接',
                 HEADER_NODE_CUSTOM_INFO: '节点IP或域名',
+                HEADER_NODE_CUSTOM_TOOLTIP: 'Enter your own NIS node here',
                 HEADER_PURGE: '清理',
                 HEADER_PURGE_MESSAGE: '请确认清理功能将删除您本地保存的全部信息。如确认，点击OK，本地存储的所有钱包信息将被全部删除，请确认所有钱包均已做好备份，确保资金安全。',
 
@@ -1228,6 +1357,8 @@ function ChineseProvider($translateProvider) {
                 GENERAL_LEVY: '征费',
                 GENERAL_LEVY_TYPES: '征费类型',
                 GENERAL_LEVY_TYPES_NOTE: 'I - 固定费用; II - 百分比方式',
+                GENERAL_LEVY_TYPE_1: 'Constant fee',
+                GENERAL_LEVY_TYPE_2: 'Percentage based',
                 GENERAL_SEND: '发送',
                 GENERAL_TO: '目标',
                 GENERAL_HASH: 'Hash',
@@ -1287,6 +1418,10 @@ function ChineseProvider($translateProvider) {
                 GENERAL_REGISTER: 'Register',
                 GENERAL_CREATE: 'Create',
                 GENERAL_RENEW: 'Renew',
+
+                // HOME MODULE
+                HOME_UNSUPPORTED_BROWSER: 'Sorry but you cannot use Nano Wallet safely with this browser...',
+                HOME_RECOMMENDED_BROWSERS: 'Recommended browsers are:',
 
                 // TRANSFER TRANSACTION MODULE
                 TRANSFER_TRANSACTION_TITLE: '发送和接收',
@@ -1354,6 +1489,8 @@ function ChineseProvider($translateProvider) {
                 IMPORTANCE_TRANSFER_MULTISIG_NOT_INITIATOR: 'You are not the cosignatory that initiated the importance transfer, therefore it is not possible for you to start or stop delegated harvesting. Please, consult above information tab to know how to take back control on harvesting.',
                 IMPORTANCE_TRANSFER_MULTISIG_SELECT: 'Select a multisignature account',
                 IMPORTANCE_TRANSFER_MULTISIG_SELECT_MESSAGE: 'Please select a multisig account to show status',
+                IMPORTANCE_TRANSFER_PRIVATE_KEY_PLACEHOLDER: 'Reveal delegated private key',
+                IMPORTANCE_TRANSFER_DELEGATED_KEYS: 'Delegated account Keys',
 
                 // CREATE MOSAIC MODULE
                 MOSAIC_DEFINITION_TITLE: '创建马赛克',
@@ -1381,6 +1518,7 @@ function ChineseProvider($translateProvider) {
                 MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_2: '发送中',
                 MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_3: '将包含税金',
                 MOSAIC_DEFINITION_PARENT: '父命名空间',
+                MOSAIC_DEFINITION_INFORMATION_TITLE: 'Creating a Mosaic',
                 MOSAIC_DEFINITION_INFORMATION: 'Want more info about mosaics?',
                 MOSAIC_DEFINITION_INFORMATION_1: '马赛克允许最长32个字符允许使用的字符集：',
                 MOSAIC_DEFINITION_INFORMATION_2: '第一个字符必须是英文字母。',
@@ -1418,12 +1556,12 @@ function ChineseProvider($translateProvider) {
                 NAMESPACE_PROVISION_MULTISIG_NAME: '多重签名命名空间部署交互',
                 NAMESPACE_PROVISION_PARENT: '父命名空间 (不包括3层)',
                 NAMESPACE_PROVISION_NEW_ROOT: '创建新的根命名空间'
-        }, _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_PARENT', 'Parent Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NEW_ROOT', 'New root Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS', 'Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS_NAME', '命名空间名'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_1', '命名空间所使用的长度和字符均存在限制。根命名空间长度限制为16个字符以内，二级命名空间长度限制为64个字符以内。有效的字符有：'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_2', '命名空间的首个字符必须使用英文字母。 \'alice\'是有效命名空间，而 \'1alice\'不是。部分字符串被保留，不可用于命名空间的申请。不被允许的命名空间包含字符串如下：'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_3', '这个清单将可能会增加内容，请注意查看。 \'user.alice\' 和 \'alice.user\' 都不被NEM命名空间系统允许申请。命名空间最多可以被定义为三层，如\'gimre.metals.silver\' 有效，而 \'gimre.metals.silver.coin\' 无效。'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE', 'Renewing Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_1', 'Fees'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_2', 'Root Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_3', 'Renewal Period'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'Renewing a namespace costs the same amount as registering a new namespace, 5000XEM.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'Only root namespaces need to be renewed. All sub-namepsaces will be renewed automatically upon renewal of root namespace.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_3', 'Namespace contracts are on-chain rental contracts good for one year. The contract may be renewed one month prior to or after their expiration date.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_4', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_TITLE', '账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_INFORMATION', '账户信息'), _defineProperty(_$translateProvider$t, 'ACCOUNT_IMPORTANCE_SCORE', '重要性得分'), _defineProperty(_$translateProvider$t, 'ACCOUNT_VESTED_BALANCE', '归属余额'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING', '收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_REMOTE_STATUS', '远程状态'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PUBLIC', '委托公钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTED_BLOCKS', '已收获块'), _defineProperty(_$translateProvider$t, 'ACCOUNT_START_STOP_HARVESTING', '开始/停止委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NOTE', '如果您已经<b>使用纳米钱包</b>开始了收获，且您的本地数据执行过清理，请使用原电脑关闭委托以还原收获状态。 (您未停止收获).'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NODE_SELECT', '挑选一个用于收获的节点'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_START', '开启委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_STOP', '停止委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NO_SLOTS', '您选取的节点没有空闲收获席位，请选择其他'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_BELOW_THRESHOLD', '您需要10000XEM归属余额以开始委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT', '选择其他账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_LABEL', '使用其他账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_BTN_NOTE', '变更账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_KEYS', '钱包和密钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT', '添加新账号'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_BTN', '向钱包中添加新账号'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_NOTE', '您的私钥掌管着您账号的最高权限。请确保它被<b><u>离线</u></b>安全存储：存储加密的.wlt文件，写在纸张上缩入保险柜，以图片代替文档，或下载<b><u>导出的二维码</u></b>妥善保管。'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_SHOW', '显示私钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_EXPORT_MOBILE', '导出至移动钱包'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_BTN', '账户二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN', 'NEMpay二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN_2', '移动钱包二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET', '备份钱包'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_NOTE', '备份您的钱包<b><u>非常重要</u></b>否则您将可能丢失账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_DOWNLOAD', '下载钱包'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_TITLE', '账户信息二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_NOTE', '这个二维码将被用于未推出的NEMpay移动应用'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_ANDROID_IOS_TITLE', '移动端钱包二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_WARNING', '所有的账户均使用BIP32由主私钥获取，使用您的主私钥和密码您可以列出所有已导入其他账户信息。 <br><b><u>强烈建议</u></b>添加新账户后再次备份您的新账户私钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_CUSTOM_NODE', '使用自定义节点'), _defineProperty(_$translateProvider$t, 'ACCOUNT_NODE_FROM_LIST', '使用列表中的节点'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PRIVATE_KEY', '委托私钥'), _defineProperty(_$translateProvider$t, 'PORTAL_TITLE', '服务'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TITLE', '多重签名或多用户账户'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TEXT', '多重签名账户中提供可编辑的链上协议，是存储资金，实现共有账户的最佳实现方式'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_1', '转换账户为多重签名'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_2', '编辑已有协议'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TITLE', '委托收获'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TEXT', '委托收获是可以实现远程在线“挖矿”而不必保持原账号开启的途径'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_1', '管理远程账户'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_2', '管理多重签名远程账户'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TITLE', 'Changelly实时交易'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TEXT', '使用Changelly服务，以当前最优定价实时交易XEM!'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_BTN', '购买XEM'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TITLE', '命名空间和子空间'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TEXT', '命名空间是存储马赛克的域名，每个命名空间在区块链中唯一，可在多层子命名空间上定义和认证马赛克。'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_BTN', '创建命名空间'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TITLE', '马赛克'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TEXT', 'NEM马赛克是具备丰富属性和功能的智能资产。如需创建马赛克，必须为账户置备根命名空间。'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_1', '创建马赛克'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_2', '编辑马赛克'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TITLE', 'Apostille'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TEXT', '使用NEM Apostille服务创建区块链公证时间戳,跟踪和审计文件认证状态。'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_1', '创建'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_2', '审计'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_HOME', '主页'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_NSM', '命名空间和马赛克'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_APOSTILLES', 'Apostilles'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_TITLE', '浏览 - 主页'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS', '您的命名空间'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS', '您的马赛克'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS_MULTISIG', '多重签名账户所属命名空间'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS_LEVY', '征费马赛克'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_TITLE', 'Explorer - Namespaces and Mosaics'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SELECT_MOS', 'Select a mosaic to show details'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SEARCH', 'Search namespace'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_TITLE', '浏览 - 公证'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_YOURS', '您的公证'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_PUBLIC', '公有池'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_NO_NTY', '未加载nty文件，请点击这里检查并导入。'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_TITLE', 'Explorer - Accounts'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_SEARCH', 'Search'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_TITLE', 'Apostille history'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BTN_TRANSFER', 'Transfer / Split ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BACKUP', 'Backup notary data'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_PURGE', 'Purge notary data'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TITLE', '创建Apostille'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_HELP', 'Want more info on apostille?'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_NAME', '公证交互'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_MULTISIG_NAME', '多重签名公证交互'), _defineProperty(_$translateProvider$t, 'APOSTILLE_KEEP_PRIVATE', '需保密'), _defineProperty(_$translateProvider$t, 'APOSTILLE_USE_DEDICATED', '使用专一账户'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILES_TO_NOTARIZE', '需要公证的文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REJECTED', '拒绝'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILE_HASH', '文件hash'), _defineProperty(_$translateProvider$t, 'APOSTILLE_PRIVATE', '私有'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILENAME', '文件名'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NAME_TOO_LONG', '文件名过长，最多允许40个字符。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MAX_NUMBER', '最大的一批公证文件数为25'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_1', '每个文件的上传均以在左栏的选项为准自动处理。您可以添加文件，变更类型或添加其他属性。您也可以切换至多重签名标签页添加更多文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_2', '"<b>需保密</b>" 在于您文件的hash都会被您的私钥加密，并发送至一个HD账户。以这种方式，除了你以外的任何人都无法获取接受认证的信息或认证本身。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_3', 'The dedicated HD account can be put under a multisig contract so that it may be transferred to others via 1-of-1 or any m-of-n multisig contract combination. It can also have additional information sent to it via messages with updates and augments to the original document or the product it represents.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_4', 'When two or more parties want to both approve of a blockchain timestamp, e.g. binding contracts, the account making the blockchain notarization can be put in an n-of-n multisig contract.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_5', 'For accounts in a multisignature contract that have checked "<b>Keep private</b>", the initiating cosigner\'s private key is used to sign the hash and create a dedicated HD account, not the account that was multisigged.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_6', 'The HD account is a dedicated account generated from a hash of the filename that is then signed by your private key. This resulting hash of this process is then used to form a second private key.  This is the time-stamped file\'s private key; a first in blockchain technology only found in Apostille.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_7', 'The dedicated HD account allows you to store the original file\'s signed hash and its updates on a dedicated account. If "keep private" is not checked, the transaction goes to the public sink address (default).'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_8', 'After the transactions are sent the download of an archive is triggered. It contains your signed files, your Apostille certificate for that file, and the new or updated .nty file to keep track of every file you time stamped on the NEM chain.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NO_NTY', '没有加载nty文件，请点击这里导入或自动生成。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_IMPORT_FILES', '导入文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TEXT', '创建字符文档'), _defineProperty(_$translateProvider$t, 'APOSTILLE_ENTER_TEXT', '输入需要公证的信息'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DOCUMENT_TITLE', 'Document title'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_TITLE', '审计公证'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE', '选择节点'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE_NOTE', '只有部分节点可以查阅所有的交互历史(NIS中默认关闭这一选项)。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WRONG_FORMAT', '这个文件不符Apostille认证格式!'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL_NO_PUBLIC_KEY', '认证失败，所有者没有公钥。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SUCCESS', '文件认证成功！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL', '认证失败！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WAITING', '公证交互正等待确认！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NOT_FOUND', '未发现交互，请查验它是否正在等待确认，否则这项公证不存在。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_UNCONFIRMED', '获取未确认数据时错误发生，交互不存在。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNER', '获取签署者信息发生错误'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNATURE', '确认错误，签名确认中发生故障！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_1', '待审计文件必须以<b>Apostille格式</b>存在'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_2', '您可通过文件名确认文件：'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FILES', '审核文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_TITLE', 'Send message to notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_NS_BRAND', 'Use my namespace to brand message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_ADD_MOSAIC', 'Add mosaic'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NTY_ACCOUNT', 'Notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REQUEST_MESSAGE', 'Request message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_MESSAGE_REQUEST', 'Create a message request'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSFER_TITLE', 'Transfer or Split apostille ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_UPDATE_TITLE', 'Update apostille'), _defineProperty(_$translateProvider$t, 'ALERT_MISSING_FORM_DATA', '请完整填写表格！'), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_WALLET_DOWNLOAD', '无法下载钱包，钱包不存在！'), _defineProperty(_$translateProvider$t, 'ALERT_PASSWORDS_NOT_MATCHING', '您提供的密码和密钥串不匹配！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_KEY_FOR_ADDR', '您提供的私钥与地址不匹配！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_LOADED', '您无法未不登录钱包状态下访问仪表盘'), _defineProperty(_$translateProvider$t, 'ALERT_WALLET_NAME_EXISTS', '同名钱包已存在！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_FILE', '您导入的文件并非钱包文件！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NODE_SET', '请确认并输入合规节点名！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_CUSTOM_NODE', '您的自定义节点名不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WEBSOCKET_PORT', '自定义节点名的端口不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_MIJIN_DISABLED', '猕迅网络当前未开放服务，请选择其他网络！'), _defineProperty(_$translateProvider$t, 'ALERT_GET_NS_BY_ID_ERROR', '获取命名空间信息错误，原因： '), _defineProperty(_$translateProvider$t, 'ALERT_GET_ACCOUNT_DATA_ERROR', '获取账户信息错误，原因：'), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_OCCURRED', '错误发生！ '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDR_FOR_NETWORK', '地址与本网规范不符'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PASSWORD', '您输入的密码不正确！'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_ALREADY_IN_LIST', '共签人在列表中已存在！'), _defineProperty(_$translateProvider$t, 'ALERT_COSIGNATORY_HAS_NO_PUBLIC', '共签人账户需要在加入前已发送至少1个交互以获取私钥！'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_HAS_NO_PUBLIC', '多重签名账户需要在加入前已发送至少1个交互以获取私钥！'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_CANNOT_BE_MULTISIG', '您所选择的带转换账户是其他多重签名账户的共签人，这样的转换无法进行。'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NS_OWNED', '账户不拥有这个命名空间，请重新创建或使用别的账户执行。Account does not own any namespace, please create one or change account'), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCKED_INFO_ERROR', '获取解锁信息错误'), _defineProperty(_$translateProvider$t, 'ALERT_LOCK_ERROR', '锁定账户错误，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCK_ERROR', '解锁账户错误，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_SUPERNODES_ERROR', '获取超级节点数据错误！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NTY_FILE', '您所提供的文件不是合规的nty文件！'), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_FAILED', '创建钱包失败，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_DERIVATION_FROM_SEED_FAILED', '从种子获取账户失败，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_BIP32_GENERATION_FAILED', '生成bip32数据失败，原因：'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_DATA', '错误，空白的钱包数据！'), _defineProperty(_$translateProvider$t, 'ALERT_CANNOT_LOGIN_WITHOU_WALLET', '错误，无法在无钱包状态下登录！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_TO_SET', '错误，无法设置当前钱包为空白！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_INDEX', '错误，所选账户索引不正确！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_CURRENT_WALLET', '错误，当前钱包不存在时无法设置钱包账户！'), _defineProperty(_$translateProvider$t, 'ALERT_ALREADY_MULTISIG', '所选账户已经是多重签名账户！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MODIFICATION_ARRAY', '一个多重签名账户不能作为自身的共签人，请检查并更换！'), _defineProperty(_$translateProvider$t, 'ALERT_GET_MARKET_INFO_ERROR', '获取市场信息失败！'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_CANNOT_BE_COSIG', '多重签名账户无法设为共同签署人！'), _defineProperty(_$translateProvider$t, 'ALERT_PURGE_CANCELLED', '清理已取消！'), _defineProperty(_$translateProvider$t, 'ALERT_MAINNET_DISABLED', '当前版本禁止主网络使用'), _defineProperty(_$translateProvider$t, 'ALERT_EMPTY_DECODED_MSG', '错误，无解密信息！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NS_NAME', '命名空间名不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MOSAIC_NAME', '马赛克名不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_MOSAIC_DESCRIPTION', '马赛克描述不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_GET_INCOMING_TXES_ERROR', 'An error occured while trying to fetch incoming transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_DEFINITIONS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_SUB_NS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_ERROR', 'Error at fetching mosaics, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_TRANSACTIONS_ERROR', 'Error at fetching transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_SUCCESS', '钱包成功创建和加载！'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_PURGE', '本地存储成功清理!'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_LOGOUT', '退出登录成功！'), _defineProperty(_$translateProvider$t, 'ALERT_LOAD_WALLET_SUCCESS', '钱包加载成功！'), _defineProperty(_$translateProvider$t, 'ALERT_TRANSACTION_SUCCESS', '交互发送成功！'), _defineProperty(_$translateProvider$t, 'ALERT_GENERATE_ACCOUNT_SUCCESS', '账户创建成功，请勿遗忘下载您创建的钱包文件 ！'), _defineProperty(_$translateProvider$t, 'ALERT_UPGRADE_SUCCESS', '钱包升级成功！'), _defineProperty(_$translateProvider$t, 'ALERT_SIGNATURE_SUCCESS', '交互已成功签署！'), _defineProperty(_$translateProvider$t, 'ALERT_NTY_FILE_SUCCESS', '成功加载nty文件！'), _defineProperty(_$translateProvider$t, 'ALERT_INCOMING_TX_FROM', '接收交互，来源'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_TITLE', '变更账户至多重签名'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_NAME', '共有账户变更'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_MULTISIG_NAME', '多重签名账户变更交互'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT_TITLE', 'Account to Convert'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT', '选择一个待转换账户'), _defineProperty(_$translateProvider$t, 'AGGREGATE_CUSTOM_ACCOUNT', '使用自定义账户'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE_TITLE', 'Address private key'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT', '待转换账户的地址'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE', '待转换账户的私钥'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_PLACEHOLDER', '待添加的共签人账户或别名'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_BTN_TITLE', '添加共签人'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', '所需最小签名数量'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES_PLACEHOLDER', '通过交互必须的最小签名数量'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_LIST', '变更清单'), _defineProperty(_$translateProvider$t, 'AGGREGATE_COSIG_LIST', 'Cosignatory Address List'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_TITLE', '编辑多重签名协议'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT_TITLE', 'Account to edit'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT', '选择待编辑的账户'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_TITLE', 'Add/Remove signer'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_PLACEHOLDER', '带变更的共签人账户地址，或别名'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE', '最小签名数量变更'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE_PLACEHOLDER', '最小签名数量变更(自动计算）'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECTED_ACCOUNT_INFO', '已选账户信息'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', '最少签名数'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', 'Use wallet account'), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', '已经是NEMber ？'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', '钱包需要升级'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', '您选择的钱包需要升级。这将创建一个子公钥添加至您的主账户。升级成功后将自动下载升级后的钱包，请<b><u>务必</u></b>下载和妥善保存！'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', '升级钱包'), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', '导入钱包'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', '从本地存储选择钱包'), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', '登录'), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', 'NEM新手？'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', '简单钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', '私钥钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', '脑钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', '创建简单钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', '创建私钥钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', '创建脑钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', '请参阅获知客户端生成密钥的<a href="https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface" rel="nofollow" target="_blank">风险</a>，推荐从NCC生成或获取私钥。'), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', 'Select a network'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', '请阅读脑钱包的<a href="https://en.bitcoin.it/wiki/Brainwallet" rel="nofollow" target="_blank">风险</a>。脑钱包只使用hash处理的单一密码作为私钥，长期或不当使用会导致失窃。使用中选择一个安全的密码至关重要。 请遵从<a href="https://xkcd.com/936/" rel="nofollow" target="_blank">XKCD #936</a>国际密码安全标准。'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', '脑钱包只使用hash处理的单一密码作为私钥，长期或不当使用会导致失窃。使用中选择一个安全的密码至关重要。'), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', '疑难解答'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', '纳米钱包如何工作？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', '纳米钱包使用最新的加密库及ES6和AngularJS开发而成。它是个完全的客户端程序，不会向网络发送任何敏感信息。包括创建私钥，签署交互等行为均发生在您的浏览器内。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', '它是免费提供的吗？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', '所有的操作都在客户端完成，只有您有权掌控您的账号，纳米钱包不会以任何形式收取费用。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', '我为何已经拥有了马赛克？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', '每个用户都拥有nem作为命名空间，以及xem作为马赛克。数字货币XEM也是马赛克的一种，即使您的余额为0，您仍拥有"nem:xem"命名空间。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', '未来计划?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', '当前的计划是集成所有的NEM客户端的功能，并将提供接口使得将来的社区开发项目能够在该钱包中使用。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', '我可以免费获得XEM吗？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', 'NEM水龙站目前关闭，但您可以在论坛中接受赏金项目以获取大量XEM'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', '如何获取关于NEM的更多信息？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', '官方论坛'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', '官方网站'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', '官方BTT帖子'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', '如何支持这个项目？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', '纳米钱包（Nano Wallet)是Quantum_Mechanics基于Gimre开发的轻钱包（lightwallet）定制而成'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', 'Apostille是一项在<a href="http://apostille.io">apostille.io</a> 网站提供的服务，由Jabo38主持，项目提案：<a href="https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001" target="_blank">Apostille project</a>.'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', '如果您想要赞助或打赏，请选择以下地址 :)'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', 'NanoWallet项目基金:'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', 'Apostille服务基金:'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', '输入您的钱包密码'), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', '钱包名'), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', '密码'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', '确认您的密码'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', '密钥串'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', '确认您的密钥串'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', '账户地址'), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', '私钥'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', '余额'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', '被支付人'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', '交互费'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', '租金'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', '征费'), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', '接收地址或别名'), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', '接收地址'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', '别名'), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', '信息'), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', '马赛克名'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _$translateProvider$t));
+        }, _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_PARENT', 'Parent Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NEW_ROOT', 'New root Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS', 'Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS_NAME', '命名空间名'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_RESTRICTIONS', 'Namespace Restrictions'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_1', '命名空间所使用的长度和字符均存在限制。根命名空间长度限制为16个字符以内，二级命名空间长度限制为64个字符以内。有效的字符有：'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_2', '命名空间的首个字符必须使用英文字母。 \'alice\'是有效命名空间，而 \'1alice\'不是。部分字符串被保留，不可用于命名空间的申请。不被允许的命名空间包含字符串如下：'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_3', '这个清单将可能会增加内容，请注意查看。 \'user.alice\' 和 \'alice.user\' 都不被NEM命名空间系统允许申请。命名空间最多可以被定义为三层，如\'gimre.metals.silver\' 有效，而 \'gimre.metals.silver.coin\' 无效。'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE', 'Renewing Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_1', 'Fees'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_2', 'Root Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_3', 'Renewal Period'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'Renewing a namespace costs the same amount as registering a new namespace, 5000XEM.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'Only root namespaces need to be renewed. All sub-namepsaces will be renewed automatically upon renewal of root namespace.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_3', 'Namespace contracts are on-chain rental contracts good for one year. The contract may be renewed one month prior to or after their expiration date.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_4', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_TITLE', '账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_INFORMATION', '账户信息'), _defineProperty(_$translateProvider$t, 'ACCOUNT_IMPORTANCE_SCORE', '重要性得分'), _defineProperty(_$translateProvider$t, 'ACCOUNT_VESTED_BALANCE', '归属余额'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING', '收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_REMOTE_STATUS', '远程状态'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PUBLIC', '委托公钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTED_BLOCKS', '已收获块'), _defineProperty(_$translateProvider$t, 'ACCOUNT_START_STOP_HARVESTING', '开始/停止委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NOTE', '如果您已经<b>使用纳米钱包</b>开始了收获，且您的本地数据执行过清理，请使用原电脑关闭委托以还原收获状态。 (您未停止收获).'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NODE_SELECT', '挑选一个用于收获的节点'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_START', '开启委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_STOP', '停止委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NO_SLOTS', '您选取的节点没有空闲收获席位，请选择其他'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_BELOW_THRESHOLD', '您需要10000XEM归属余额以开始委托收获'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT', '选择其他账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_LABEL', '使用其他账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_BTN_NOTE', '变更账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_KEYS', '钱包和密钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT', '添加新账号'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_BTN', '向钱包中添加新账号'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_NOTE', '您的私钥掌管着您账号的最高权限。请确保它被<b><u>离线</u></b>安全存储：存储加密的.wlt文件，写在纸张上缩入保险柜，以图片代替文档，或下载<b><u>导出的二维码</u></b>妥善保管。'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_SHOW', '显示私钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_EXPORT_MOBILE', '导出至移动钱包'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_BTN', '账户二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN', 'NEMpay二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN_2', '移动钱包二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET', '备份钱包'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_NOTE', '备份您的钱包<b><u>非常重要</u></b>否则您将可能丢失账户'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_DOWNLOAD', '下载钱包'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_TITLE', '账户信息二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_NOTE', '这个二维码将被用于未推出的NEMpay移动应用'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_ANDROID_IOS_TITLE', '移动端钱包二维码'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_WARNING', '所有的账户均使用BIP32由主私钥获取，使用您的主私钥和密码您可以列出所有已导入其他账户信息。 <br><b><u>强烈建议</u></b>添加新账户后再次备份您的新账户私钥'), _defineProperty(_$translateProvider$t, 'ACCOUNT_CUSTOM_NODE', '使用自定义节点'), _defineProperty(_$translateProvider$t, 'ACCOUNT_NODE_FROM_LIST', '使用列表中的节点'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PRIVATE_KEY', '委托私钥'), _defineProperty(_$translateProvider$t, 'PORTAL_TITLE', '服务'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TITLE', '多重签名或多用户账户'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TEXT', '多重签名账户中提供可编辑的链上协议，是存储资金，实现共有账户的最佳实现方式'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_1', '转换账户为多重签名'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_2', '编辑已有协议'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TITLE', '委托收获'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TEXT', '委托收获是可以实现远程在线“挖矿”而不必保持原账号开启的途径'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_1', '管理远程账户'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_2', '管理多重签名远程账户'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TITLE', 'Changelly实时交易'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TEXT', '使用Changelly服务，以当前最优定价实时交易XEM!'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_BTN', '购买XEM'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TITLE', '命名空间和子空间'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TEXT', '命名空间是存储马赛克的域名，每个命名空间在区块链中唯一，可在多层子命名空间上定义和认证马赛克。'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_BTN', '创建命名空间'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TITLE', '马赛克'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TEXT', 'NEM马赛克是具备丰富属性和功能的智能资产。如需创建马赛克，必须为账户置备根命名空间。'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_1', '创建马赛克'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_2', '编辑马赛克'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TITLE', 'Apostille'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TEXT', '使用NEM Apostille服务创建区块链公证时间戳,跟踪和审计文件认证状态。'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_1', '创建'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_2', '审计'), _defineProperty(_$translateProvider$t, 'PORTAL_ADDRESS_BOOK_TEXT', 'Assign labels to address\' to easily keep track of your contacts.'), _defineProperty(_$translateProvider$t, 'PORTAL_ADDRESS_BOOK_BTN', 'Manage address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_TITLE', 'Address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_LIST', 'Contacts'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NAVIGATION', 'Navigation'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NEW', 'New contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EDIT', 'Edit contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_REMOVE', 'Remove contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NEW_BTN', 'Add'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EDIT_BTN', 'Save'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_REMOVE_BTN', 'Remove'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EXPORT_BTN', 'Export address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_IMPORT_BTN', 'Import address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_CONTACT_LABEL', 'Label'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_ACCOUNT_ADDRESS', 'Account address'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_ACTIONS', 'Actions'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_HOME', '主页'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_NSM', '命名空间和马赛克'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_APOSTILLES', 'Apostilles'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_TITLE', '浏览 - 主页'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS', '您的命名空间'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS', '您的马赛克'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS_MULTISIG', '多重签名账户所属命名空间'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS_LEVY', '征费马赛克'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_TITLE', 'Explorer - Namespaces and Mosaics'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SELECT_MOS', 'Select a mosaic to show details'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SEARCH', 'Search namespace'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_TITLE', '浏览 - 公证'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_YOURS', '您的公证'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_PUBLIC', '公有池'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_NO_NTY', '未加载nty文件，请点击这里检查并导入。'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_TITLE', 'Explorer - Accounts'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_SEARCH', 'Search'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_TITLE', 'Apostille history'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BTN_TRANSFER', 'Transfer / Split ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BACKUP', 'Backup notary data'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_PURGE', 'Purge notary data'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TITLE', '创建Apostille'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_HELP', 'Want more info on apostille?'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_NAME', '公证交互'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_MULTISIG_NAME', '多重签名公证交互'), _defineProperty(_$translateProvider$t, 'APOSTILLE_KEEP_PRIVATE', '需保密'), _defineProperty(_$translateProvider$t, 'APOSTILLE_USE_DEDICATED', '使用专一账户'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILES_TO_NOTARIZE', '需要公证的文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REJECTED', '拒绝'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILE_HASH', '文件hash'), _defineProperty(_$translateProvider$t, 'APOSTILLE_PRIVATE', '私有'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILENAME', '文件名'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NAME_TOO_LONG', '文件名过长，最多允许40个字符。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MAX_NUMBER', '最大的一批公证文件数为25'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_TITLE', 'Creating an Apostille'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_1', '每个文件的上传均以在左栏的选项为准自动处理。您可以添加文件，变更类型或添加其他属性。您也可以切换至多重签名标签页添加更多文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_2', '"<b>需保密</b>" 在于您文件的hash都会被您的私钥加密，并发送至一个HD账户。以这种方式，除了你以外的任何人都无法获取接受认证的信息或认证本身。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_3', 'The dedicated HD account can be put under a multisig contract so that it may be transferred to others via 1-of-1 or any m-of-n multisig contract combination. It can also have additional information sent to it via messages with updates and augments to the original document or the product it represents.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_4', 'When two or more parties want to both approve of a blockchain timestamp, e.g. binding contracts, the account making the blockchain notarization can be put in an n-of-n multisig contract.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_5', 'For accounts in a multisignature contract that have checked "<b>Keep private</b>", the initiating cosigner\'s private key is used to sign the hash and create a dedicated HD account, not the account that was multisigged.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_6', 'The HD account is a dedicated account generated from a hash of the filename that is then signed by your private key. This resulting hash of this process is then used to form a second private key.  This is the time-stamped file\'s private key; a first in blockchain technology only found in Apostille.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_7', 'The dedicated HD account allows you to store the original file\'s signed hash and its updates on a dedicated account. If "keep private" is not checked, the transaction goes to the public sink address (default).'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_8', 'After the transactions are sent the download of an archive is triggered. It contains your signed files, your Apostille certificate for that file, and the new or updated .nty file to keep track of every file you time stamped on the NEM chain.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NO_NTY', '没有加载nty文件，请点击这里导入或自动生成。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_IMPORT_FILES', '导入文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TEXT', '创建字符文档'), _defineProperty(_$translateProvider$t, 'APOSTILLE_ENTER_TEXT', '输入需要公证的信息'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DOCUMENT_TITLE', 'Document title'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DROPBOX_MESSAGE', 'Please enter your password and desired tag(s) before selecting files'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DROPBOX_MESSAGE_2', 'Please enter your password before selecting files'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_TITLE', '审计公证'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE', '选择节点'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE_NOTE', '只有部分节点可以查阅所有的交互历史(NIS中默认关闭这一选项)。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WRONG_FORMAT', '这个文件不符Apostille认证格式!'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL_NO_PUBLIC_KEY', '认证失败，所有者没有公钥。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SUCCESS', '文件认证成功！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL', '认证失败！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WAITING', '公证交互正等待确认！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NOT_FOUND', '未发现交互，请查验它是否正在等待确认，否则这项公证不存在。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_UNCONFIRMED', '获取未确认数据时错误发生，交互不存在。'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNER', '获取签署者信息发生错误'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNATURE', '确认错误，签名确认中发生故障！'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_1', '待审计文件必须以<b>Apostille格式</b>存在'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_2', '您可通过文件名确认文件：'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FILES', '审核文件'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_TITLE', 'Send message to notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_NS_BRAND', 'Use my namespace to brand message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_ADD_MOSAIC', 'Add mosaic'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NTY_ACCOUNT', 'Notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REQUEST_MESSAGE', 'Request message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_MESSAGE_REQUEST', 'Create a message request'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSFER_TITLE', 'Transfer or Split apostille ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_UPDATE_TITLE', 'Update apostille'), _defineProperty(_$translateProvider$t, 'ALERT_MISSING_FORM_DATA', '请完整填写表格！'), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_WALLET_DOWNLOAD', '无法下载钱包，钱包不存在！'), _defineProperty(_$translateProvider$t, 'ALERT_PASSWORDS_NOT_MATCHING', '您提供的密码和密钥串不匹配！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_KEY_FOR_ADDR', '您提供的私钥与地址不匹配！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_LOADED', '您无法未不登录钱包状态下访问仪表盘'), _defineProperty(_$translateProvider$t, 'ALERT_WALLET_NAME_EXISTS', '同名钱包已存在！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_FILE', '您导入的文件并非钱包文件！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NODE_SET', '请确认并输入合规节点名！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_CUSTOM_NODE', '您的自定义节点名不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WEBSOCKET_PORT', '自定义节点名的端口不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_MIJIN_DISABLED', '猕迅网络当前未开放服务，请选择其他网络！'), _defineProperty(_$translateProvider$t, 'ALERT_GET_NS_BY_ID_ERROR', '获取命名空间信息错误，原因： '), _defineProperty(_$translateProvider$t, 'ALERT_GET_ACCOUNT_DATA_ERROR', '获取账户信息错误，原因：'), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_OCCURRED', '错误发生！ '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDR_FOR_NETWORK', '地址与本网规范不符'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PASSWORD', '您输入的密码不正确！'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_ALREADY_IN_LIST', '共签人在列表中已存在！'), _defineProperty(_$translateProvider$t, 'ALERT_COSIGNATORY_HAS_NO_PUBLIC', '共签人账户需要在加入前已发送至少1个交互以获取私钥！'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_HAS_NO_PUBLIC', '多重签名账户需要在加入前已发送至少1个交互以获取私钥！'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_CANNOT_BE_MULTISIG', '您所选择的带转换账户是其他多重签名账户的共签人，这样的转换无法进行。'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NS_OWNED', '账户不拥有这个命名空间，请重新创建或使用别的账户执行。Account does not own any namespace, please create one or change account'), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCKED_INFO_ERROR', '获取解锁信息错误'), _defineProperty(_$translateProvider$t, 'ALERT_LOCK_ERROR', '锁定账户错误，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCK_ERROR', '解锁账户错误，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_SUPERNODES_ERROR', '获取超级节点数据错误！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NTY_FILE', '您所提供的文件不是合规的nty文件！'), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_FAILED', '创建钱包失败，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_DERIVATION_FROM_SEED_FAILED', '从种子获取账户失败，原因: '), _defineProperty(_$translateProvider$t, 'ALERT_BIP32_GENERATION_FAILED', '生成bip32数据失败，原因：'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_DATA', '错误，空白的钱包数据！'), _defineProperty(_$translateProvider$t, 'ALERT_CANNOT_LOGIN_WITHOU_WALLET', '错误，无法在无钱包状态下登录！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_TO_SET', '错误，无法设置当前钱包为空白！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_INDEX', '错误，所选账户索引不正确！'), _defineProperty(_$translateProvider$t, 'ALERT_NO_CURRENT_WALLET', '错误，当前钱包不存在时无法设置钱包账户！'), _defineProperty(_$translateProvider$t, 'ALERT_ALREADY_MULTISIG', '所选账户已经是多重签名账户！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MODIFICATION_ARRAY', '一个多重签名账户不能作为自身的共签人，请检查并更换！'), _defineProperty(_$translateProvider$t, 'ALERT_GET_MARKET_INFO_ERROR', '获取市场信息失败！'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_CANNOT_BE_COSIG', '多重签名账户无法设为共同签署人！'), _defineProperty(_$translateProvider$t, 'ALERT_PURGE_CANCELLED', '清理已取消！'), _defineProperty(_$translateProvider$t, 'ALERT_MAINNET_DISABLED', '当前版本禁止主网络使用'), _defineProperty(_$translateProvider$t, 'ALERT_EMPTY_DECODED_MSG', '错误，无解密信息！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NS_NAME', '命名空间名不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MOSAIC_NAME', '马赛克名不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_MOSAIC_DESCRIPTION', '马赛克描述不合规！'), _defineProperty(_$translateProvider$t, 'ALERT_GET_INCOMING_TXES_ERROR', 'An error occured while trying to fetch incoming transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_DEFINITIONS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_SUB_NS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_ERROR', 'Error at fetching mosaics, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_TRANSACTIONS_ERROR', 'Error at fetching transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDRESS_BOOK_FILE', 'This file is not in .adb format !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDRESS', 'Provided address is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_AMOUNT', 'Amount is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PRIVATE_KEY', 'Provided private key is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_FILE_SIZE_ERROR', ' is too big, maximum size allowed is 100 MB'), _defineProperty(_$translateProvider$t, 'ALERT_MESSAGE_DECODE_KEY_ERROR', 'Message decryption failed because an account has no public key visible on the network'), _defineProperty(_$translateProvider$t, 'ALERT_FETCH_TIME_SYNC_ERROR', 'An error occured at fetching network time !'), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_SUCCESS', '钱包成功创建和加载！'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_PURGE', '本地存储成功清理!'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_LOGOUT', '退出登录成功！'), _defineProperty(_$translateProvider$t, 'ALERT_LOAD_WALLET_SUCCESS', '钱包加载成功！'), _defineProperty(_$translateProvider$t, 'ALERT_TRANSACTION_SUCCESS', '交互发送成功！'), _defineProperty(_$translateProvider$t, 'ALERT_GENERATE_ACCOUNT_SUCCESS', '账户创建成功，请勿遗忘下载您创建的钱包文件 ！'), _defineProperty(_$translateProvider$t, 'ALERT_UPGRADE_SUCCESS', '钱包升级成功！'), _defineProperty(_$translateProvider$t, 'ALERT_SIGNATURE_SUCCESS', '交互已成功签署！'), _defineProperty(_$translateProvider$t, 'ALERT_NTY_FILE_SUCCESS', '成功加载nty文件！'), _defineProperty(_$translateProvider$t, 'ALERT_INCOMING_TX_FROM', '接收交互，来源'), _defineProperty(_$translateProvider$t, 'ALERT_ADDRESS_BOOK_FILE_SUCCESS', 'Address book successfully imported !'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_TITLE', '变更账户至多重签名'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_NAME', '共有账户变更'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_MULTISIG_NAME', '多重签名账户变更交互'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT_TITLE', 'Account to Convert'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT', '选择一个待转换账户'), _defineProperty(_$translateProvider$t, 'AGGREGATE_CUSTOM_ACCOUNT', '使用自定义账户'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE_TITLE', 'Address private key'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT', '待转换账户的地址'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE', '待转换账户的私钥'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_PLACEHOLDER', '待添加的共签人账户或别名'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_BTN_TITLE', '添加共签人'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', '所需最小签名数量'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES_PLACEHOLDER', '通过交互必须的最小签名数量'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_LIST', '变更清单'), _defineProperty(_$translateProvider$t, 'AGGREGATE_COSIG_LIST', 'Cosignatory Address List'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_TITLE', '编辑多重签名协议'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT_TITLE', 'Account to edit'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT', '选择待编辑的账户'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_TITLE', 'Add/Remove signer'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_PLACEHOLDER', '带变更的共签人账户地址，或别名'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE', '最小签名数量变更'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE_PLACEHOLDER', '最小签名数量变更(自动计算）'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECTED_ACCOUNT_INFO', '已选账户信息'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', '最少签名数'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', 'Use wallet account'), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', '已经是NEMber ？'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', '钱包需要升级'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', '您选择的钱包需要升级。这将创建一个子公钥添加至您的主账户。升级成功后将自动下载升级后的钱包，请<b><u>务必</u></b>下载和妥善保存！'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', '升级钱包'), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', '导入钱包'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', '从本地存储选择钱包'), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', '登录'), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', 'NEM新手？'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', '简单钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', '私钥钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', '脑钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', '创建简单钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', '创建私钥钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', '创建脑钱包'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', '请参阅获知客户端生成密钥的<a href="https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface" rel="nofollow" target="_blank">风险</a>，推荐从NCC生成或获取私钥。'), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', 'Select a network'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', '请阅读脑钱包的<a href="https://en.bitcoin.it/wiki/Brainwallet" rel="nofollow" target="_blank">风险</a>。脑钱包只使用hash处理的单一密码作为私钥，长期或不当使用会导致失窃。使用中选择一个安全的密码至关重要。 请遵从<a href="https://xkcd.com/936/" rel="nofollow" target="_blank">XKCD #936</a>国际密码安全标准。'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', '脑钱包只使用hash处理的单一密码作为私钥，长期或不当使用会导致失窃。使用中选择一个安全的密码至关重要。'), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING', 'Wallets are stored <a><b>temporarily</b></a> in the browser local storage! You should have triggered a download after creating the wallet. It is the .wlt file used as a backup and to import back if your browser\’s local storage is erased. If you don\'t get a backup .wlt file, log into your account, copy your private key and paste it somewhere safe. It is your responsibility to always make sure you have your private key backed up before sending any funds to your account.'), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING_FOOTER', 'By clicking below, you agree that you have read and understood the above warnings.'), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', '疑难解答'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', '纳米钱包如何工作？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', '纳米钱包使用最新的加密库及ES6和AngularJS开发而成。它是个完全的客户端程序，不会向网络发送任何敏感信息。包括创建私钥，签署交互等行为均发生在您的浏览器内。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', '它是免费提供的吗？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', '所有的操作都在客户端完成，只有您有权掌控您的账号，纳米钱包不会以任何形式收取费用。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', '我为何已经拥有了马赛克？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', '每个用户都拥有nem作为命名空间，以及xem作为马赛克。数字货币XEM也是马赛克的一种，即使您的余额为0，您仍拥有"nem:xem"命名空间。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', '未来计划?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', '当前的计划是集成所有的NEM客户端的功能，并将提供接口使得将来的社区开发项目能够在该钱包中使用。'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', '我可以免费获得XEM吗？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', 'NEM水龙站目前关闭，但您可以在论坛中接受赏金项目以获取大量XEM'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', '如何获取关于NEM的更多信息？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', '官方论坛'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', '官方网站'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', '官方BTT帖子'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', '如何支持这个项目？'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', '纳米钱包（Nano Wallet)是Quantum_Mechanics基于Gimre开发的轻钱包（lightwallet）定制而成'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', 'Apostille是一项在<a href="http://apostille.io">apostille.io</a> 网站提供的服务，由Jabo38主持，项目提案：<a href="https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001" target="_blank">Apostille project</a>.'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', '如果您想要赞助或打赏，请选择以下地址 :)'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', 'NanoWallet项目基金:'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', 'Apostille服务基金:'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', '输入您的钱包密码'), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', '钱包名'), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', '密码'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', '确认您的密码'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', '密钥串'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', '确认您的密钥串'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', '账户地址'), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', '私钥'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', '余额'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', '被支付人'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', '交互费'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', '租金'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', '征费'), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', '接收地址或别名'), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', '接收地址'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', '别名'), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', '信息'), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', '马赛克名'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _$translateProvider$t));
 }
 
 exports.default = ChineseProvider;
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 'use strict';
 
 EnglishProvider.$inject = ["$translateProvider"];
@@ -1461,6 +1599,7 @@ function EnglishProvider($translateProvider) {
         HEADER_NODE_CUSTOM: 'Custom node',
         HEADER_NODE_CONNECT: 'Connect',
         HEADER_NODE_CUSTOM_INFO: 'Node ip or domain',
+        HEADER_NODE_CUSTOM_TOOLTIP: 'Enter your own NIS node here',
         HEADER_PURGE: 'Purge',
         HEADER_PURGE_MESSAGE: 'Please confirm the purge of local storage. By clicking "OK" all wallets in local storage will be deleted and will not be recoverable. You agree that all wallets have been backed up and funds are secured.',
 
@@ -1509,6 +1648,8 @@ function EnglishProvider($translateProvider) {
         GENERAL_LEVY: 'Levy',
         GENERAL_LEVY_TYPES: 'Levy types',
         GENERAL_LEVY_TYPES_NOTE: 'I - constant fee; II - percentage based',
+        GENERAL_LEVY_TYPE_1: 'Constant fee',
+        GENERAL_LEVY_TYPE_2: 'Percentage based',
         GENERAL_SEND: 'Send',
         GENERAL_TO: 'To',
         GENERAL_HASH: 'Hash',
@@ -1568,6 +1709,10 @@ function EnglishProvider($translateProvider) {
         GENERAL_REGISTER: 'Register',
         GENERAL_CREATE: 'Create',
         GENERAL_RENEW: 'Renew',
+
+        // HOME MODULE
+        HOME_UNSUPPORTED_BROWSER: 'Sorry but you cannot use Nano Wallet safely with this browser...',
+        HOME_RECOMMENDED_BROWSERS: 'Recommended browsers are:',
 
         // TRANSFER TRANSACTION MODULE
         TRANSFER_TRANSACTION_TITLE: 'Send & Receive',
@@ -1635,6 +1780,8 @@ function EnglishProvider($translateProvider) {
         IMPORTANCE_TRANSFER_MULTISIG_NOT_INITIATOR: 'You are not the cosignatory that initiated the importance transfer, therefore it is not possible for you to start or stop delegated harvesting. Please, consult above information tab to know how to take back control on harvesting.',
         IMPORTANCE_TRANSFER_MULTISIG_SELECT: 'Select a multisignature account',
         IMPORTANCE_TRANSFER_MULTISIG_SELECT_MESSAGE: 'Please select a multisig account to show status',
+        IMPORTANCE_TRANSFER_PRIVATE_KEY_PLACEHOLDER: 'Reveal delegated private key',
+        IMPORTANCE_TRANSFER_DELEGATED_KEYS: 'Delegated account Keys',
 
         // CREATE MOSAIC MODULE
         MOSAIC_DEFINITION_TITLE: 'Create a mosaic',
@@ -1662,6 +1809,7 @@ function EnglishProvider($translateProvider) {
         MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_2: 'Sending',
         MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_3: 'will imply levy of',
         MOSAIC_DEFINITION_PARENT: 'Parent Namespace',
+        MOSAIC_DEFINITION_INFORMATION_TITLE: 'Creating a Mosaic',
         MOSAIC_DEFINITION_INFORMATION: 'Want more info about mosaics?',
         MOSAIC_DEFINITION_INFORMATION_1: 'The maximum length for a mosaic name is 32 characters. Allowed characters are:',
         MOSAIC_DEFINITION_INFORMATION_2: 'The first character must be a letter from the alphabet.',
@@ -1701,9 +1849,11 @@ function EnglishProvider($translateProvider) {
         NAMESPACE_PROVISION_NEW_ROOT: 'New root Namespace',
         NAMESPACE_PROVISION_NS: 'Namespace',
         NAMESPACE_PROVISION_NS_NAME: 'Namespace name',
+        NAMESPACE_PROVISION_RESTRICTIONS: 'Namespace Restrictions',
         NAMESPACE_PROVISION_INFORMATION_1: 'Namespaces have certain restrictions with respect to the characters being allowed in the parts as well as the length of a part. A root namespace may have a length of 16 characters while sub-namespaces may have a length of 64 characters. Valid characters are:',
         NAMESPACE_PROVISION_INFORMATION_2: 'However a part is only allowed to begin with a letter of the alphabet, thus \'alice\' is an allowed part for a root namespace while \'1alice\' is not. Certain strings are reserved and thus not allowed as namespace parts. Among the disallowed namespace parts are:',
         NAMESPACE_PROVISION_INFORMATION_3: 'This list is not final and can be extended in the future. Thus \'user.alice\' or \'alice.user\' are not allowed in the NEM namespace system. The namespace may have up to 3 parts, thus \'qm.metals.silver\' is valid while \'qm.metals.silver.coin\' is not.',
+
         // RENEW NAMESPACE MODULE
         RENEW_NS_TITLE: 'Renew namespaces',
         RENEW_NS_NONE: 'No namespace to renew',
@@ -1718,6 +1868,7 @@ function EnglishProvider($translateProvider) {
         RENEW_NS_ALERT_PART_1: '<b>Warning !</b> The namespace:',
         RENEW_NS_ALERT_PART_2: 'will expire in less than a month ! ',
         RENEW_NS_ALERT_PART_3: 'Consult the <b>renew page</b> for more information.',
+
         // ACCOUNT MODULE
         ACCOUNT_TITLE: 'Account',
         ACCOUNT_ACCOUNT_INFORMATION: 'Account information',
@@ -1778,6 +1929,24 @@ function EnglishProvider($translateProvider) {
         PORTAL_APOSTILLE_TEXT: 'Use the NEM Apostille service to create blockchain based notarizations to time stamp, follow and audit file authenticity.',
         PORTAL_APOSTILLE_BTN_1: 'Create',
         PORTAL_APOSTILLE_BTN_2: 'Audit',
+        PORTAL_ADDRESS_BOOK_TEXT: 'Assign labels to address\' to easily keep track of your contacts.',
+        PORTAL_ADDRESS_BOOK_BTN: 'Manage address book',
+
+        // ADDRESS BOOK MODULE
+        ADDRESS_BOOK_TITLE: 'Address book',
+        ADDRESS_BOOK_LIST: 'Contacts',
+        ADDRESS_BOOK_NAVIGATION: 'Navigation',
+        ADDRESS_BOOK_NEW: 'New contact',
+        ADDRESS_BOOK_EDIT: 'Edit contact',
+        ADDRESS_BOOK_REMOVE: 'Remove contact',
+        ADDRESS_BOOK_NEW_BTN: 'Add',
+        ADDRESS_BOOK_EDIT_BTN: 'Save',
+        ADDRESS_BOOK_REMOVE_BTN: 'Remove',
+        ADDRESS_BOOK_EXPORT_BTN: 'Export address book',
+        ADDRESS_BOOK_IMPORT_BTN: 'Import address book',
+        ADDRESS_BOOK_CONTACT_LABEL: 'Label',
+        ADDRESS_BOOK_ACCOUNT_ADDRESS: 'Account address',
+        ADDRESS_BOOK_ACTIONS: 'Actions',
 
         // EXPLORER MODULE NAV
         EXPLORER_NAV_HOME: 'Home',
@@ -1826,6 +1995,7 @@ function EnglishProvider($translateProvider) {
         APOSTILLE_FILENAME: 'File name',
         APOSTILLE_NAME_TOO_LONG: 'File name is too long, 32 characters maximum allowed.',
         APOSTILLE_MAX_NUMBER: 'Maximum apostilles per batch is 25',
+        APOSTILLE_INFORMATION_TITLE: 'Creating an Apostille',
         APOSTILLE_INFORMATION_1: 'Each file uploaded is processed automatically with options set on the left panel. You can add new files, change parameters and then add more files with different options. It\'ll also work if you switch to the multisig tab and add more files.',
         APOSTILLE_INFORMATION_2: '"<b>Private, transferable, and updateable</b>" option means that the hashes of your files are signed with your private key and sent to a dedicated hierarchical deterministic (HD) account. This way it is not possible for anyone but you to know what content has been time stamped unless you share the content.',
         APOSTILLE_INFORMATION_3: 'The dedicated HD account can be put under a multisig contract so that it may be transferred to others via 1-of-1 or any m-of-n multisig contract combination. It can also have additional information sent to it via messages with updates and augments to the original document or the product it represents.',
@@ -1839,6 +2009,8 @@ function EnglishProvider($translateProvider) {
         APOSTILLE_CREATE_TEXT: 'Create text document',
         APOSTILLE_ENTER_TEXT: 'Enter text to notarize...',
         APOSTILLE_DOCUMENT_TITLE: 'Document title',
+        APOSTILLE_DROPBOX_MESSAGE: 'Please enter your password and desired tag(s) before selecting files',
+        APOSTILLE_DROPBOX_MESSAGE_2: 'Please enter your password before selecting files',
 
         // AUDIT APOSTILLE MODULE
         APOSTILLE_AUDIT_TITLE: 'Audit apostilles',
@@ -1923,6 +2095,13 @@ function EnglishProvider($translateProvider) {
         ALERT_GET_SUB_NS_ERROR: 'Error at fetching mosaics definitions, reason: ',
         ALERT_GET_MOSAICS_ERROR: 'Error at fetching mosaics, reason: ',
         ALERT_GET_TRANSACTIONS_ERROR: 'Error at fetching transactions, reason: ',
+        ALERT_INVALID_ADDRESS_BOOK_FILE: 'This file is not in .adb format !',
+        ALERT_INVALID_ADDRESS: 'Provided address is not valid !',
+        ALERT_INVALID_AMOUNT: 'Amount is not valid !',
+        ALERT_INVALID_PRIVATE_KEY: 'Provided private key is not valid !',
+        ALERT_FILE_SIZE_ERROR: ' is too big, maximum size allowed is 100 MB',
+        ALERT_MESSAGE_DECODE_KEY_ERROR: 'Message decryption failed because an account has no public key visible on the network',
+        ALERT_FETCH_TIME_SYNC_ERROR: 'An error occured at fetching network time !',
 
         // SUCCESS ALERTS
         ALERT_CREATE_WALLET_SUCCESS: 'Wallet successfully created and loaded !',
@@ -1935,6 +2114,7 @@ function EnglishProvider($translateProvider) {
         ALERT_SIGNATURE_SUCCESS: 'Transaction successfully signed !',
         ALERT_NTY_FILE_SUCCESS: 'Successfully loaded nty file !',
         ALERT_INCOMING_TX_FROM: 'Incoming transaction from ',
+        ALERT_ADDRESS_BOOK_FILE_SUCCESS: 'Address book successfully imported !',
 
         // CONVERT ACCOUNT TO MULTISIG
         AGGREGATE_MODIFICATION_TITLE: 'Convert an account to multisig',
@@ -1961,12 +2141,12 @@ function EnglishProvider($translateProvider) {
         AGGREGATE_MODIFICATION_RELATIVE_CHANGE: 'Change Sigs Needed',
         AGGREGATE_MODIFICATION_RELATIVE_CHANGE_PLACEHOLDER: 'Number of signatures to add (n) or remove (-n) - Automated removals',
         AGGREGATE_SELECTED_ACCOUNT_INFO: 'Selected account information'
-    }, _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', 'Min signatures'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', 'Use wallet account'), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', 'Already a NEMber ?'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', 'Wallet needs an upgrade'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', 'Selected wallet needs an upgrade. This action will generate a child public key and add it into your main account. Download of updated wallet will be automatically triggered at success, you <b><u>must</u></b> download it !'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', 'Upgrade wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', 'Import Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', 'Select a wallet in local storage'), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', 'Sign In'), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', 'New to NEM ?'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', 'Simple wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', 'Private key wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', 'Brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', 'Create simple wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', 'Create private key wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', 'Create brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', 'Please read about <a href="https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface" rel="nofollow" target="_blank">dangers</a> that client side generated keys pose, we are not responsible of loss that could be due to entropy of key generation. Even if very few chances to happen it is still recommended to use a private key generated from a NEM client.'), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', 'Select a network'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', 'Please read about <a href="https://en.bitcoin.it/wiki/Brainwallet" rel="nofollow" target="_blank">dangers</a> that brain wallet poses. Brain wallet uses ONLY password hashed multiple times, therefore it\'s crucial to select a SAFE password. <a href="https://xkcd.com/936/" rel="nofollow" target="_blank">XKCD #936</a>'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', 'Private key wallet uses ONLY password hashed multiple times, therefore it\'s crucial to select a SAFE password.'), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', 'Frequently Asked Questions'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', 'How Nano Wallet works ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', 'Nano Wallet is built using the latest crypto libraries with ES6 and AngularJS. It is a full client-side application that never sends any sensitive data through the wire; everything happens in your browser from creating private keys to the signing of transactions.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', 'Is it free to use ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', 'Absolutely all operations are client-side, only you have control of your coins, no third parties, and no extra fees.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', 'Why do I already have one mosaic ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', 'Because XEM is the default currency of the NEM blockchain, every user already has it registered to their wallet, even if their balance is 0. Its namespace is NEM and the mosaic name is XEM'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', 'Roadmap ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', 'The current roadmap includes integration of all NEM client features and completion of community funded projects to work across this wallet.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', 'Can I get free XEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', 'The NEM faucet is currently down, but you can consult the NEM forum to know about the available bounties.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', 'Where to find more information about NEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', 'Official forum'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', 'Official website'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', 'Official BitcoinTalk thread'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', 'How to support the project ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', 'Nano Wallet is maintained by Quantum_Mechanics based on Gimre\'s lightwallet'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', 'Apostille is a service working across <a href="http://apostille.nem.io">apostille.nem.io</a> website in collaboration with Jabo38 for the <a href="https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001" target="_blank">Apostille project</a>.'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', 'If you are willing to help feel free to pick an address below, thanks :)'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', 'NanoWallet project funds:'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', 'Apostille services funds:'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', 'Enter your wallet password or passphrase'), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', 'Wallet name'), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', 'Confirm your password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', 'Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', 'Confirm your passphrase'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', 'Account address'), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', 'Private key'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', 'Balance'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', 'Pay to'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', 'Transaction fee'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', 'Rental fee'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', 'Levy fee'), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', 'Recipient address or @alias'), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', 'Recipient address'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', 'Alias of'), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', 'Message'), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', 'Mosaic name'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _$translateProvider$t));
+    }, _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', 'Min signatures'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', 'Use wallet account'), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', 'Already a NEMber ?'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', 'Wallet needs an upgrade'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', 'Selected wallet needs an upgrade. This action will generate a child public key and add it into your main account. Download of updated wallet will be automatically triggered at success, you <b><u>must</u></b> download it !'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', 'Upgrade wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', 'Import Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', 'Select a wallet in local storage'), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', 'Sign In'), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', 'New to NEM ?'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', 'Simple wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', 'Private key wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', 'Brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', 'Create simple wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', 'Create private key wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', 'Create brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', 'Please read about <a href="https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface" rel="nofollow" target="_blank"><b>dangers</b></a> that client side generated keys pose; we are not responsible for any loss that could be due to the entropy of key generation. Even if it is unlikely to happen, it is still recommended to use a private key generated from a NEM client (NCC).'), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', 'Select a network'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', 'Please read about <a href="https://en.bitcoin.it/wiki/Brainwallet" rel="nofollow" target="_blank">dangers</a> that brain wallet poses. Brain wallet uses ONLY password hashed multiple times, therefore it\'s crucial to select a SAFE password. <a href="https://xkcd.com/936/" rel="nofollow" target="_blank">XKCD #936</a>'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', 'Private key wallet uses ONLY password hashed multiple times, therefore it\'s crucial to select a SAFE password.'), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING', 'Wallets are stored <a><b>temporarily</b></a> in the browser local storage! You should have triggered a download after creating the wallet. It is the .wlt file used as a backup and to import back if your browser\’s local storage is erased. If you don\'t get a backup .wlt file, log into your account, copy your private key and paste it somewhere safe. It is your responsibility to always make sure you have your private key backed up before sending any funds to your account.'), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING_FOOTER', 'By clicking below, you agree that you have read and understood the above warnings.'), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', 'Frequently Asked Questions'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', 'How Nano Wallet works ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', 'Nano Wallet is built using the latest crypto libraries with ES6 and AngularJS. It is a full client-side application that never sends any sensitive data through the wire; everything happens in your browser from creating private keys to the signing of transactions.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', 'Is it free to use ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', 'Absolutely all operations are client-side, only you have control of your coins, no third parties, and no extra fees.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', 'Why do I already have one mosaic ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', 'Because XEM is the default currency of the NEM blockchain, every user already has it registered to their wallet, even if their balance is 0. Its namespace is NEM and the mosaic name is XEM'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', 'Roadmap ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', 'The current roadmap includes integration of all NEM client features and completion of community funded projects to work across this wallet.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', 'Can I get free XEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', 'The NEM faucet is currently down, but you can consult the NEM forum to know about the available bounties.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', 'Where to find more information about NEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', 'Official forum'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', 'Official website'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', 'Official BitcoinTalk thread'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', 'How to support the project ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', 'Nano Wallet is maintained by Quantum_Mechanics based on Gimre\'s lightwallet'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', 'Apostille is a service working across <a href="http://apostille.nem.io">apostille.nem.io</a> website in collaboration with Jabo38 for the <a href="https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001" target="_blank">Apostille project</a>.'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', 'If you are willing to help feel free to pick an address below, thanks :)'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', 'NanoWallet project funds:'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', 'Apostille services funds:'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', 'Enter your wallet password or passphrase'), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', 'Wallet name'), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', 'Confirm your password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', 'Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', 'Confirm your passphrase'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', 'Account address'), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', 'Private key'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', 'Balance'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', 'Pay to'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', 'Transaction fee'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', 'Rental fee'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', 'Levy fee'), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', 'Recipient address or @alias'), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', 'Recipient address'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', 'Alias of'), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', 'Message'), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', 'Mosaic name'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ALIAS_TITLE', 'Alias'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ALIAS_NOTE', 'Thanks to NEMs Alias System anyone can use your alias to send transactions to you.<br/><a href="https://docs.google.com/document/d/1f571ff8w08m1X8keSj708Q80LXryNvl0x8pFrOeS2ng/edit?usp=sharing">This is how it works</a>'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ALIAS_SHOW', 'Setup an alias'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ALIAS_SET', 'Request alias'), _defineProperty(_$translateProvider$t, 'ALERT_SET_ALIAS_SUCCESS', ' has been successfully set for '), _defineProperty(_$translateProvider$t, 'ALERT_SET_ALIAS_SUCCESS2', ' through '), _defineProperty(_$translateProvider$t, 'ALERT_SET_ALIAS_SUCCESS3', ' pointer account'), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_IS_NAMESPACE_ERROR', ' is already an existing Namespace. Please try with another alias'), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_ALREADY_EXISTS_ERROR', ' is alreay an existing alias. Please try with another alias'), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_DOES_NOT_EXIST_WARNING', ' alias does not exist'), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_WRONG_FORMAT_ERROR', 'Wrong format, remember to use @[alias] or [alias]@[namespace]'), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_NS_NOT_READY_ERROR', '[alias]@[namespace] feature is not ready yet, sorry for the inconvenience'), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_IS_TOO_LONG_ERROR', 'The alias you requested is too long. Size should be 40 chars and now is '), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_INSUFICIENT_FUNDS_ERROR', 'This account has insuficient balance to register an alias. It needs at least 500xem'), _defineProperty(_$translateProvider$t, 'ALERT_ALIAS_UNEXPECTED_ERROR', 'Something unexpected went wrong, please let us know how you got here'), _$translateProvider$t));
 }
 
 exports.default = EnglishProvider;
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -2013,7 +2193,7 @@ app.config(_jp2.default);
 
 exports.default = app;
 
-},{"./cn":14,"./en":15,"./jp":17,"./pl":18,"angular":80}],17:[function(require,module,exports){
+},{"./cn":15,"./en":16,"./jp":18,"./pl":19,"angular":84}],18:[function(require,module,exports){
 'use strict';
 
 JapaneseProvider.$inject = ["$translateProvider"];
@@ -2051,6 +2231,7 @@ function JapaneseProvider($translateProvider) {
     HEADER_NODE_CUSTOM: "カスタムノード",
     HEADER_NODE_CONNECT: "接続",
     HEADER_NODE_CUSTOM_INFO: "ノードの IP もしくは、ドメイン",
+    HEADER_NODE_CUSTOM_TOOLTIP: 'Enter your own NIS node here',
     HEADER_PURGE: "アカウントデータの削除(パージ)",
     HEADER_PURGE_MESSAGE: "必ずバックアップを行った上で実行して下さい。OK をクリックすると、ローカルストレージに登録されているすべてのウォレットが削除(パージ)されます。すべてのウォレットをバックアップしていた場合、残高は安全です。（回復にはバックアップファイルの再読み込みが必要になります）",
 
@@ -2099,6 +2280,8 @@ function JapaneseProvider($translateProvider) {
     GENERAL_LEVY: "徴収",
     GENERAL_LEVY_TYPES: "徴収タイプ",
     GENERAL_LEVY_TYPES_NOTE: "I - コンスタント型手数料; II - パーセンテージ型手数料",
+    GENERAL_LEVY_TYPE_1: 'Constant fee',
+    GENERAL_LEVY_TYPE_2: 'Percentage based',
     GENERAL_SEND: "送信",
     GENERAL_TO: "宛先",
     GENERAL_HASH: "ハッシュ",
@@ -2159,6 +2342,10 @@ function JapaneseProvider($translateProvider) {
     GENERAL_REGISTER: 'Register',
     GENERAL_CREATE: 'Create',
     GENERAL_RENEW: 'Renew',
+
+    // HOME MODULE
+    HOME_UNSUPPORTED_BROWSER: 'Sorry but you cannot use Nano Wallet safely with this browser...',
+    HOME_RECOMMENDED_BROWSERS: 'Recommended browsers are:',
 
     // TRANSFER TRANSACTION MODULE
     TRANSFER_TRANSACTION_TITLE: "送受信",
@@ -2226,6 +2413,8 @@ function JapaneseProvider($translateProvider) {
     IMPORTANCE_TRANSFER_MULTISIG_NOT_INITIATOR: "あなたは、インポータンストランスファートランザクションを開始した連署者ではありません。従って委任収穫を開始または停止することができません。収穫操作権限を取り戻す方法をタブから確認してください。",
     IMPORTANCE_TRANSFER_MULTISIG_SELECT: "マルチシグアカウントを選択",
     IMPORTANCE_TRANSFER_MULTISIG_SELECT_MESSAGE: "ステータスを表示するマルチシグアカウントを選択してください",
+    IMPORTANCE_TRANSFER_PRIVATE_KEY_PLACEHOLDER: 'Reveal delegated private key',
+    IMPORTANCE_TRANSFER_DELEGATED_KEYS: 'Delegated account Keys',
 
     // CREATE MOSAIC MODULE
     MOSAIC_DEFINITION_TITLE: "モザイクを作成",
@@ -2253,6 +2442,7 @@ function JapaneseProvider($translateProvider) {
     MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_2: "送信モザイク",
     MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_3: "の場合、徴収されるモザイクは",
     MOSAIC_DEFINITION_PARENT: "親ネームスペース（名前空間）",
+    MOSAIC_DEFINITION_INFORMATION_TITLE: 'Creating a Mosaic',
     MOSAIC_DEFINITION_INFORMATION: 'Want more info about mosaics?',
     MOSAIC_DEFINITION_INFORMATION_1: "モザイク名は32文字が最長です。使用できる文字は以下の通りです。",
     MOSAIC_DEFINITION_INFORMATION_2: "最初の文字はアルファベットから始めて下さい。",
@@ -2290,12 +2480,12 @@ function JapaneseProvider($translateProvider) {
     NAMESPACE_PROVISION_MULTISIG_NAME: "マルチシグプロビジョンネームスペーストランザクション",
     NAMESPACE_PROVISION_PARENT: "親（上位側）ネームスペース（レベル3を除く）",
     NAMESPACE_PROVISION_NEW_ROOT: "新規ルート"
-  }, _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_PARENT', 'Parent Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NEW_ROOT', 'New root Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS', 'Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS_NAME', "ネームスペースの名前"), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_1', "ネームスペースには制約があります。ルートネームスペースは16字以内で、ルート以下のネームスペースは64文字までです。使用できる文字は以下の通りです。"), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_2', "ネームスペースの頭文字はアルファベットで始めて下さい。’alice’はルートネームスペースとしては妥当ですが、'1alice'1では作成できません。予約語（システムとして既に使われている文字列）もネームスペースとしては認められません。許可されない語は以下の通りです。"), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_3', '这个清单将可能会增加内容，请注意查看。 \'user.alice\' 和 \'alice.user\' 都不被NEM命名空间系统允许申请。命名空间最多可以被定义为三层，如\'gimre.metals.silver\' 有效，而 \'gimre.metals.silver.coin\' 无效。'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE', 'Renewing Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_1', 'Fees'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_2', 'Root Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_3', 'Renewal Period'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'Renewing a namespace costs the same amount as registering a new namespace, 5000XEM.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'Only root namespaces need to be renewed. All sub-namepsaces will be renewed automatically upon renewal of root namespace.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_3', 'Namespace contracts are on-chain rental contracts good for one year. The contract may be renewed one month prior to or after their expiration date.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_4', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_TITLE', "アカウント"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_INFORMATION', "アカウント情報"), _defineProperty(_$translateProvider$t, 'ACCOUNT_IMPORTANCE_SCORE', "重要性スコア"), _defineProperty(_$translateProvider$t, 'ACCOUNT_VESTED_BALANCE', "既得バランス"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING', "ハーベスティング"), _defineProperty(_$translateProvider$t, 'ACCOUNT_REMOTE_STATUS', "リモートステータス"), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PUBLIC', "委任公開鍵"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTED_BLOCKS', "ハーベストされたブロック"), _defineProperty(_$translateProvider$t, 'ACCOUNT_START_STOP_HARVESTING', "デリゲートハーベスティングを開始 / 停止"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NOTE', "もし既に <b>Nanoを使用して</b>ハーベスティングを行っており、その状態でローカルストレージを消去した場合、アプリの状態を復元する為に使用しているノードを選択してください。（ハーベスティングは停止されません）"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NODE_SELECT', "ハーベストを行うノードを選択"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_START', "デリゲートハーベスティング（委任収穫）を開始"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_STOP', "デリゲートハーベスティング（委任収穫）を停止"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NO_SLOTS', "選択したノードが接続制限に達しているので、別のノードを指定してください。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_BELOW_THRESHOLD', "デリゲートハーベスティングを開始する為には既得バランスが 10000 XEM 以上必要です。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT', "別のアカウントを選択"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_LABEL', "別のアカウントに切り替える"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_BTN_NOTE', "アカウントを変更"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_KEYS', "ウォレット ＆ 鍵"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT', "新規アカウントを追加"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_BTN', "ウォレットに新規アカウント(アドレス)を追加"), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_NOTE', "秘密鍵は最重要機密です。.wltファイル、紙、写真、<b><u>エクスポートウォレット QR</u></b>など、<b><u>オフライン</u></b>で安全に保管してしてください。\n"), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_SHOW', "秘密鍵を表示"), _defineProperty(_$translateProvider$t, 'ACCOUNT_EXPORT_MOBILE', "モバイル版に出力"), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_BTN', "アカウント情報の QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN', "ウォレットの QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN_2', "ウォレットの QR （アンドロイド &  iOS）"), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET', "ウォレットをバックアップ"), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_NOTE', "ウォレットのバックアップはXEMを紛失しない為の<b><u>重要</u></b>な作業です。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_DOWNLOAD', "ウォレットをダウンロード"), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_TITLE', "アカウント情報 QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_NOTE', "この QR はまもなく公開予定の NEMpay モバイルアプリにのみ対応しています。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_ANDROID_IOS_TITLE', "Android & iOS アプリ用のウォレット QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_WARNING', "BIP32 方式を使用しているのですべてのアカウントのアドレスはマスター秘密鍵から生成されています。秘密鍵とパスワードは全てのアカウントを復帰させるために絶対に必要になります。ローカルストレージを削除するような場合は何度も繰り返さないために新規アカウントを追加した後にあなたの財布をバックアップする事を強くお勧めします。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_CUSTOM_NODE', "カスタムノードを使う"), _defineProperty(_$translateProvider$t, 'ACCOUNT_NODE_FROM_LIST', "一覧からノードを使う"), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PRIVATE_KEY', "委任秘密鍵"), _defineProperty(_$translateProvider$t, 'PORTAL_TITLE', "各種機能"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TITLE', "マルチシグおよびマルチユーザーアカウント"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TEXT', "NEMのマルチシグは編集可能なオンチェーンのコントラクトであり、連署アカウントを有効にすることで最も強力な資金保護方法にもなり、非中央集権型組織の基盤にもなります。"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_1', "アカウントをマルチシグに変更"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_2', "既存コントラクトを編集"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TITLE', "デリゲートハーベスティング（委任）"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TEXT', "デリゲートハーベスティングは、アカウントが起動していない時間でもリモート・ノードを介して「マイニング（ハーベスト）」を可能にする機能です。"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_1', "リモートアカウントを管理"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_2', "マルチシグリモートアカウントを管理"), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TITLE', "Changelly （XEM等の両替サイト）"), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TEXT', "最適なレートで XEM を交換できる Changelly ウィジェットを使用できます。"), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_BTN', "XEM を購入"), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TITLE', "ネームスペースとサブドメイン"), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TEXT', "ネームスペースはドメイン名のようなものです。ネームスペース名はユニーク(他に同一の名称無し)であり、その配下にサブネームスペースやモザイク （アセット） を発行する事ができます。"), _defineProperty(_$translateProvider$t, 'PORTAL_NS_BTN', "ネームスペースを作成"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TITLE', "モザイク"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TEXT', "NEM のモザイクは追加プロパティ、及びその他の機能を有するアセットです。\nモザイクを作成する為には少なくとも１つのネームスペースをレンタルする必要があります。"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_1', "モザイク作成"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_2', "モザイク編集"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TITLE', "アポスティーユ （公証機能）"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TEXT', "NEM アポスティーユ（公証機能）はブロックチェーンにファイル情報とタイムスタンプを刻んだ公証を作成し、ファイルの信憑性を監査できるようにする機能です。（Factomのような）"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_1', "作成"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_2', "監査（公証の確認）"), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_HOME', "ホーム"), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_NSM', "ネームスペースとモザイク"), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_APOSTILLES', "アポスティーユ（公証機能）"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_TITLE', "エクスプローラ - ホーム"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS', "ネームスペース一覧"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS', "モザイク一覧"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS_MULTISIG', "マルチシグアカウントが保有しているネームスペース"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS_LEVY', "送信時に徴収されるモザイク（Levy）"), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_TITLE', "エクスプローラー - ネームスペースとモザイク"), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SELECT_MOS', "モザイクを選択して詳細を表示"), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SEARCH', 'Search namespace'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_TITLE', "エクスプローラ - アポスティーユ（公証機能）\n"), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_YOURS', "所有している公証"), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_PUBLIC', "公開受信（パブリック）"), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_NO_NTY', "NTYファイルがロードされていません。ここをクリックしてインポートを行って下さい。"), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_TITLE', 'Explorer - Accounts'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_SEARCH', 'Search'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_TITLE', "アポスティーユの履歴"), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BTN_TRANSFER', "所有権の譲渡 / 分割"), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BACKUP', "公証データのバックアップ"), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_PURGE', "公証データのパージ"), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TITLE', "アポスティーユ（公証）を作成"), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_HELP', 'Want more info on apostille?'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_NAME', "アポスティーユトランザクション"), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_MULTISIG_NAME', "マルチシグアポスティーユトランザクション"), _defineProperty(_$translateProvider$t, 'APOSTILLE_KEEP_PRIVATE', "プライベート、譲渡、アップデート可能"), _defineProperty(_$translateProvider$t, 'APOSTILLE_USE_DEDICATED', "専用アカウントを使用"), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILES_TO_NOTARIZE', "公証するファイル"), _defineProperty(_$translateProvider$t, 'APOSTILLE_REJECTED', "拒否されました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILE_HASH', "ファイルハッシュ"), _defineProperty(_$translateProvider$t, 'APOSTILLE_PRIVATE', "秘密"), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILENAME', "ファイル名"), _defineProperty(_$translateProvider$t, 'APOSTILLE_NAME_TOO_LONG', "ファイル名が長すぎます。40文字以下にしてください。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_MAX_NUMBER', "バッチあたりの最大アポスティーユ（公証）は25です。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_1', "アップロードされたファイルはそれぞれ左側のパネルに配置されたオプションを使って自動的に処理されます。新しいファイルを追加したり、パラメーターを変更したり、そしてさらに様々なオプションがついたファイルを加えることもできます。それはマルチシグのタブに切り替えて新しいファイルを追加していくときにも使用することができます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_2', "<b>プライベート、譲渡、アップデート可能</b>を選択をすれば、あなたのファイルのハッシュはあなたのプライベートキーで署名され、専用の階層的決定性（HD）アカウントへと送られることになります。このように、あなたがそれを共有しない限り、あなた以外の人間がどのような内容がタイムスタンプされたのかを知ることは不可能です。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_3', "専用のHDアカウントはマルチシグのコントラクトの下に置くことができ、1-of-1やあらゆるm-of-nのマルチシグのコントラクトの組合せを通じて他者へ譲渡することができます。オリジナルのドキュメントやそれが表す製品へのアップデートもしくは拡張を通知するメッセージを送ることで、アカウントへ追加の情報を記載することもできます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_4', "二人以上の関係者が全員ブロックチェーンのタイムスタンプを承認したい、つまりコントラクトをバインディングしたい場合には、ブロックチェーンの公証を行うアカウントをn-of-nのマルチシグのコントラクトの下に置くことができます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_5', "<b>プライベートで、譲渡とアップデートが可能</b>なように設定されたマルチシグネチャのコントラクトのアカウントでは、発案者である連署人のプライベートキーを使ってハッシュに署名を行い、専用のHDアカウントを作成します（マルチシグ化されたアカウントではありません）"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_6', "HDアカウントは、あなたのプライベートキーで署名されることになるファイル名のハッシュを元に作られた専用のアカウントです。そのプロセスの結果として生まれるハッシュは、その後に第二のプライベートキーを作るために使用します。これが、タイムスタンプされたファイルのプライベートキーです。これはブロックチェーン技術で初のものであり、アポスティーユにしか存在しないものです。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_7', "専用のHDカウントによって、ハッシュに署名されたオリジナルのファイルや、それのアップデートをHDアカウントに保存しておくことが可能になります。<b>\"パブリック\"</b>を選択した場合には、トランザクションはオープンなシンクのアドレスへ送られることになります（デフォルト設定）"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_8', "そのトランザクションが送られた後に、アーカイブのダウンロードが開始します。そこには以下のものが入っています。署名されたファイル、そのファイルについてのアポスティーユの証明書、NEMのチェーン上であなたがタイムスタンプを押したすべてのファイルを記録している新規もしくはアップデートされた.ntyファイルといったものです。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_NO_NTY', "NTYファイルがロードされていません、自動的にインポートするにはこちらをクリックしてください。もしくは自動的に生成されます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_IMPORT_FILES', "ファイルのインポート"), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TEXT', "テキストドキュメントを作成"), _defineProperty(_$translateProvider$t, 'APOSTILLE_ENTER_TEXT', "公証するテキストを入力してください..."), _defineProperty(_$translateProvider$t, 'APOSTILLE_DOCUMENT_TITLE', "ドキュメントタイトル"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_TITLE', "アポスティーユ（公証）を監査"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE', "ノードを選んでください。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE_NOTE', "どんな少数のノードであっても、全取引履歴を検索する事ができます。 (オプションはNISにてデフォルト無効となっています。)"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WRONG_FORMAT', "このファイルはアポスティーユ（公証）のフォーマットではありません。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL_NO_PUBLIC_KEY', "認証に失敗しました。オーナーは公開鍵を持っていません。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SUCCESS', "ファイル監査に成功しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL', "認証に失敗しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WAITING', "アポスティーユトランスファー（公証転送）は承認待ちの可能性があります。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NOT_FOUND', "トランザクションが見つかりません。トランザクションの承認待ち状態を確認できなかった場合、このアポスティーユ（公証）は無効です。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_UNCONFIRMED', "未承認データの取り込み中にトランザクションが見つからないエラーが発生しました"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNER', "署名者データの取り込み中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNATURE', "署名認証に失敗したためエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_1', "監査できるファイルは、<b>アポスティーユ形式（公証済形式）</ b>でなければなりません。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_2', "ファイル名でそれらを認識できます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NON_SIGNED', "署名なしの例:"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SIGNED', "署名の例:"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FILES', "監査ファイル"), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_TITLE', 'Send message to notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_NS_BRAND', 'Use my namespace to brand message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_ADD_MOSAIC', 'Add mosaic'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NTY_ACCOUNT', 'Notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REQUEST_MESSAGE', 'Request message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_MESSAGE_REQUEST', 'Create a message request'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSFER_TITLE', 'Transfer or Split apostille ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_UPDATE_TITLE', 'Update apostille'), _defineProperty(_$translateProvider$t, 'ALERT_MISSING_FORM_DATA', "フォームの必須事項を全て入力してください。"), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_WALLET_DOWNLOAD', "ウォレットが見つからなかった為ダウンロードできません。"), _defineProperty(_$translateProvider$t, 'ALERT_PASSWORDS_NOT_MATCHING', "入力されたパスワード・フレーズが適合しませんでした。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_KEY_FOR_ADDR', "入力されたアドレスに秘密鍵が対応していません。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_LOADED', "ウォレットなしにダッシュボードにアクセスすることはできません。"), _defineProperty(_$translateProvider$t, 'ALERT_WALLET_NAME_EXISTS', "すでに同じ名前のウォレットがロードされています。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_FILE', "ウォレットではないファイルをロードしようとしています。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_NODE_SET', "ノードをセットしてください。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_CUSTOM_NODE', "カスタムノードが正しくありません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WEBSOCKET_PORT', "カスタムノードの websocket ポートが正しくありません。"), _defineProperty(_$translateProvider$t, 'ALERT_MIJIN_DISABLED', "Mijin ネットワークは無効です。他のネットワークを選択してください。"), _defineProperty(_$translateProvider$t, 'ALERT_GET_NS_BY_ID_ERROR', "ネームスペースを取得時にエラーが発生しました。要因："), _defineProperty(_$translateProvider$t, 'ALERT_GET_ACCOUNT_DATA_ERROR', "アカウントデータを取得時にエラーが発生しました。要因："), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_OCCURRED', "エラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDR_FOR_NETWORK', "ネットワークに対応していません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PASSWORD', "パスワードが正しくありません。"), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_ALREADY_IN_LIST', "署名者はすでに存在しています。"), _defineProperty(_$translateProvider$t, 'ALERT_COSIGNATORY_HAS_NO_PUBLIC', "署名者は公開鍵を取得するために最低１回はトランザクションを発生させる必要があります。"), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_HAS_NO_PUBLIC', "マルチシグアカウントは公開鍵を取得するために、最低１回はトランザクションを発生させる必要があります。"), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_CANNOT_BE_MULTISIG', "選択されたアカウントは他のマルチシグアカウントの連署者となりますので、これは変換できません。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_NS_OWNED', "アカウントは1つもネームスペースを所持していません。ネームスペースを最低1つ作成するかアカウントを変更してください。"), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCKED_INFO_ERROR', "アンロック情報の取り込み中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_LOCK_ERROR', "アカウントロックのエラー。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCK_ERROR', "アカウントのロック解除エラー。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_SUPERNODES_ERROR', "スーパーノードデータの取り込み中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NTY_FILE', "提供されるファイルは .nty ファイルではありません。"), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_FAILED', "ウォレットの作成に失敗しました。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_DERIVATION_FROM_SEED_FAILED', "シードからアカウントを導出するのに失敗しました。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_BIP32_GENERATION_FAILED', "BIP32 データの生成に失敗しました。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_DATA', "ウォレットデータが空です。"), _defineProperty(_$translateProvider$t, 'ALERT_CANNOT_LOGIN_WITHOU_WALLET', "ウォレットなしではログインできません。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_TO_SET', "現在のウォレットとしてセットすることはできません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_INDEX', "選択されたアカウントのインデックスは範囲外です。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_CURRENT_WALLET', "アカウントに現在のウォレットの設定ができません。"), _defineProperty(_$translateProvider$t, 'ALERT_ALREADY_MULTISIG', "選択されたアカウントはすでにマルチシグアカウントです。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MODIFICATION_ARRAY', "このマルチシグアカウントは署名者になれません。変更履歴を確認してください。"), _defineProperty(_$translateProvider$t, 'ALERT_GET_MARKET_INFO_ERROR', "市場情報の取得中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_CANNOT_BE_COSIG', "このマルチシグアカウントに連署者を設定できません。"), _defineProperty(_$translateProvider$t, 'ALERT_PURGE_CANCELLED', "アカウントデータ消去処理（パージ）はキャンセルされました。"), _defineProperty(_$translateProvider$t, 'ALERT_MAINNET_DISABLED', "Mainnetは無効です。別のネットワークを選択してください。"), _defineProperty(_$translateProvider$t, 'ALERT_EMPTY_DECODED_MSG', "複合化されたメッセージはありません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NS_NAME', "ネームスペース名が無効です。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MOSAIC_NAME', "モザイク名が無効です。"), _defineProperty(_$translateProvider$t, 'ALERT_MOSAIC_DESCRIPTION', "モザイクの概要が無効です。"), _defineProperty(_$translateProvider$t, 'ALERT_GET_INCOMING_TXES_ERROR', 'An error occured while trying to fetch incoming transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_DEFINITIONS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_SUB_NS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_ERROR', 'Error at fetching mosaics, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_TRANSACTIONS_ERROR', 'Error at fetching transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_SUCCESS', "ウォレットが正常に作成され、ロードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_PURGE', "アカウントはローカルストレージから正常に消去（パージ）されました。"), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_LOGOUT', "正常にログアウトされました。"), _defineProperty(_$translateProvider$t, 'ALERT_LOAD_WALLET_SUCCESS', "ウォレットが正常にロードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_TRANSACTION_SUCCESS', "トランザクションが正常に送信されました。"), _defineProperty(_$translateProvider$t, 'ALERT_GENERATE_ACCOUNT_SUCCESS', "アカウントが正常に生成されました。ウォレットのアップデートをお忘れなく。"), _defineProperty(_$translateProvider$t, 'ALERT_UPGRADE_SUCCESS', "ウォレットは正常にアップグレードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_SIGNATURE_SUCCESS', "トランザクションは正常にサインされました。"), _defineProperty(_$translateProvider$t, 'ALERT_NTY_FILE_SUCCESS', ".nty ファイルは正常にロードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_INCOMING_TX_FROM', "トランザクションを受信"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_TITLE', "マルチシグアカウントへ変換"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_NAME', "アグリゲートモディフィケーショントランザクション（multisig連署者追加・削除等)"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_MULTISIG_NAME', "マルチシグアグリゲートモディフィケーショントランザクション(multisig連署者追加・削除等)"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT_TITLE', 'Account to Convert'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT', "変換するアカウントを選択"), _defineProperty(_$translateProvider$t, 'AGGREGATE_CUSTOM_ACCOUNT', "カスタムアカウントを使用"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE_TITLE', 'Address private key'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT', "マルチシグ変換するアカウントのアドレス"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE', "マルチシグ変換するアカウントの秘密鍵"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_PLACEHOLDER', "連署アカウント、または @alias名 を追加"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_BTN_TITLE', "連署アカウントを追加"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', "最小署名数"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES_PLACEHOLDER', "署名トランザクションを検証するために必要な最小連署者数"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_LIST', "修正リスト"), _defineProperty(_$translateProvider$t, 'AGGREGATE_COSIG_LIST', 'Cosignatory Address List'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_TITLE', "マルチシグネイチャーコントラクトを編集"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT_TITLE', 'Account to edit'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT', "編集するアカウントを選択"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_TITLE', 'Add/Remove signer'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_PLACEHOLDER', "連署アカウント、または @alias を追加"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE', "最小署名数の相対変化"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE_PLACEHOLDER', "\n追加または (n)削除(-n) する署名の数 - 自動除去"), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECTED_ACCOUNT_INFO', "選択されたアカウントの情報"), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', "使用するウォレットアカウント"), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', "あなたはNEMberですか？"), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', "ウォレットのアップグレードが必要です"), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', "選択されたウォレットは、アップグレードが必要です。このアクションでは、サブの公開鍵を生成し、メインのアカウントに追加されます。更新されたウォレットのダウンロードが自動的に開始される為には、それを <b><u>ダウンロード</u></b>する必要があります。"), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', "ウォレットをアップグレード"), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', "ウォレットをインポート"), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', "ローカルストレージからウォレットを選択してください。"), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', "サインイン"), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', "NEM を始めますか?"), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', "シンプルウォレット"), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', "プライベートキーウォレット"), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', "ブレインウォレット"), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', "シンプルウォレットを作成"), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', "プライベートキーウォレットを作成"), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', "ブレインウォレットを作成"), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', "クライアント側で生成された鍵の<a href=\"https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface\" rel=\"nofollow\" target=\"_blank\">危険性</a>についてお読みください。鍵生成の偏りなどが原因で損失が発生しても保証できません。損失が発生する可能性は極めて低いですが、NEM クライアントから生成された秘密鍵を使用することをお勧めします。"), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', "ネットワークを選択してください。"), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', "ブレインウォレットの<a href=\"https://en.bitcoin.it/wiki/Brainwallet\" rel=\"nofollow\" target=\"_blank\">危険性</a>について留意してください。ブレインウォレットはパスワードのみによって、ハッシュ化されております。そのため、「安全な」パスワードを考える必要があります。<a href=\"https://xkcd.com/936/\" rel=\"nofollow\" target=\"_blank\">XKCD #936</a>"), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', "プライベートキーウォレットはパスワードのみによって、ハッシュ化されております。そのため、「安全な」パスワードを選んでください。"), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', "よくある質問"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', "どのように Nano ウォレットは動作しますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', "Nano ウォレットは ES6, AngularJS そして 最新の暗号ライブラリを使用して構築されています。これは完全なクライアントサイドアプリケーションで、ネット上に機密データが送信されることはありません。秘密鍵の作成からトランザクションの署名まで全てあなたのブラウザ上で完結します。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', "このウォレットは無料で使えますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', "はい。追加使用料等は発生しません。全処理は完全にクライアント側で行われます。あなたのコインは第三者の干渉を受けずあなたしか操作することができません。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', "なぜ最初からに mosaic を1つ所有しているのですか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', "XEMはNEMブロックチェーンのデフォルトの通貨なので、その残高がゼロであっても、すべてのユーザーのウォレットにはそれが登録されています。そのネームスペースはNEMであり、モザイクの名前はXEMです。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', "今後の予定は？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', "現在のロードマップには、NEMクライアントの機能を組み込むこと、NanoWallet中で機能するコミュニティによって出資されたプロジェクトの完成などが含まれています。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', "無料で XEM を入手することはできますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', "現在NEMフォーセットは停止していますが、NEMフォーラムで報酬として受け取る方法について相談できます。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', "どこで NEM に関するもっと詳しい情報を得ることができますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', "公式フォーラム"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', "公式ウェブサイト"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', "公式 BitcoinTalk スレッド"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', "どうすればこのプロジェクトをサポートできますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', "Nano ウォレットは Gimre氏 の lightwallet をベースに、Quantum_Mechanics が管理しています。lightwallet ソースはこちら"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', "アポスティーユはJabo38と<a href=\"http://apostille.io\">apostille.io</a>ウェブサイト全体で取り組んでいるサービスです。\n<a href=\"https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001\" target=\"_blank\">Apostille project</a>."), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', "If you are willing to help feel free to pick an address below, thanks :)"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', "Nano ウォレットプロジェクトファンド"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', "アポスティーユ（公証）ファンド"), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', "ウォレットのパスワード、もしくはパスフレーズを入力してください。"), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', "ウォレット名"), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', "パスワード"), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', "パスワードを確認"), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', "パスフレーズ"), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', "パスフレーズを確認"), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', "アカウントアドレス"), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', "秘密鍵"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', "バランス（残高）"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', "支払先"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', "取引手数料"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', "レンタル料"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', "徴収料"), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', "受信者のアドレスまたは @alias"), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', "受信者のアドレス"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', "エイリアス"), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', "メッセージ"), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', "モザイク名"), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _$translateProvider$t));
+  }, _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_PARENT', 'Parent Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NEW_ROOT', 'New root Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS', 'Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS_NAME', "ネームスペースの名前"), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_RESTRICTIONS', 'Namespace Restrictions'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_1', "ネームスペースには制約があります。ルートネームスペースは16字以内で、ルート以下のネームスペースは64文字までです。使用できる文字は以下の通りです。"), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_2', "ネームスペースの頭文字はアルファベットで始めて下さい。’alice’はルートネームスペースとしては妥当ですが、'1alice'1では作成できません。予約語（システムとして既に使われている文字列）もネームスペースとしては認められません。許可されない語は以下の通りです。"), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_3', '这个清单将可能会增加内容，请注意查看。 \'user.alice\' 和 \'alice.user\' 都不被NEM命名空间系统允许申请。命名空间最多可以被定义为三层，如\'gimre.metals.silver\' 有效，而 \'gimre.metals.silver.coin\' 无效。'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE', 'Renewing Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_1', 'Fees'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_2', 'Root Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_3', 'Renewal Period'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'Renewing a namespace costs the same amount as registering a new namespace, 5000XEM.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'Only root namespaces need to be renewed. All sub-namepsaces will be renewed automatically upon renewal of root namespace.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_3', 'Namespace contracts are on-chain rental contracts good for one year. The contract may be renewed one month prior to or after their expiration date.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_4', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_TITLE', "アカウント"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_INFORMATION', "アカウント情報"), _defineProperty(_$translateProvider$t, 'ACCOUNT_IMPORTANCE_SCORE', "重要性スコア"), _defineProperty(_$translateProvider$t, 'ACCOUNT_VESTED_BALANCE', "既得バランス"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING', "ハーベスティング"), _defineProperty(_$translateProvider$t, 'ACCOUNT_REMOTE_STATUS', "リモートステータス"), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PUBLIC', "委任公開鍵"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTED_BLOCKS', "ハーベストされたブロック"), _defineProperty(_$translateProvider$t, 'ACCOUNT_START_STOP_HARVESTING', "デリゲートハーベスティングを開始 / 停止"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NOTE', "もし既に <b>Nanoを使用して</b>ハーベスティングを行っており、その状態でローカルストレージを消去した場合、アプリの状態を復元する為に使用しているノードを選択してください。（ハーベスティングは停止されません）"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NODE_SELECT', "ハーベストを行うノードを選択"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_START', "デリゲートハーベスティング（委任収穫）を開始"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_STOP', "デリゲートハーベスティング（委任収穫）を停止"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NO_SLOTS', "選択したノードが接続制限に達しているので、別のノードを指定してください。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_BELOW_THRESHOLD', "デリゲートハーベスティングを開始する為には既得バランスが 10000 XEM 以上必要です。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT', "別のアカウントを選択"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_LABEL', "別のアカウントに切り替える"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_BTN_NOTE', "アカウントを変更"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_KEYS', "ウォレット ＆ 鍵"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT', "新規アカウントを追加"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_BTN', "ウォレットに新規アカウント(アドレス)を追加"), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_NOTE', "秘密鍵は最重要機密です。.wltファイル、紙、写真、<b><u>エクスポートウォレット QR</u></b>など、<b><u>オフライン</u></b>で安全に保管してしてください。\n"), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_SHOW', "秘密鍵を表示"), _defineProperty(_$translateProvider$t, 'ACCOUNT_EXPORT_MOBILE', "モバイル版に出力"), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_BTN', "アカウント情報の QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN', "ウォレットの QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN_2', "ウォレットの QR （アンドロイド &  iOS）"), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET', "ウォレットをバックアップ"), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_NOTE', "ウォレットのバックアップはXEMを紛失しない為の<b><u>重要</u></b>な作業です。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_DOWNLOAD', "ウォレットをダウンロード"), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_TITLE', "アカウント情報 QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_NOTE', "この QR はまもなく公開予定の NEMpay モバイルアプリにのみ対応しています。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_ANDROID_IOS_TITLE', "Android & iOS アプリ用のウォレット QR"), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_WARNING', "BIP32 方式を使用しているのですべてのアカウントのアドレスはマスター秘密鍵から生成されています。秘密鍵とパスワードは全てのアカウントを復帰させるために絶対に必要になります。ローカルストレージを削除するような場合は何度も繰り返さないために新規アカウントを追加した後にあなたの財布をバックアップする事を強くお勧めします。"), _defineProperty(_$translateProvider$t, 'ACCOUNT_CUSTOM_NODE', "カスタムノードを使う"), _defineProperty(_$translateProvider$t, 'ACCOUNT_NODE_FROM_LIST', "一覧からノードを使う"), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PRIVATE_KEY', "委任秘密鍵"), _defineProperty(_$translateProvider$t, 'PORTAL_TITLE', "各種機能"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TITLE', "マルチシグおよびマルチユーザーアカウント"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TEXT', "NEMのマルチシグは編集可能なオンチェーンのコントラクトであり、連署アカウントを有効にすることで最も強力な資金保護方法にもなり、非中央集権型組織の基盤にもなります。"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_1', "アカウントをマルチシグに変更"), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_2', "既存コントラクトを編集"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TITLE', "デリゲートハーベスティング（委任）"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TEXT', "デリゲートハーベスティングは、アカウントが起動していない時間でもリモート・ノードを介して「マイニング（ハーベスト）」を可能にする機能です。"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_1', "リモートアカウントを管理"), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_BTN_2', "マルチシグリモートアカウントを管理"), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TITLE', "Changelly （XEM等の両替サイト）"), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TEXT', "最適なレートで XEM を交換できる Changelly ウィジェットを使用できます。"), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_BTN', "XEM を購入"), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TITLE', "ネームスペースとサブドメイン"), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TEXT', "ネームスペースはドメイン名のようなものです。ネームスペース名はユニーク(他に同一の名称無し)であり、その配下にサブネームスペースやモザイク （アセット） を発行する事ができます。"), _defineProperty(_$translateProvider$t, 'PORTAL_NS_BTN', "ネームスペースを作成"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TITLE', "モザイク"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TEXT', "NEM のモザイクは追加プロパティ、及びその他の機能を有するアセットです。\nモザイクを作成する為には少なくとも１つのネームスペースをレンタルする必要があります。"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_1', "モザイク作成"), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_2', "モザイク編集"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TITLE', "アポスティーユ （公証機能）"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TEXT', "NEM アポスティーユ（公証機能）はブロックチェーンにファイル情報とタイムスタンプを刻んだ公証を作成し、ファイルの信憑性を監査できるようにする機能です。（Factomのような）"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_1', "作成"), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_2', "監査（公証の確認）"), _defineProperty(_$translateProvider$t, 'PORTAL_ADDRESS_BOOK_TEXT', 'Assign labels to address\' to easily keep track of your contacts.'), _defineProperty(_$translateProvider$t, 'PORTAL_ADDRESS_BOOK_BTN', 'Manage address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_TITLE', 'Address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_LIST', 'Contacts'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NAVIGATION', 'Navigation'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NEW', 'New contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EDIT', 'Edit contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_REMOVE', 'Remove contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NEW_BTN', 'Add'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EDIT_BTN', 'Save'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_REMOVE_BTN', 'Remove'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EXPORT_BTN', 'Export address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_IMPORT_BTN', 'Import address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_CONTACT_LABEL', 'Label'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_ACCOUNT_ADDRESS', 'Account address'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_ACTIONS', 'Actions'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_HOME', "ホーム"), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_NSM', "ネームスペースとモザイク"), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_APOSTILLES', "アポスティーユ（公証機能）"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_TITLE', "エクスプローラ - ホーム"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS', "ネームスペース一覧"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS', "モザイク一覧"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS_MULTISIG', "マルチシグアカウントが保有しているネームスペース"), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS_LEVY', "送信時に徴収されるモザイク（Levy）"), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_TITLE', "エクスプローラー - ネームスペースとモザイク"), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SELECT_MOS', "モザイクを選択して詳細を表示"), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SEARCH', 'Search namespace'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_TITLE', "エクスプローラ - アポスティーユ（公証機能）\n"), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_YOURS', "所有している公証"), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_PUBLIC', "公開受信（パブリック）"), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_NO_NTY', "NTYファイルがロードされていません。ここをクリックしてインポートを行って下さい。"), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_TITLE', 'Explorer - Accounts'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_SEARCH', 'Search'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_TITLE', "アポスティーユの履歴"), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BTN_TRANSFER', "所有権の譲渡 / 分割"), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BACKUP', "公証データのバックアップ"), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_PURGE', "公証データのパージ"), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TITLE', "アポスティーユ（公証）を作成"), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_HELP', 'Want more info on apostille?'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_NAME', "アポスティーユトランザクション"), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_MULTISIG_NAME', "マルチシグアポスティーユトランザクション"), _defineProperty(_$translateProvider$t, 'APOSTILLE_KEEP_PRIVATE', "プライベート、譲渡、アップデート可能"), _defineProperty(_$translateProvider$t, 'APOSTILLE_USE_DEDICATED', "専用アカウントを使用"), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILES_TO_NOTARIZE', "公証するファイル"), _defineProperty(_$translateProvider$t, 'APOSTILLE_REJECTED', "拒否されました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILE_HASH', "ファイルハッシュ"), _defineProperty(_$translateProvider$t, 'APOSTILLE_PRIVATE', "秘密"), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILENAME', "ファイル名"), _defineProperty(_$translateProvider$t, 'APOSTILLE_NAME_TOO_LONG', "ファイル名が長すぎます。40文字以下にしてください。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_MAX_NUMBER', "バッチあたりの最大アポスティーユ（公証）は25です。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_TITLE', 'Creating an Apostille'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_1', "アップロードされたファイルはそれぞれ左側のパネルに配置されたオプションを使って自動的に処理されます。新しいファイルを追加したり、パラメーターを変更したり、そしてさらに様々なオプションがついたファイルを加えることもできます。それはマルチシグのタブに切り替えて新しいファイルを追加していくときにも使用することができます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_2', "<b>プライベート、譲渡、アップデート可能</b>を選択をすれば、あなたのファイルのハッシュはあなたのプライベートキーで署名され、専用の階層的決定性（HD）アカウントへと送られることになります。このように、あなたがそれを共有しない限り、あなた以外の人間がどのような内容がタイムスタンプされたのかを知ることは不可能です。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_3', "専用のHDアカウントはマルチシグのコントラクトの下に置くことができ、1-of-1やあらゆるm-of-nのマルチシグのコントラクトの組合せを通じて他者へ譲渡することができます。オリジナルのドキュメントやそれが表す製品へのアップデートもしくは拡張を通知するメッセージを送ることで、アカウントへ追加の情報を記載することもできます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_4', "二人以上の関係者が全員ブロックチェーンのタイムスタンプを承認したい、つまりコントラクトをバインディングしたい場合には、ブロックチェーンの公証を行うアカウントをn-of-nのマルチシグのコントラクトの下に置くことができます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_5', "<b>プライベートで、譲渡とアップデートが可能</b>なように設定されたマルチシグネチャのコントラクトのアカウントでは、発案者である連署人のプライベートキーを使ってハッシュに署名を行い、専用のHDアカウントを作成します（マルチシグ化されたアカウントではありません）"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_6', "HDアカウントは、あなたのプライベートキーで署名されることになるファイル名のハッシュを元に作られた専用のアカウントです。そのプロセスの結果として生まれるハッシュは、その後に第二のプライベートキーを作るために使用します。これが、タイムスタンプされたファイルのプライベートキーです。これはブロックチェーン技術で初のものであり、アポスティーユにしか存在しないものです。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_7', "専用のHDカウントによって、ハッシュに署名されたオリジナルのファイルや、それのアップデートをHDアカウントに保存しておくことが可能になります。<b>\"パブリック\"</b>を選択した場合には、トランザクションはオープンなシンクのアドレスへ送られることになります（デフォルト設定）"), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_8', "そのトランザクションが送られた後に、アーカイブのダウンロードが開始します。そこには以下のものが入っています。署名されたファイル、そのファイルについてのアポスティーユの証明書、NEMのチェーン上であなたがタイムスタンプを押したすべてのファイルを記録している新規もしくはアップデートされた.ntyファイルといったものです。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_NO_NTY', "NTYファイルがロードされていません、自動的にインポートするにはこちらをクリックしてください。もしくは自動的に生成されます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_IMPORT_FILES', "ファイルのインポート"), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TEXT', "テキストドキュメントを作成"), _defineProperty(_$translateProvider$t, 'APOSTILLE_ENTER_TEXT', "公証するテキストを入力してください..."), _defineProperty(_$translateProvider$t, 'APOSTILLE_DOCUMENT_TITLE', "ドキュメントタイトル"), _defineProperty(_$translateProvider$t, 'APOSTILLE_DROPBOX_MESSAGE', 'Please enter your password and desired tag(s) before selecting files'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DROPBOX_MESSAGE_2', 'Please enter your password before selecting files'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_TITLE', "アポスティーユ（公証）を監査"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE', "ノードを選んでください。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE_NOTE', "どんな少数のノードであっても、全取引履歴を検索する事ができます。 (オプションはNISにてデフォルト無効となっています。)"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WRONG_FORMAT', "このファイルはアポスティーユ（公証）のフォーマットではありません。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL_NO_PUBLIC_KEY', "認証に失敗しました。オーナーは公開鍵を持っていません。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SUCCESS', "ファイル監査に成功しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL', "認証に失敗しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WAITING', "アポスティーユトランスファー（公証転送）は承認待ちの可能性があります。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NOT_FOUND', "トランザクションが見つかりません。トランザクションの承認待ち状態を確認できなかった場合、このアポスティーユ（公証）は無効です。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_UNCONFIRMED', "未承認データの取り込み中にトランザクションが見つからないエラーが発生しました"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNER', "署名者データの取り込み中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNATURE', "署名認証に失敗したためエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_1', "監査できるファイルは、<b>アポスティーユ形式（公証済形式）</ b>でなければなりません。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_2', "ファイル名でそれらを認識できます。"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NON_SIGNED', "署名なしの例:"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SIGNED', "署名の例:"), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FILES', "監査ファイル"), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_TITLE', 'Send message to notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_NS_BRAND', 'Use my namespace to brand message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_ADD_MOSAIC', 'Add mosaic'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NTY_ACCOUNT', 'Notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REQUEST_MESSAGE', 'Request message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_MESSAGE_REQUEST', 'Create a message request'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSFER_TITLE', 'Transfer or Split apostille ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_UPDATE_TITLE', 'Update apostille'), _defineProperty(_$translateProvider$t, 'ALERT_MISSING_FORM_DATA', "フォームの必須事項を全て入力してください。"), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_WALLET_DOWNLOAD', "ウォレットが見つからなかった為ダウンロードできません。"), _defineProperty(_$translateProvider$t, 'ALERT_PASSWORDS_NOT_MATCHING', "入力されたパスワード・フレーズが適合しませんでした。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_KEY_FOR_ADDR', "入力されたアドレスに秘密鍵が対応していません。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_LOADED', "ウォレットなしにダッシュボードにアクセスすることはできません。"), _defineProperty(_$translateProvider$t, 'ALERT_WALLET_NAME_EXISTS', "すでに同じ名前のウォレットがロードされています。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_FILE', "ウォレットではないファイルをロードしようとしています。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_NODE_SET', "ノードをセットしてください。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_CUSTOM_NODE', "カスタムノードが正しくありません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WEBSOCKET_PORT', "カスタムノードの websocket ポートが正しくありません。"), _defineProperty(_$translateProvider$t, 'ALERT_MIJIN_DISABLED', "Mijin ネットワークは無効です。他のネットワークを選択してください。"), _defineProperty(_$translateProvider$t, 'ALERT_GET_NS_BY_ID_ERROR', "ネームスペースを取得時にエラーが発生しました。要因："), _defineProperty(_$translateProvider$t, 'ALERT_GET_ACCOUNT_DATA_ERROR', "アカウントデータを取得時にエラーが発生しました。要因："), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_OCCURRED', "エラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDR_FOR_NETWORK', "ネットワークに対応していません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PASSWORD', "パスワードが正しくありません。"), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_ALREADY_IN_LIST', "署名者はすでに存在しています。"), _defineProperty(_$translateProvider$t, 'ALERT_COSIGNATORY_HAS_NO_PUBLIC', "署名者は公開鍵を取得するために最低１回はトランザクションを発生させる必要があります。"), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_HAS_NO_PUBLIC', "マルチシグアカウントは公開鍵を取得するために、最低１回はトランザクションを発生させる必要があります。"), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_CANNOT_BE_MULTISIG', "選択されたアカウントは他のマルチシグアカウントの連署者となりますので、これは変換できません。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_NS_OWNED', "アカウントは1つもネームスペースを所持していません。ネームスペースを最低1つ作成するかアカウントを変更してください。"), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCKED_INFO_ERROR', "アンロック情報の取り込み中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_LOCK_ERROR', "アカウントロックのエラー。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCK_ERROR', "アカウントのロック解除エラー。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_SUPERNODES_ERROR', "スーパーノードデータの取り込み中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NTY_FILE', "提供されるファイルは .nty ファイルではありません。"), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_FAILED', "ウォレットの作成に失敗しました。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_DERIVATION_FROM_SEED_FAILED', "シードからアカウントを導出するのに失敗しました。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_BIP32_GENERATION_FAILED', "BIP32 データの生成に失敗しました。要因:"), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_DATA', "ウォレットデータが空です。"), _defineProperty(_$translateProvider$t, 'ALERT_CANNOT_LOGIN_WITHOU_WALLET', "ウォレットなしではログインできません。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_TO_SET', "現在のウォレットとしてセットすることはできません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_INDEX', "選択されたアカウントのインデックスは範囲外です。"), _defineProperty(_$translateProvider$t, 'ALERT_NO_CURRENT_WALLET', "アカウントに現在のウォレットの設定ができません。"), _defineProperty(_$translateProvider$t, 'ALERT_ALREADY_MULTISIG', "選択されたアカウントはすでにマルチシグアカウントです。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MODIFICATION_ARRAY', "このマルチシグアカウントは署名者になれません。変更履歴を確認してください。"), _defineProperty(_$translateProvider$t, 'ALERT_GET_MARKET_INFO_ERROR', "市場情報の取得中にエラーが発生しました。"), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_CANNOT_BE_COSIG', "このマルチシグアカウントに連署者を設定できません。"), _defineProperty(_$translateProvider$t, 'ALERT_PURGE_CANCELLED', "アカウントデータ消去処理（パージ）はキャンセルされました。"), _defineProperty(_$translateProvider$t, 'ALERT_MAINNET_DISABLED', "Mainnetは無効です。別のネットワークを選択してください。"), _defineProperty(_$translateProvider$t, 'ALERT_EMPTY_DECODED_MSG', "複合化されたメッセージはありません。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NS_NAME', "ネームスペース名が無効です。"), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MOSAIC_NAME', "モザイク名が無効です。"), _defineProperty(_$translateProvider$t, 'ALERT_MOSAIC_DESCRIPTION', "モザイクの概要が無効です。"), _defineProperty(_$translateProvider$t, 'ALERT_GET_INCOMING_TXES_ERROR', 'An error occured while trying to fetch incoming transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_DEFINITIONS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_SUB_NS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_ERROR', 'Error at fetching mosaics, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_TRANSACTIONS_ERROR', 'Error at fetching transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDRESS_BOOK_FILE', 'This file is not in .adb format !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDRESS', 'Provided address is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_AMOUNT', 'Amount is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PRIVATE_KEY', 'Provided private key is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_FILE_SIZE_ERROR', ' is too big, maximum size allowed is 100 MB'), _defineProperty(_$translateProvider$t, 'ALERT_MESSAGE_DECODE_KEY_ERROR', 'Message decryption failed because an account has no public key visible on the network'), _defineProperty(_$translateProvider$t, 'ALERT_FETCH_TIME_SYNC_ERROR', 'An error occured at fetching network time !'), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_SUCCESS', "ウォレットが正常に作成され、ロードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_PURGE', "アカウントはローカルストレージから正常に消去（パージ）されました。"), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_LOGOUT', "正常にログアウトされました。"), _defineProperty(_$translateProvider$t, 'ALERT_LOAD_WALLET_SUCCESS', "ウォレットが正常にロードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_TRANSACTION_SUCCESS', "トランザクションが正常に送信されました。"), _defineProperty(_$translateProvider$t, 'ALERT_GENERATE_ACCOUNT_SUCCESS', "アカウントが正常に生成されました。ウォレットのアップデートをお忘れなく。"), _defineProperty(_$translateProvider$t, 'ALERT_UPGRADE_SUCCESS', "ウォレットは正常にアップグレードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_SIGNATURE_SUCCESS', "トランザクションは正常にサインされました。"), _defineProperty(_$translateProvider$t, 'ALERT_NTY_FILE_SUCCESS', ".nty ファイルは正常にロードされました。"), _defineProperty(_$translateProvider$t, 'ALERT_INCOMING_TX_FROM', "トランザクションを受信"), _defineProperty(_$translateProvider$t, 'ALERT_ADDRESS_BOOK_FILE_SUCCESS', 'Address book successfully imported !'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_TITLE', "マルチシグアカウントへ変換"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_NAME', "アグリゲートモディフィケーショントランザクション（multisig連署者追加・削除等)"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_MULTISIG_NAME', "マルチシグアグリゲートモディフィケーショントランザクション(multisig連署者追加・削除等)"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT_TITLE', 'Account to Convert'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT', "変換するアカウントを選択"), _defineProperty(_$translateProvider$t, 'AGGREGATE_CUSTOM_ACCOUNT', "カスタムアカウントを使用"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE_TITLE', 'Address private key'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT', "マルチシグ変換するアカウントのアドレス"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE', "マルチシグ変換するアカウントの秘密鍵"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_PLACEHOLDER', "連署アカウント、または @alias名 を追加"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_BTN_TITLE', "連署アカウントを追加"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', "最小署名数"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES_PLACEHOLDER', "署名トランザクションを検証するために必要な最小連署者数"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_LIST', "修正リスト"), _defineProperty(_$translateProvider$t, 'AGGREGATE_COSIG_LIST', 'Cosignatory Address List'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_TITLE', "マルチシグネイチャーコントラクトを編集"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT_TITLE', 'Account to edit'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT', "編集するアカウントを選択"), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_TITLE', 'Add/Remove signer'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_PLACEHOLDER', "連署アカウント、または @alias を追加"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE', "最小署名数の相対変化"), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE_PLACEHOLDER', "\n追加または (n)削除(-n) する署名の数 - 自動除去"), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECTED_ACCOUNT_INFO', "選択されたアカウントの情報"), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', "使用するウォレットアカウント"), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', "あなたはNEMberですか？"), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', "ウォレットのアップグレードが必要です"), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', "選択されたウォレットは、アップグレードが必要です。このアクションでは、サブの公開鍵を生成し、メインのアカウントに追加されます。更新されたウォレットのダウンロードが自動的に開始される為には、それを <b><u>ダウンロード</u></b>する必要があります。"), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', "ウォレットをアップグレード"), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', "ウォレットをインポート"), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', "ローカルストレージからウォレットを選択してください。"), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', "サインイン"), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', "NEM を始めますか?"), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', "シンプルウォレット"), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', "プライベートキーウォレット"), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', "ブレインウォレット"), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', "シンプルウォレットを作成"), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', "プライベートキーウォレットを作成"), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', "ブレインウォレットを作成"), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', "クライアント側で生成された鍵の<a href=\"https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface\" rel=\"nofollow\" target=\"_blank\">危険性</a>についてお読みください。鍵生成の偏りなどが原因で損失が発生しても保証できません。損失が発生する可能性は極めて低いですが、NEM クライアントから生成された秘密鍵を使用することをお勧めします。"), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', "ネットワークを選択してください。"), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', "ブレインウォレットの<a href=\"https://en.bitcoin.it/wiki/Brainwallet\" rel=\"nofollow\" target=\"_blank\">危険性</a>について留意してください。ブレインウォレットはパスワードのみによって、ハッシュ化されております。そのため、「安全な」パスワードを考える必要があります。<a href=\"https://xkcd.com/936/\" rel=\"nofollow\" target=\"_blank\">XKCD #936</a>"), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', "プライベートキーウォレットはパスワードのみによって、ハッシュ化されております。そのため、「安全な」パスワードを選んでください。"), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING', 'Wallets are stored <a><b>temporarily</b></a> in the browser local storage! You should have triggered a download after creating the wallet. It is the .wlt file used as a backup and to import back if your browser\’s local storage is erased. If you don\'t get a backup .wlt file, log into your account, copy your private key and paste it somewhere safe. It is your responsibility to always make sure you have your private key backed up before sending any funds to your account.'), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING_FOOTER', 'By clicking below, you agree that you have read and understood the above warnings.'), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', "よくある質問"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', "どのように Nano ウォレットは動作しますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', "Nano ウォレットは ES6, AngularJS そして 最新の暗号ライブラリを使用して構築されています。これは完全なクライアントサイドアプリケーションで、ネット上に機密データが送信されることはありません。秘密鍵の作成からトランザクションの署名まで全てあなたのブラウザ上で完結します。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', "このウォレットは無料で使えますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', "はい。追加使用料等は発生しません。全処理は完全にクライアント側で行われます。あなたのコインは第三者の干渉を受けずあなたしか操作することができません。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', "なぜ最初からに mosaic を1つ所有しているのですか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', "XEMはNEMブロックチェーンのデフォルトの通貨なので、その残高がゼロであっても、すべてのユーザーのウォレットにはそれが登録されています。そのネームスペースはNEMであり、モザイクの名前はXEMです。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', "今後の予定は？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', "現在のロードマップには、NEMクライアントの機能を組み込むこと、NanoWallet中で機能するコミュニティによって出資されたプロジェクトの完成などが含まれています。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', "無料で XEM を入手することはできますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', "現在NEMフォーセットは停止していますが、NEMフォーラムで報酬として受け取る方法について相談できます。"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', "どこで NEM に関するもっと詳しい情報を得ることができますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', "公式フォーラム"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', "公式ウェブサイト"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', "公式 BitcoinTalk スレッド"), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', "どうすればこのプロジェクトをサポートできますか？"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', "Nano ウォレットは Gimre氏 の lightwallet をベースに、Quantum_Mechanics が管理しています。lightwallet ソースはこちら"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', "アポスティーユはJabo38と<a href=\"http://apostille.io\">apostille.io</a>ウェブサイト全体で取り組んでいるサービスです。\n<a href=\"https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001\" target=\"_blank\">Apostille project</a>."), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', "If you are willing to help feel free to pick an address below, thanks :)"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', "Nano ウォレットプロジェクトファンド"), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', "アポスティーユ（公証）ファンド"), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', "ウォレットのパスワード、もしくはパスフレーズを入力してください。"), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', "ウォレット名"), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', "パスワード"), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', "パスワードを確認"), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', "パスフレーズ"), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', "パスフレーズを確認"), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', "アカウントアドレス"), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', "秘密鍵"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', "バランス（残高）"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', "支払先"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', "取引手数料"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', "レンタル料"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', "徴収料"), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', "受信者のアドレスまたは @alias"), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', "受信者のアドレス"), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', "エイリアス"), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', "メッセージ"), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', "モザイク名"), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _$translateProvider$t));
 }
 
 exports.default = JapaneseProvider;
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 'use strict';
 
 PolishProvider.$inject = ["$translateProvider"];
@@ -2333,6 +2523,7 @@ function PolishProvider($translateProvider) {
         HEADER_NODE_CUSTOM: 'Własny serwer',
         HEADER_NODE_CONNECT: 'Połącz',
         HEADER_NODE_CUSTOM_INFO: 'IP serwera lub domena',
+        HEADER_NODE_CUSTOM_TOOLTIP: 'Enter your own NIS node here',
         HEADER_PURGE: 'Wyczyść',
         HEADER_PURGE_MESSAGE: 'Proszę potwierdzić czyszczenie pamięci przeglądarki. Po wciśnięciu "OK" wszystkie portfele w lokalnej pamięci zostaną usunięte i nie będzie można ich odzyskać. Zgadzasz się z tym, że posiadasz kopie zapasowe portfeli i że fundusze są zabezpieczone.',
 
@@ -2381,6 +2572,8 @@ function PolishProvider($translateProvider) {
         GENERAL_LEVY: 'Podatek',
         GENERAL_LEVY_TYPES: 'Typy podatku',
         GENERAL_LEVY_TYPES_NOTE: 'I - stała opłata; II - podatek procentowy',
+        GENERAL_LEVY_TYPE_1: 'Constant fee',
+        GENERAL_LEVY_TYPE_2: 'Percentage based',
         GENERAL_SEND: 'Wyślij',
         GENERAL_TO: 'Do',
         GENERAL_HASH: 'Hasz',
@@ -2440,6 +2633,10 @@ function PolishProvider($translateProvider) {
         GENERAL_REGISTER: 'Register',
         GENERAL_CREATE: 'Create',
         GENERAL_RENEW: 'Renew',
+
+        // HOME MODULE
+        HOME_UNSUPPORTED_BROWSER: 'Sorry but you cannot use Nano Wallet safely with this browser...',
+        HOME_RECOMMENDED_BROWSERS: 'Recommended browsers are:',
 
         // TRANSFER TRANSACTION MODULE
         TRANSFER_TRANSACTION_TITLE: 'Wyślij / Odbierz',
@@ -2507,6 +2704,8 @@ function PolishProvider($translateProvider) {
         IMPORTANCE_TRANSFER_MULTISIG_NOT_INITIATOR: 'Nie jesteś sygnatariuszem, który zainicjował transfer przeniesienia znaczenia, dlatego nie możesz uruchomić lub zatrzymać delegowanego zbierania bloków. Proszę przeczytaj powyżej jak przejąć spowrotem kontrolę nad zbieraniem.',
         IMPORTANCE_TRANSFER_MULTISIG_SELECT: 'Wybierz konto z multipodpisem',
         IMPORTANCE_TRANSFER_MULTISIG_SELECT_MESSAGE: 'Wybierz konto z multipodpisem aby zobaczyć status',
+        IMPORTANCE_TRANSFER_PRIVATE_KEY_PLACEHOLDER: 'Reveal delegated private key',
+        IMPORTANCE_TRANSFER_DELEGATED_KEYS: 'Delegated account Keys',
 
         // CREATE MOSAIC MODULE
         MOSAIC_DEFINITION_TITLE: 'Utwórz mozaikę',
@@ -2534,6 +2733,7 @@ function PolishProvider($translateProvider) {
         MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_2: 'Wysyłanie',
         MOSAIC_DEFINITION_LEVY_FEE_TYPE_2_NOTE_3: 'należny podatek',
         MOSAIC_DEFINITION_PARENT: 'Główna Namespace',
+        MOSAIC_DEFINITION_INFORMATION_TITLE: 'Creating a Mosaic',
         MOSAIC_DEFINITION_INFORMATION: 'Want more info about mosaics?',
         MOSAIC_DEFINITION_INFORMATION_1: 'Maksymalna długość nazwy mozaiki wynosi 32 znaki. Dozwolone znaki to:',
         MOSAIC_DEFINITION_INFORMATION_2: 'Pierwszy znak musi być literą z alfabetu.',
@@ -2571,12 +2771,12 @@ function PolishProvider($translateProvider) {
         NAMESPACE_PROVISION_MULTISIG_NAME: 'Transakcja tworzenia namespace z multipodpisem',
         NAMESPACE_PROVISION_PARENT: 'Macierzysta Namespace (wyłączając poziom 3)',
         NAMESPACE_PROVISION_NEW_ROOT: 'Nowa Główna'
-    }, _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_PARENT', 'Parent Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NEW_ROOT', 'New root Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS', 'Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS_NAME', 'Nazwa Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_1', 'Namespaces mają pewne ograniczenia w odniesieniu do akceptowanych znaków jak również długości nazw. Namespace główna może mieć długość do 16 znaków, podczas gdy sub-namespace może mieć długość 64 znaków. Poprawne znaki to:'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_2', 'Nazwa Namespace musi zaczynać się od litery z alfabetu, wobec tego \'alice\' jest dozwoloną nazwą dla Głównej Namespace, podczas gdy \'1alice\' nie jest. Pewne ciągi znaków są zarezerwowane i nie można ich użyć jako nazwy Namespace. Wśród tych ciągów znaków są:'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_3', '这个清单将可能会增加内容，请注意查看。 \'user.alice\' 和 \'alice.user\' 都不被NEM命名空间系统允许申请。命名空间最多可以被定义为三层，如\'gimre.metals.silver\' 有效，而 \'gimre.metals.silver.coin\' 无效。'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE', 'Renewing Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_1', 'Fees'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_2', 'Root Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_3', 'Renewal Period'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'Renewing a namespace costs the same amount as registering a new namespace, 5000XEM.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'Only root namespaces need to be renewed. All sub-namepsaces will be renewed automatically upon renewal of root namespace.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_3', 'Namespace contracts are on-chain rental contracts good for one year. The contract may be renewed one month prior to or after their expiration date.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_4', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_TITLE', 'Konto'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_INFORMATION', 'Informacje o koncie'), _defineProperty(_$translateProvider$t, 'ACCOUNT_IMPORTANCE_SCORE', 'Wskaźnik ważności POI'), _defineProperty(_$translateProvider$t, 'ACCOUNT_VESTED_BALANCE', 'Saldo usankcjonowane'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING', 'Harvesting'), _defineProperty(_$translateProvider$t, 'ACCOUNT_REMOTE_STATUS', 'Status zdalny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PUBLIC', 'Delegowany klucz publiczny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTED_BLOCKS', 'Zebrane bloki'), _defineProperty(_$translateProvider$t, 'ACCOUNT_START_STOP_HARVESTING', 'Rozpocznij / Zatrzymaj delegowane zbieranie'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NOTE', 'Jeśli zbierałeś bloki <b>używając Nano</b> i twoja lokalna pamięć została wykasowana, wybierz serwer, którego używałeś, aby przywrócić stan aplikacji. (Twoje zbieranie nie zatrzymało się).'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NODE_SELECT', 'Wybierz serwer do havestingu'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_START', 'Rozpocznij delegowany harvesting'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_STOP', 'Zatrzymaj delegowany harvesting'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NO_SLOTS', 'Brak wolnych slotów na wybranym serwerze, proszę wybierz inny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_BELOW_THRESHOLD', 'Potrzebujesz 10\'000 usankcjonowanych XEM aby rozpocząć delegowane zbieranie'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT', 'Wybierz inne konto'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_LABEL', 'Użyj innego konta'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_KEYS', 'Portfel i klucze'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT', 'Dodaj nowe konto'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_BTN', 'Dodaj nowe konto do portfela'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_NOTE', 'Klucz prywatny posiada całkowitą władzę nad Twoim kontem. Jest priorytetem, aby upewnić się, że jest bezpiecznie przechowywany <b><u>offline</u></b>: hasło zaszyfrowane w pliku .wlt , zapisane na kartce papieru, na obrazku lub pobierz <b><u>eksportowany QR portfela </u></b>.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_SHOW', 'Pokaż klucz prywatny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_EXPORT_MOBILE', 'Eksportuj na komórkę'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_BTN', 'Informacje o koncie QR'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN', 'QR portfela'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN_2', 'QR portfela (Android i IOS)'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET', 'Zrób kopię bezpieczeństwa portfela'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_NOTE', 'Jest <b><u>bardzo ważne</u></b> aby mieć kopie bezpieczeństwa swoich portfeli aby nie stracić XEM'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_DOWNLOAD', 'Pobierz portfel'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_TITLE', 'Informacje o koncie QR'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_NOTE', 'Ten kod QR działa tylko z nadciągającą aplikacją mobilną NEMpay'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_ANDROID_IOS_TITLE', 'QR portfela dla aplikacji na Androida i IOS'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_WARNING', 'Wszystkie konta uzyskiwane są z klucza prywatnego przy użyciu BIP32, czyli tylko jeden klucz prywatny i Twoje hasło są potrzebne, aby pobrać wszystkie pozostałe konta. <br>Jest <b><u>wysoce zalecane</u></b> aby wykonać kopię bezpieczeństwa portfela po dodaniu nowych kont, aby nie dodawać ich ponownie kiedy lokalna pamięć zostanie wyczyszczona.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_CUSTOM_NODE', 'Użyj własnego serwera'), _defineProperty(_$translateProvider$t, 'ACCOUNT_NODE_FROM_LIST', 'Użyj serwer z listy'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PRIVATE_KEY', 'Delegowany klucz publiczny'), _defineProperty(_$translateProvider$t, 'PORTAL_TITLE', 'Usługi'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TITLE', 'Konta Multisignature i Multi-User'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TEXT', 'Konta z multipodpisem to edytowalne kontrakty oparte na łańcuchu bloków, są najlepszym sposobem zabezpieczenia środków finansowych, umożliwiają wspólne rachunki i są podstawą DAO.'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_1', 'Konwertuj na konto z multipodpisem'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_2', 'Edytuj istniejący kontrakt'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TITLE', 'Delegowany Harvesting'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TEXT', 'Delegowane zbieranie to cecha, która umożliwia "mining" nawet kiedy Twoje konto jest zamknięte.'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TITLE', 'Changelly Szybka Giełda'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TEXT', 'Użyj widgeta Changelly aby wymienić XEM po najlepszym kursie !'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_BTN', 'Kup XEM'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TITLE', 'Namespaces i Subdomeny'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TEXT', 'Namespaces to nazwy domen. Każda namespace jest unikalna i  uwierzytelnia mozaiki (aktywa) wyemitowane przez nią lub przez jej subdomeny.'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_BTN', 'Utwórz namespace'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TITLE', 'Mozaiki'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TEXT', 'Mozaiki NEM to aktywa, które posiadają dodatkowe właściwości i funkcje. Aby móc stworzyć mozaikę, konto musi posiadać przynajmniej jedną Główną Namespace.'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_1', 'Utwórz mozaikę'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_2', 'Edytuj mozaikę'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TITLE', 'Apostil'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TEXT', 'Użyj usługi NEM Apostil, aby stworzyć notaryzacje oparte na blockchainie w celu datowania, śledzenia i  badania autentyczności plików.'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_1', 'Utwórz'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_2', 'Audytuj'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_HOME', 'Home'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_NSM', 'Namespaces i Mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_APOSTILLES', 'Apostile'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_TITLE', 'Explorer - Home'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS', 'Twoje Namespaces'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS', 'Twoje Mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS_MULTISIG', 'Namespaces posiadane przez konta z multipodpisem'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS_LEVY', 'Podatek mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_TITLE', 'Explorer - Namespaces i Mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SELECT_MOS', 'Wybierz mozaikę, aby zobaczyć szczegóły'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SEARCH', 'Search namespace'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_TITLE', 'Explorer - Apostile'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_YOURS', 'Twoje apostile'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_PUBLIC', 'Publiczny sink'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_NO_NTY', 'Plik nty nie załadowany, proszę tu kliknąć aby go importować.'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_TITLE', 'Explorer - Accounts'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_SEARCH', 'Search'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_TITLE', 'Apostille historia'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BTN_TRANSFER', 'Transferuj / Podziel własność'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BACKUP', 'Zabezpiecz dane notarialne'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_PURGE', 'Wyczyść dane notarialne'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TITLE', 'Utwórz apostile'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_HELP', 'Want more info on apostille?'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_NAME', 'Transakcja apostila'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_MULTISIG_NAME', 'Transakcja apostila z multipodpisem'), _defineProperty(_$translateProvider$t, 'APOSTILLE_KEEP_PRIVATE', 'Prywatne, transferowalne i aktualizowalne'), _defineProperty(_$translateProvider$t, 'APOSTILLE_USE_DEDICATED', 'Użyj konta dedykowanego '), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILES_TO_NOTARIZE', 'Pliki do notaryzowania'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REJECTED', 'Odrzucony'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILE_HASH', 'Hasz pliku'), _defineProperty(_$translateProvider$t, 'APOSTILLE_PRIVATE', 'Prywatny'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILENAME', 'Nazwa pliku'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NAME_TOO_LONG', 'Nazwa pliku jest zbyt długa, dozwolone maksimum 40 znaków.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MAX_NUMBER', 'Maksimum apostili w partii to 25'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_1', 'Każdy przesłany plik jest automatycznie przetwarzany z użyciem opcji ustawionych na lewym panelu. Możesz dodać nowe pliki, zmienić parametry, a następnie dodać więcej plików z innymi ustawieniami. Możesz również przełączyć na zakładkę Multipodpis i dodać więcej plików.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_2', 'Opcja "<b>Prywatne, transferowalne i aktualizowalne</b>" oznacza, że hasze Twoich plików są podpisane za pomocą twojego klucza prywatnego i wysłane do dedykowanego hierarchicznie deterministycznego (HD) konta. Tym sposobem tylko ty wiesz jaka zawartość została oznakowana, chyba, że ujawnisz tą zawartość.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_3', 'Dedykowane konto HD może zostać przekonwertowane na kontrakt z multipodpisem tak, aby można je było przesyłać poprzez kontrakt 1-z-1 lub m-z-n. Może posiadać również dodatkowe informacje przesyłane do niego za pośrednictwem wiadomości z aktualizacjami oraz zmianami w oryginalnym dokumencie lub produkcie, który reprezentuje.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_4', 'Kiedy dwie lub więcej stron chce zatwierdzić transakcję na przykład wiążący kontrakt, konto dokonujące notaryzacji można umieścić w kontrakcie z multipodpisem n-z-n'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_5', 'W przypadku kont w kontrakcie z multipodpisem, które wybrały opcję "<b>Prywatne, transferowalne i aktualizowalne</b>", do podpisania haszu i utworzenia dedykowanego konta HD użyty jest klucz prywatny inicjującego sygnatariusza, a nie konto, które zostało przekonwertowane na multipodpis.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_6', 'Konto HD jest kontem dedykowanym wygenerowanym z hasza pliku, który następnie jest podpisany przez twoj klucz prywatny. Hasz powstały w tym procesu stosuje się następnie do wytworzenia drugiego klucza prywatnego. To jest klucz prywatny oznaczonego w łańcuchu bloków pliku; pierwszy w technologii blockchain, dostępny tylko w technologii Apostille.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_7', 'Dedykowane konto HD pozwala na przechowywanie oryginalnego hasza pliku i jego aktualizacje na dedykowanym koncie. Jeśli <b>"Publiczny"</b> jest wybrany, transakcja idzie na adres pulicznego konta zbiorczego(domyślnie).'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_8', 'Po wysłaniu transakcji uruchamiane jest pobieranie zarchiwizowanego pliku. Zawiera on twoje podpisane pliki, twoj certyfikat Apostila dla tego pliku i nowy lub zaktualizowany plik .nty aby śledzić wszystkie pliki, które oznaczyłeś na łańcuchu bloków NEM.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NO_NTY', 'Plik nty nie załadowany, kliknij tutaj, aby go zaimportować lub automatycznie utworzyny zostanie nowy plik.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_IMPORT_FILES', 'Importuj pliki'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TEXT', 'Utwórz dokument tekstowy'), _defineProperty(_$translateProvider$t, 'APOSTILLE_ENTER_TEXT', 'Wpisz tekst do notaryzowania...'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DOCUMENT_TITLE', 'Tytuł dokumentu'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_TITLE', 'Weryfikuj apostile'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE', 'Wybierz serwer'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE_NOTE', 'Tylko nieliczne węzły mogą wyszukiwać w całej historii transakcji (opcja jest domyślnie wyłączona w NIS).'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WRONG_FORMAT', 'Plik nie jest w formacie apostille !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL_NO_PUBLIC_KEY', 'Weryfikacja nieudana, właściciel nie ma klucza pulicznego !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SUCCESS', 'Plik zweryfikowany pomyślnie !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL', 'Weryfikacja nieudana !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WAITING', 'Transfer Apostille może czekać na potwierdzenie !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NOT_FOUND', 'Transakcja nie znaleziona, upewnij się, że nie czeka na zatwierdzenie, w przeciwnym wypadku apostil jet nieważny'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_UNCONFIRMED', 'Wystąpił błąd podczas pobierania niepotwierdzonych danych ale transakcja nie została znaleziona'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNER', 'Wystąpił błąd podczas pobierania danych o podpisie'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNATURE', 'Weryfikacja nie powiodła się, wystąpił błąd przy weryfikacji podpisu !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_1', 'Pliki do autoryzacji muszą być w <b>formacie apostille</b>'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_2', 'Możesz je rozpoznać po nazwie pliku:'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FILES', 'Audytuj pliki'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_TITLE', 'Send message to notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_NS_BRAND', 'Use my namespace to brand message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_ADD_MOSAIC', 'Add mosaic'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NTY_ACCOUNT', 'Notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REQUEST_MESSAGE', 'Request message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_MESSAGE_REQUEST', 'Create a message request'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSFER_TITLE', 'Transfer or Split apostille ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_UPDATE_TITLE', 'Update apostille'), _defineProperty(_$translateProvider$t, 'ALERT_MISSING_FORM_DATA', 'Proszę wypełnić formularz !'), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_WALLET_DOWNLOAD', 'Nie można pobrać portfela ponieważ nie istnieje !'), _defineProperty(_$translateProvider$t, 'ALERT_PASSWORDS_NOT_MATCHING', 'Podane hasła nie pasują do siebie !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_KEY_FOR_ADDR', 'Klucz prywatny nie odpowiada podanemu adresowi !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_LOADED', 'Nie możesz otworzyć panelu głównego bez portfela'), _defineProperty(_$translateProvider$t, 'ALERT_WALLET_NAME_EXISTS', 'Portfel o tej samej nazwie jest już załadowany !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_FILE', 'Próbujesz załadować plik, który nie jest portfelem !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NODE_SET', 'Proszę podaj adres serwera !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_CUSTOM_NODE', 'Twój adres serwera jest nieprawidłowy !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WEBSOCKET_PORT', 'Port websocket własnego serwera jest nieprawidłowy !'), _defineProperty(_$translateProvider$t, 'ALERT_MIJIN_DISABLED', 'Sieć Mijin jest wyłączona, proszę wybierz inną sieć !'), _defineProperty(_$translateProvider$t, 'ALERT_GET_NS_BY_ID_ERROR', 'Błąd przy pobieraniu informacji o namespace, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_ACCOUNT_DATA_ERROR', 'Błąd przy pobieraniu informacji o koncie, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_OCCURRED', 'Wystąpił błąd ! '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDR_FOR_NETWORK', ' nie odpowiada sieci '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PASSWORD', 'Podane hasło nie jest prawidłowe !'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_ALREADY_IN_LIST', 'Sygnatariusz jest już obecny na liście modyfikacji !'), _defineProperty(_$translateProvider$t, 'ALERT_COSIGNATORY_HAS_NO_PUBLIC', 'Sygnatariusz musi wykonać przynajmniej jedną transakcję aby otrzymać klucz publiczny !'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_HAS_NO_PUBLIC', 'Konto z multipodpisem musi wykonać przynajmniej jedną transakcję aby otrzymać klucz publiczny !'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_CANNOT_BE_MULTISIG', 'Konto wybrane do przekształenia jest sygnatariuszem innego konta z multipodpisem. Wobec tego nie może być przekształcone'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NS_OWNED', 'Konto nie posiada żadnej namespace, proszę utwórz jedną lub zmień konto'), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCKED_INFO_ERROR', 'Wystąpił błąd przy pobieraniu informacji o odblokowaniu'), _defineProperty(_$translateProvider$t, 'ALERT_LOCK_ERROR', 'Błąd przy blokowaniu konta, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCK_ERROR', 'Błąd przy odblokowywaniu konta, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_SUPERNODES_ERROR', 'Wystąpił błąd przy pobieraniu danych supernodes !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NTY_FILE', 'Dostarczony plik nie jest plikiem nty !'), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_FAILED', 'Nie udało się utworzyć portfela, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_DERIVATION_FROM_SEED_FAILED', 'Nie udało się uzyskać konta z seeda, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_BIP32_GENERATION_FAILED', 'Nie udało się wygenerować danych bip 32, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_DATA', 'Błąd, puste dane portfela !'), _defineProperty(_$translateProvider$t, 'ALERT_CANNOT_LOGIN_WITHOU_WALLET', 'Błąd, nie można zalogować bez portfela !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_TO_SET', 'Błąd, nie można ustawić -nic- jako bieżący portfel !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_INDEX', 'Błąd, wybrany indeks konta jest poza granicami !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_CURRENT_WALLET', 'Błąd, nie można ustawić konta portfela jeśli nie jest bieżącym portfelem !'), _defineProperty(_$translateProvider$t, 'ALERT_ALREADY_MULTISIG', 'Wybrane konto jest już kontem z multipodpisem !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MODIFICATION_ARRAY', 'Konto z multipodpisem nie może być sygnatariuszem samego siebie, proszę sprawdź listę modyfikacji !'), _defineProperty(_$translateProvider$t, 'ALERT_GET_MARKET_INFO_ERROR', 'Wystąpił błąd podczas pobierania informacji rynkowych !'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_CANNOT_BE_COSIG', 'Konto z multipodpisem nie może być sygnatariuszem !'), _defineProperty(_$translateProvider$t, 'ALERT_PURGE_CANCELLED', 'Czyszczenie anulowane !'), _defineProperty(_$translateProvider$t, 'ALERT_MAINNET_DISABLED', 'Mainnet jest niedostępny, proszę wybierz inną sieć !'), _defineProperty(_$translateProvider$t, 'ALERT_EMPTY_DECODED_MSG', 'Wystąpił błąd, brak odszyfrowanej wiadomości !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NS_NAME', 'Nazwa namespace jest nieprawidłowa !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MOSAIC_NAME', 'Nazwa mozaiki jest nieprawidłowa !'), _defineProperty(_$translateProvider$t, 'ALERT_MOSAIC_DESCRIPTION', 'Opis mozaiki jest nieprawidłowy !'), _defineProperty(_$translateProvider$t, 'ALERT_GET_INCOMING_TXES_ERROR', 'An error occured while trying to fetch incoming transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_DEFINITIONS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_SUB_NS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_ERROR', 'Error at fetching mosaics, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_TRANSACTIONS_ERROR', 'Error at fetching transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_SUCCESS', 'Portfel utworzony i załadowany !'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_PURGE', 'Pamięć podręczna wyczyszczona !'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_LOGOUT', 'Wylogowanie powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_LOAD_WALLET_SUCCESS', 'Ładowanie portfela powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_TRANSACTION_SUCCESS', 'Wysłanie transakcji powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_GENERATE_ACCOUNT_SUCCESS', 'Generowanie konta powiodło się. Nie zapomnij pobrać zaktualizowanego portfela!'), _defineProperty(_$translateProvider$t, 'ALERT_UPGRADE_SUCCESS', 'Aktualizacja portfela powiodła się !'), _defineProperty(_$translateProvider$t, 'ALERT_SIGNATURE_SUCCESS', 'Podpisanie transakcji powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_NTY_FILE_SUCCESS', 'Udało się załadować plik nty !'), _defineProperty(_$translateProvider$t, 'ALERT_INCOMING_TX_FROM', 'Transakcja przychodząca od '), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_TITLE', 'Zamień konto na konto z multipodpisem'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_NAME', 'Transakcja łącznej modyfikacji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_MULTISIG_NAME', 'Transakcja łącznej modyfikacji z multipodpisem'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT_TITLE', 'Account to Convert'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT', 'Wybierz konto do zamiany'), _defineProperty(_$translateProvider$t, 'AGGREGATE_CUSTOM_ACCOUNT', 'Użyj własnego konta'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE_TITLE', 'Address private key'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT', 'Adres konta do zamiany'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE', 'Klucz prywatny konta do zamiany'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_PLACEHOLDER', 'Konto sygnatariusza lub @alias'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_BTN_TITLE', 'Dodaj sygnatariusza'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', 'Minimum wymaganych sygnatur'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES_PLACEHOLDER', 'Minimum wymaganych sygnatur do uprawomocnienia tranzakcji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_LIST', 'Lista modyfikacji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_COSIG_LIST', 'Cosignatory Address List'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_TITLE', 'Edytuj kontrakt z multipodpisem'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT_TITLE', 'Account to edit'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT', 'Wybierz konto do edycji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_TITLE', 'Add/Remove signer'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_PLACEHOLDER', 'Konto sygnatariusza lub @alias'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE', 'Relatywna zmiana minimum sygnatur'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE_PLACEHOLDER', 'Liczba sygnatur do dodania (n) lub usunięcia (-n)'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECTED_ACCOUNT_INFO', 'Informacja o wybranym koncie'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', 'Minimum sygnatur'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', 'Użyj portfela konta'), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', 'Jesteś już członkiem NEM ?'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', 'Portfel wymaga aktualizacji'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', 'Wybrany portfel wymaga aktualizacji. Ta czynność spowoduje wygenerowanie pochodnego klucza publicznego i dodanie go do konta głównego. Pobieranie zaktualizowanego portfela zostanie automatycznie rozpoczęte. <b><u>Musisz</u></b> go pobrać !'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', 'Aktualizuj portfel'), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', 'Importuj Portfel'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', 'Wybierz portfel w lokalnej pamięci'), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', 'Zaloguj'), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', 'Nowy w NEM ?'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', 'Prosty portfel'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', 'Portfel z klucza prywatnego'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', 'Brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', 'Utwórz prosty portfel'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', 'Utwórz portfel z klucza prywatnego'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', 'Utwórz brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', 'Proszę, przeczytaj o <a href="https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface" rel="nofollow" target="_blank">niebezpieczeństwach</a> związanych z własnoręcznie generowanymi kluczami, nie jesteśmy odpowiedzialni za ewentualne straty, które mogłyby być spowodowane entropią generowania kluczy. Mimo, że szansa na to jest bardzo mała, zaleca się użycie klucza prywatnego generowany przez klienta NEM.'), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', 'Wybierz sieć'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', 'Proszę, przeczytaj o <a href="https://en.bitcoin.it/wiki/Brainwallet" rel="nofollow" target="_blank">niebezpieczeństwach</a> związanych z używaniem brain wallet. Brain wallet używa tylko zakodowanego wielokrotnie hasła, dlatego istotne jest, aby wybrać BEZPIECZNE hasło. <a href="https://xkcd.com/936/" rel="nofollow" target="_blank">XKCD #936</a>'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', 'Portfel z klucza prywatnego używa TYLKO wielokrotnie zakodowanego hasła, dlatego istotne jest, aby wybrać BEZPIECZNE hasło.'), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', 'Często zadawane pytania'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', 'Jak działa Portfel Nano ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', 'Portfel Nano jest zbudowany przy użyciu najnowszych bibliotek z ES6 i AngularJS. To aplikacja client-side , nidgy nie wysyła wrażliwych danych; wszystko dzieje się w przeglądarce od tworzenia kluczy prywatnych do podpisywania transakcji.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', 'Czy jest bezpłatny?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', 'Absolutnie wszystkie operacje wykonywane są po stronie klienta, tylko ty masz kontrolę nad swoimi monetami, bez osób trzecich, bez dodatkowych opłat.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', 'Dlaczego posiadam już jedną mozaikę ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', 'Ponieważ XEM jest domyślną walutą blockchaina NEM, każdy użytkownik ma ją już zarejestrowaną w portfelu, nawet jeśli jej bilans wynosi 0. Nazwa jej Namespace to NEM a nazwa mozaiki to XEM.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', 'Plan działań ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', 'Bieżący plan to zintegrowanie z portfelem Nano wszystkich funkcji klienta NEM i projektów finansowanych przez społeczność.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', 'Czy mogę otrzymać darmowe XEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', 'Faucet NEM jest w tej chwili niedostępny, ale możesz odwiedzić forum NEM aby dowiedzieć się o dostępnych nagrodach za pomoc w testowaniu i programowaniu.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', 'Gdzie znaleźć więcej informacji na temat NEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', 'Oficjalne forum'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', 'Oficjalna strona'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', 'Oficjalny wątek BitcoinTalk'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', 'Jak wspierać projekt ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', 'Nano Wallet jest wspierany przez Quantum_Mechanics i bazuje na portfelu lightwallet użytkownika Gimre'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', 'Apostille jest usługą współpracującą ze stroną <a href="http://apostille.io">apostille.io</a> we współpracy z Jabo38 w <a href="https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001" target="_blank">projekcie Apostille</a>.'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', 'Jeśli chcesz pomóc finansowo, poniżej znajdują się adresy do wpłaty, dzięki :)'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', 'Fundusze projektu NanoWallet:'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', 'Fundusze usług Apostille:'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', 'Wpisz hasło portfela lub hasło wielowyrazowe'), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', 'Nazwa portfela'), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', 'Hasło'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', 'Potwierdź hasło'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', 'Hasło wielowyrazowe'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', 'Potwierdź hasło wielowyrazowe'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', 'Adres konta'), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', 'Klucz prywatny'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', 'Saldo'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', 'Zapłać'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', 'Opłata transakcyjna'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', 'Opłata dzierżawcza'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', 'Podatek'), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', 'Adres odbiorcy lub @alias'), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', 'Adres odbiorcy'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', 'Alias konta'), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', 'Wiadomość'), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', 'Nazwa mozaiki'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'You can renew a namespace starting from one month before it expires.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _$translateProvider$t));
+    }, _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_PARENT', 'Parent Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NEW_ROOT', 'New root Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS', 'Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_NS_NAME', 'Nazwa Namespace'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_RESTRICTIONS', 'Namespace Restrictions'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_1', 'Namespaces mają pewne ograniczenia w odniesieniu do akceptowanych znaków jak również długości nazw. Namespace główna może mieć długość do 16 znaków, podczas gdy sub-namespace może mieć długość 64 znaków. Poprawne znaki to:'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_2', 'Nazwa Namespace musi zaczynać się od litery z alfabetu, wobec tego \'alice\' jest dozwoloną nazwą dla Głównej Namespace, podczas gdy \'1alice\' nie jest. Pewne ciągi znaków są zarezerwowane i nie można ich użyć jako nazwy Namespace. Wśród tych ciągów znaków są:'), _defineProperty(_$translateProvider$t, 'NAMESPACE_PROVISION_INFORMATION_3', '这个清单将可能会增加内容，请注意查看。 \'user.alice\' 和 \'alice.user\' 都不被NEM命名空间系统允许申请。命名空间最多可以被定义为三层，如\'gimre.metals.silver\' 有效，而 \'gimre.metals.silver.coin\' 无效。'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE', 'Renewing Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_1', 'Fees'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_2', 'Root Namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_TITLE_3', 'Renewal Period'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'Renewing a namespace costs the same amount as registering a new namespace, 5000XEM.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'Only root namespaces need to be renewed. All sub-namepsaces will be renewed automatically upon renewal of root namespace.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_3', 'Namespace contracts are on-chain rental contracts good for one year. The contract may be renewed one month prior to or after their expiration date.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_4', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_TITLE', 'Konto'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_INFORMATION', 'Informacje o koncie'), _defineProperty(_$translateProvider$t, 'ACCOUNT_IMPORTANCE_SCORE', 'Wskaźnik ważności POI'), _defineProperty(_$translateProvider$t, 'ACCOUNT_VESTED_BALANCE', 'Saldo usankcjonowane'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING', 'Harvesting'), _defineProperty(_$translateProvider$t, 'ACCOUNT_REMOTE_STATUS', 'Status zdalny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PUBLIC', 'Delegowany klucz publiczny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTED_BLOCKS', 'Zebrane bloki'), _defineProperty(_$translateProvider$t, 'ACCOUNT_START_STOP_HARVESTING', 'Rozpocznij / Zatrzymaj delegowane zbieranie'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NOTE', 'Jeśli zbierałeś bloki <b>używając Nano</b> i twoja lokalna pamięć została wykasowana, wybierz serwer, którego używałeś, aby przywrócić stan aplikacji. (Twoje zbieranie nie zatrzymało się).'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NODE_SELECT', 'Wybierz serwer do havestingu'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_START', 'Rozpocznij delegowany harvesting'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_STOP', 'Zatrzymaj delegowany harvesting'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_NO_SLOTS', 'Brak wolnych slotów na wybranym serwerze, proszę wybierz inny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_HARVESTING_BELOW_THRESHOLD', 'Potrzebujesz 10\'000 usankcjonowanych XEM aby rozpocząć delegowane zbieranie'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT', 'Wybierz inne konto'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ACCOUNT_SELECT_LABEL', 'Użyj innego konta'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_KEYS', 'Portfel i klucze'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT', 'Dodaj nowe konto'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_BTN', 'Dodaj nowe konto do portfela'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_NOTE', 'Klucz prywatny posiada całkowitą władzę nad Twoim kontem. Jest priorytetem, aby upewnić się, że jest bezpiecznie przechowywany <b><u>offline</u></b>: hasło zaszyfrowane w pliku .wlt , zapisane na kartce papieru, na obrazku lub pobierz <b><u>eksportowany QR portfela </u></b>.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_PRIVATE_KEY_SHOW', 'Pokaż klucz prywatny'), _defineProperty(_$translateProvider$t, 'ACCOUNT_EXPORT_MOBILE', 'Eksportuj na komórkę'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_BTN', 'Informacje o koncie QR'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN', 'QR portfela'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_BTN_2', 'QR portfela (Android i IOS)'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET', 'Zrób kopię bezpieczeństwa portfela'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_NOTE', 'Jest <b><u>bardzo ważne</u></b> aby mieć kopie bezpieczeństwa swoich portfeli aby nie stracić XEM'), _defineProperty(_$translateProvider$t, 'ACCOUNT_BACKUP_WALLET_DOWNLOAD', 'Pobierz portfel'), _defineProperty(_$translateProvider$t, 'ACCOUNT_INFO_QR_TITLE', 'Informacje o koncie QR'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_NOTE', 'Ten kod QR działa tylko z nadciągającą aplikacją mobilną NEMpay'), _defineProperty(_$translateProvider$t, 'ACCOUNT_WALLET_QR_ANDROID_IOS_TITLE', 'QR portfela dla aplikacji na Androida i IOS'), _defineProperty(_$translateProvider$t, 'ACCOUNT_ADD_NEW_ACCOUNT_WARNING', 'Wszystkie konta uzyskiwane są z klucza prywatnego przy użyciu BIP32, czyli tylko jeden klucz prywatny i Twoje hasło są potrzebne, aby pobrać wszystkie pozostałe konta. <br>Jest <b><u>wysoce zalecane</u></b> aby wykonać kopię bezpieczeństwa portfela po dodaniu nowych kont, aby nie dodawać ich ponownie kiedy lokalna pamięć zostanie wyczyszczona.'), _defineProperty(_$translateProvider$t, 'ACCOUNT_CUSTOM_NODE', 'Użyj własnego serwera'), _defineProperty(_$translateProvider$t, 'ACCOUNT_NODE_FROM_LIST', 'Użyj serwer z listy'), _defineProperty(_$translateProvider$t, 'ACCOUNT_DELEGATED_PRIVATE_KEY', 'Delegowany klucz publiczny'), _defineProperty(_$translateProvider$t, 'PORTAL_TITLE', 'Usługi'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TITLE', 'Konta Multisignature i Multi-User'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_TEXT', 'Konta z multipodpisem to edytowalne kontrakty oparte na łańcuchu bloków, są najlepszym sposobem zabezpieczenia środków finansowych, umożliwiają wspólne rachunki i są podstawą DAO.'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_1', 'Konwertuj na konto z multipodpisem'), _defineProperty(_$translateProvider$t, 'PORTAL_MULTISIG_BTN_2', 'Edytuj istniejący kontrakt'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TITLE', 'Delegowany Harvesting'), _defineProperty(_$translateProvider$t, 'PORTAL_HARVESTING_TEXT', 'Delegowane zbieranie to cecha, która umożliwia "mining" nawet kiedy Twoje konto jest zamknięte.'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TITLE', 'Changelly Szybka Giełda'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_TEXT', 'Użyj widgeta Changelly aby wymienić XEM po najlepszym kursie !'), _defineProperty(_$translateProvider$t, 'PORTAL_CHANGELLY_BTN', 'Kup XEM'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TITLE', 'Namespaces i Subdomeny'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_TEXT', 'Namespaces to nazwy domen. Każda namespace jest unikalna i  uwierzytelnia mozaiki (aktywa) wyemitowane przez nią lub przez jej subdomeny.'), _defineProperty(_$translateProvider$t, 'PORTAL_NS_BTN', 'Utwórz namespace'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TITLE', 'Mozaiki'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_TEXT', 'Mozaiki NEM to aktywa, które posiadają dodatkowe właściwości i funkcje. Aby móc stworzyć mozaikę, konto musi posiadać przynajmniej jedną Główną Namespace.'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_1', 'Utwórz mozaikę'), _defineProperty(_$translateProvider$t, 'PORTAL_MOSAIC_BTN_2', 'Edytuj mozaikę'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TITLE', 'Apostil'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_TEXT', 'Użyj usługi NEM Apostil, aby stworzyć notaryzacje oparte na blockchainie w celu datowania, śledzenia i  badania autentyczności plików.'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_1', 'Utwórz'), _defineProperty(_$translateProvider$t, 'PORTAL_APOSTILLE_BTN_2', 'Audytuj'), _defineProperty(_$translateProvider$t, 'PORTAL_ADDRESS_BOOK_TEXT', 'Assign labels to address\' to easily keep track of your contacts.'), _defineProperty(_$translateProvider$t, 'PORTAL_ADDRESS_BOOK_BTN', 'Manage address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_TITLE', 'Address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_LIST', 'Contacts'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NAVIGATION', 'Navigation'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NEW', 'New contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EDIT', 'Edit contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_REMOVE', 'Remove contact'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_NEW_BTN', 'Add'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EDIT_BTN', 'Save'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_REMOVE_BTN', 'Remove'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_EXPORT_BTN', 'Export address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_IMPORT_BTN', 'Import address book'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_CONTACT_LABEL', 'Label'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_ACCOUNT_ADDRESS', 'Account address'), _defineProperty(_$translateProvider$t, 'ADDRESS_BOOK_ACTIONS', 'Actions'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_HOME', 'Home'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_NSM', 'Namespaces i Mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_NAV_APOSTILLES', 'Apostile'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_TITLE', 'Explorer - Home'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS', 'Twoje Namespaces'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS', 'Twoje Mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_NS_MULTISIG', 'Namespaces posiadane przez konta z multipodpisem'), _defineProperty(_$translateProvider$t, 'EXPLORER_HOME_MOSAICS_LEVY', 'Podatek mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_TITLE', 'Explorer - Namespaces i Mozaiki'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SELECT_MOS', 'Wybierz mozaikę, aby zobaczyć szczegóły'), _defineProperty(_$translateProvider$t, 'EXPLORER_NS_MOS_SEARCH', 'Search namespace'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_TITLE', 'Explorer - Apostile'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_YOURS', 'Twoje apostile'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_PUBLIC', 'Publiczny sink'), _defineProperty(_$translateProvider$t, 'EXPLORER_APOSTILLES_NO_NTY', 'Plik nty nie załadowany, proszę tu kliknąć aby go importować.'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_TITLE', 'Explorer - Accounts'), _defineProperty(_$translateProvider$t, 'ACCOUNTS_EXPLORER_SEARCH', 'Search'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_TITLE', 'Apostille historia'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BTN_TRANSFER', 'Transferuj / Podziel własność'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_BACKUP', 'Zabezpiecz dane notarialne'), _defineProperty(_$translateProvider$t, 'APOSTILLE_HISTORY_PURGE', 'Wyczyść dane notarialne'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TITLE', 'Utwórz apostile'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_HELP', 'Want more info on apostille?'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_NAME', 'Transakcja apostila'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSACTION_MULTISIG_NAME', 'Transakcja apostila z multipodpisem'), _defineProperty(_$translateProvider$t, 'APOSTILLE_KEEP_PRIVATE', 'Prywatne, transferowalne i aktualizowalne'), _defineProperty(_$translateProvider$t, 'APOSTILLE_USE_DEDICATED', 'Użyj konta dedykowanego '), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILES_TO_NOTARIZE', 'Pliki do notaryzowania'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REJECTED', 'Odrzucony'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILE_HASH', 'Hasz pliku'), _defineProperty(_$translateProvider$t, 'APOSTILLE_PRIVATE', 'Prywatny'), _defineProperty(_$translateProvider$t, 'APOSTILLE_FILENAME', 'Nazwa pliku'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NAME_TOO_LONG', 'Nazwa pliku jest zbyt długa, dozwolone maksimum 40 znaków.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MAX_NUMBER', 'Maksimum apostili w partii to 25'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_TITLE', 'Creating an Apostille'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_1', 'Każdy przesłany plik jest automatycznie przetwarzany z użyciem opcji ustawionych na lewym panelu. Możesz dodać nowe pliki, zmienić parametry, a następnie dodać więcej plików z innymi ustawieniami. Możesz również przełączyć na zakładkę Multipodpis i dodać więcej plików.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_2', 'Opcja "<b>Prywatne, transferowalne i aktualizowalne</b>" oznacza, że hasze Twoich plików są podpisane za pomocą twojego klucza prywatnego i wysłane do dedykowanego hierarchicznie deterministycznego (HD) konta. Tym sposobem tylko ty wiesz jaka zawartość została oznakowana, chyba, że ujawnisz tą zawartość.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_3', 'Dedykowane konto HD może zostać przekonwertowane na kontrakt z multipodpisem tak, aby można je było przesyłać poprzez kontrakt 1-z-1 lub m-z-n. Może posiadać również dodatkowe informacje przesyłane do niego za pośrednictwem wiadomości z aktualizacjami oraz zmianami w oryginalnym dokumencie lub produkcie, który reprezentuje.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_4', 'Kiedy dwie lub więcej stron chce zatwierdzić transakcję na przykład wiążący kontrakt, konto dokonujące notaryzacji można umieścić w kontrakcie z multipodpisem n-z-n'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_5', 'W przypadku kont w kontrakcie z multipodpisem, które wybrały opcję "<b>Prywatne, transferowalne i aktualizowalne</b>", do podpisania haszu i utworzenia dedykowanego konta HD użyty jest klucz prywatny inicjującego sygnatariusza, a nie konto, które zostało przekonwertowane na multipodpis.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_6', 'Konto HD jest kontem dedykowanym wygenerowanym z hasza pliku, który następnie jest podpisany przez twoj klucz prywatny. Hasz powstały w tym procesu stosuje się następnie do wytworzenia drugiego klucza prywatnego. To jest klucz prywatny oznaczonego w łańcuchu bloków pliku; pierwszy w technologii blockchain, dostępny tylko w technologii Apostille.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_7', 'Dedykowane konto HD pozwala na przechowywanie oryginalnego hasza pliku i jego aktualizacje na dedykowanym koncie. Jeśli <b>"Publiczny"</b> jest wybrany, transakcja idzie na adres pulicznego konta zbiorczego(domyślnie).'), _defineProperty(_$translateProvider$t, 'APOSTILLE_INFORMATION_8', 'Po wysłaniu transakcji uruchamiane jest pobieranie zarchiwizowanego pliku. Zawiera on twoje podpisane pliki, twoj certyfikat Apostila dla tego pliku i nowy lub zaktualizowany plik .nty aby śledzić wszystkie pliki, które oznaczyłeś na łańcuchu bloków NEM.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NO_NTY', 'Plik nty nie załadowany, kliknij tutaj, aby go zaimportować lub automatycznie utworzyny zostanie nowy plik.'), _defineProperty(_$translateProvider$t, 'APOSTILLE_IMPORT_FILES', 'Importuj pliki'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_TEXT', 'Utwórz dokument tekstowy'), _defineProperty(_$translateProvider$t, 'APOSTILLE_ENTER_TEXT', 'Wpisz tekst do notaryzowania...'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DOCUMENT_TITLE', 'Tytuł dokumentu'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DROPBOX_MESSAGE', 'Please enter your password and desired tag(s) before selecting files'), _defineProperty(_$translateProvider$t, 'APOSTILLE_DROPBOX_MESSAGE_2', 'Please enter your password before selecting files'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_TITLE', 'Weryfikuj apostile'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE', 'Wybierz serwer'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_CHOOSE_NODE_NOTE', 'Tylko nieliczne węzły mogą wyszukiwać w całej historii transakcji (opcja jest domyślnie wyłączona w NIS).'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WRONG_FORMAT', 'Plik nie jest w formacie apostille !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL_NO_PUBLIC_KEY', 'Weryfikacja nieudana, właściciel nie ma klucza pulicznego !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_SUCCESS', 'Plik zweryfikowany pomyślnie !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FAIL', 'Weryfikacja nieudana !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_WAITING', 'Transfer Apostille może czekać na potwierdzenie !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_NOT_FOUND', 'Transakcja nie znaleziona, upewnij się, że nie czeka na zatwierdzenie, w przeciwnym wypadku apostil jet nieważny'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_UNCONFIRMED', 'Wystąpił błąd podczas pobierania niepotwierdzonych danych ale transakcja nie została znaleziona'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNER', 'Wystąpił błąd podczas pobierania danych o podpisie'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_ERROR_SIGNATURE', 'Weryfikacja nie powiodła się, wystąpił błąd przy weryfikacji podpisu !'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_1', 'Pliki do autoryzacji muszą być w <b>formacie apostille</b>'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_INFORMATION_2', 'Możesz je rozpoznać po nazwie pliku:'), _defineProperty(_$translateProvider$t, 'APOSTILLE_AUDIT_FILES', 'Audytuj pliki'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_TITLE', 'Send message to notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_NS_BRAND', 'Use my namespace to brand message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_MESSAGE_ADD_MOSAIC', 'Add mosaic'), _defineProperty(_$translateProvider$t, 'APOSTILLE_NTY_ACCOUNT', 'Notarization account'), _defineProperty(_$translateProvider$t, 'APOSTILLE_REQUEST_MESSAGE', 'Request message'), _defineProperty(_$translateProvider$t, 'APOSTILLE_CREATE_MESSAGE_REQUEST', 'Create a message request'), _defineProperty(_$translateProvider$t, 'APOSTILLE_TRANSFER_TITLE', 'Transfer or Split apostille ownership'), _defineProperty(_$translateProvider$t, 'APOSTILLE_UPDATE_TITLE', 'Update apostille'), _defineProperty(_$translateProvider$t, 'ALERT_MISSING_FORM_DATA', 'Proszę wypełnić formularz !'), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_WALLET_DOWNLOAD', 'Nie można pobrać portfela ponieważ nie istnieje !'), _defineProperty(_$translateProvider$t, 'ALERT_PASSWORDS_NOT_MATCHING', 'Podane hasła nie pasują do siebie !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_KEY_FOR_ADDR', 'Klucz prywatny nie odpowiada podanemu adresowi !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_LOADED', 'Nie możesz otworzyć panelu głównego bez portfela'), _defineProperty(_$translateProvider$t, 'ALERT_WALLET_NAME_EXISTS', 'Portfel o tej samej nazwie jest już załadowany !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_FILE', 'Próbujesz załadować plik, który nie jest portfelem !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NODE_SET', 'Proszę podaj adres serwera !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_CUSTOM_NODE', 'Twój adres serwera jest nieprawidłowy !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WEBSOCKET_PORT', 'Port websocket własnego serwera jest nieprawidłowy !'), _defineProperty(_$translateProvider$t, 'ALERT_MIJIN_DISABLED', 'Sieć Mijin jest wyłączona, proszę wybierz inną sieć !'), _defineProperty(_$translateProvider$t, 'ALERT_GET_NS_BY_ID_ERROR', 'Błąd przy pobieraniu informacji o namespace, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_ACCOUNT_DATA_ERROR', 'Błąd przy pobieraniu informacji o koncie, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_ERROR_OCCURRED', 'Wystąpił błąd ! '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDR_FOR_NETWORK', ' nie odpowiada sieci '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PASSWORD', 'Podane hasło nie jest prawidłowe !'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_ALREADY_IN_LIST', 'Sygnatariusz jest już obecny na liście modyfikacji !'), _defineProperty(_$translateProvider$t, 'ALERT_COSIGNATORY_HAS_NO_PUBLIC', 'Sygnatariusz musi wykonać przynajmniej jedną transakcję aby otrzymać klucz publiczny !'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_HAS_NO_PUBLIC', 'Konto z multipodpisem musi wykonać przynajmniej jedną transakcję aby otrzymać klucz publiczny !'), _defineProperty(_$translateProvider$t, 'ALERT_COSIG_CANNOT_BE_MULTISIG', 'Konto wybrane do przekształenia jest sygnatariuszem innego konta z multipodpisem. Wobec tego nie może być przekształcone'), _defineProperty(_$translateProvider$t, 'ALERT_NO_NS_OWNED', 'Konto nie posiada żadnej namespace, proszę utwórz jedną lub zmień konto'), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCKED_INFO_ERROR', 'Wystąpił błąd przy pobieraniu informacji o odblokowaniu'), _defineProperty(_$translateProvider$t, 'ALERT_LOCK_ERROR', 'Błąd przy blokowaniu konta, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_UNLOCK_ERROR', 'Błąd przy odblokowywaniu konta, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_SUPERNODES_ERROR', 'Wystąpił błąd przy pobieraniu danych supernodes !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NTY_FILE', 'Dostarczony plik nie jest plikiem nty !'), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_FAILED', 'Nie udało się utworzyć portfela, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_DERIVATION_FROM_SEED_FAILED', 'Nie udało się uzyskać konta z seeda, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_BIP32_GENERATION_FAILED', 'Nie udało się wygenerować danych bip 32, powód: '), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_DATA', 'Błąd, puste dane portfela !'), _defineProperty(_$translateProvider$t, 'ALERT_CANNOT_LOGIN_WITHOU_WALLET', 'Błąd, nie można zalogować bez portfela !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_WALLET_TO_SET', 'Błąd, nie można ustawić -nic- jako bieżący portfel !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_WALLET_INDEX', 'Błąd, wybrany indeks konta jest poza granicami !'), _defineProperty(_$translateProvider$t, 'ALERT_NO_CURRENT_WALLET', 'Błąd, nie można ustawić konta portfela jeśli nie jest bieżącym portfelem !'), _defineProperty(_$translateProvider$t, 'ALERT_ALREADY_MULTISIG', 'Wybrane konto jest już kontem z multipodpisem !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MODIFICATION_ARRAY', 'Konto z multipodpisem nie może być sygnatariuszem samego siebie, proszę sprawdź listę modyfikacji !'), _defineProperty(_$translateProvider$t, 'ALERT_GET_MARKET_INFO_ERROR', 'Wystąpił błąd podczas pobierania informacji rynkowych !'), _defineProperty(_$translateProvider$t, 'ALERT_MULTISIG_CANNOT_BE_COSIG', 'Konto z multipodpisem nie może być sygnatariuszem !'), _defineProperty(_$translateProvider$t, 'ALERT_PURGE_CANCELLED', 'Czyszczenie anulowane !'), _defineProperty(_$translateProvider$t, 'ALERT_MAINNET_DISABLED', 'Mainnet jest niedostępny, proszę wybierz inną sieć !'), _defineProperty(_$translateProvider$t, 'ALERT_EMPTY_DECODED_MSG', 'Wystąpił błąd, brak odszyfrowanej wiadomości !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_NS_NAME', 'Nazwa namespace jest nieprawidłowa !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_MOSAIC_NAME', 'Nazwa mozaiki jest nieprawidłowa !'), _defineProperty(_$translateProvider$t, 'ALERT_MOSAIC_DESCRIPTION', 'Opis mozaiki jest nieprawidłowy !'), _defineProperty(_$translateProvider$t, 'ALERT_GET_INCOMING_TXES_ERROR', 'An error occured while trying to fetch incoming transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_DEFINITIONS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_SUB_NS_ERROR', 'Error at fetching mosaics definitions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_MOSAICS_ERROR', 'Error at fetching mosaics, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_GET_TRANSACTIONS_ERROR', 'Error at fetching transactions, reason: '), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDRESS_BOOK_FILE', 'This file is not in .adb format !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_ADDRESS', 'Provided address is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_AMOUNT', 'Amount is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_INVALID_PRIVATE_KEY', 'Provided private key is not valid !'), _defineProperty(_$translateProvider$t, 'ALERT_FILE_SIZE_ERROR', ' is too big, maximum size allowed is 100 MB'), _defineProperty(_$translateProvider$t, 'ALERT_MESSAGE_DECODE_KEY_ERROR', 'Message decryption failed because an account has no public key visible on the network'), _defineProperty(_$translateProvider$t, 'ALERT_FETCH_TIME_SYNC_ERROR', 'An error occured at fetching network time !'), _defineProperty(_$translateProvider$t, 'ALERT_CREATE_WALLET_SUCCESS', 'Portfel utworzony i załadowany !'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_PURGE', 'Pamięć podręczna wyczyszczona !'), _defineProperty(_$translateProvider$t, 'ALERT_SUCCESS_LOGOUT', 'Wylogowanie powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_LOAD_WALLET_SUCCESS', 'Ładowanie portfela powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_TRANSACTION_SUCCESS', 'Wysłanie transakcji powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_GENERATE_ACCOUNT_SUCCESS', 'Generowanie konta powiodło się. Nie zapomnij pobrać zaktualizowanego portfela!'), _defineProperty(_$translateProvider$t, 'ALERT_UPGRADE_SUCCESS', 'Aktualizacja portfela powiodła się !'), _defineProperty(_$translateProvider$t, 'ALERT_SIGNATURE_SUCCESS', 'Podpisanie transakcji powiodło się !'), _defineProperty(_$translateProvider$t, 'ALERT_NTY_FILE_SUCCESS', 'Udało się załadować plik nty !'), _defineProperty(_$translateProvider$t, 'ALERT_INCOMING_TX_FROM', 'Transakcja przychodząca od '), _defineProperty(_$translateProvider$t, 'ALERT_ADDRESS_BOOK_FILE_SUCCESS', 'Address book successfully imported !'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_TITLE', 'Zamień konto na konto z multipodpisem'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_NAME', 'Transakcja łącznej modyfikacji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_MULTISIG_NAME', 'Transakcja łącznej modyfikacji z multipodpisem'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT_TITLE', 'Account to Convert'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_SELECT', 'Wybierz konto do zamiany'), _defineProperty(_$translateProvider$t, 'AGGREGATE_CUSTOM_ACCOUNT', 'Użyj własnego konta'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE_TITLE', 'Address private key'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT', 'Adres konta do zamiany'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ACCOUNT_TO_CONVERT_PRIVATE', 'Klucz prywatny konta do zamiany'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_PLACEHOLDER', 'Konto sygnatariusza lub @alias'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_BTN_TITLE', 'Dodaj sygnatariusza'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', 'Minimum wymaganych sygnatur'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES_PLACEHOLDER', 'Minimum wymaganych sygnatur do uprawomocnienia tranzakcji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_LIST', 'Lista modyfikacji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_COSIG_LIST', 'Cosignatory Address List'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_TITLE', 'Edytuj kontrakt z multipodpisem'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT_TITLE', 'Account to edit'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_EDIT_SELECT', 'Wybierz konto do edycji'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_TITLE', 'Add/Remove signer'), _defineProperty(_$translateProvider$t, 'AGGREGATE_ADD_REMOVE_PLACEHOLDER', 'Konto sygnatariusza lub @alias'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE', 'Relatywna zmiana minimum sygnatur'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MODIFICATION_RELATIVE_CHANGE_PLACEHOLDER', 'Liczba sygnatur do dodania (n) lub usunięcia (-n)'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECTED_ACCOUNT_INFO', 'Informacja o wybranym koncie'), _defineProperty(_$translateProvider$t, 'AGGREGATE_MIN_SIGNATURES', 'Minimum sygnatur'), _defineProperty(_$translateProvider$t, 'AGGREGATE_SELECT_WALLET_ACCOUNT', 'Użyj portfela konta'), _defineProperty(_$translateProvider$t, 'LOGIN_MEMBER_TITLE', 'Jesteś już członkiem NEM ?'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_TITLE', 'Portfel wymaga aktualizacji'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_MESSAGE', 'Wybrany portfel wymaga aktualizacji. Ta czynność spowoduje wygenerowanie pochodnego klucza publicznego i dodanie go do konta głównego. Pobieranie zaktualizowanego portfela zostanie automatycznie rozpoczęte. <b><u>Musisz</u></b> go pobrać !'), _defineProperty(_$translateProvider$t, 'LOGIN_UPGRADE_BUTTON', 'Aktualizuj portfel'), _defineProperty(_$translateProvider$t, 'LOGIN_IMPORT_BUTTON', 'Importuj Portfel'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET_YOURS', 'Select Wallet'), _defineProperty(_$translateProvider$t, 'LOGIN_SELECT_WALLET', 'Wybierz portfel w lokalnej pamięci'), _defineProperty(_$translateProvider$t, 'LOGIN_LOGIN_BUTTON', 'Zaloguj'), _defineProperty(_$translateProvider$t, 'SIGNUP_TITLE', 'Nowy w NEM ?'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_TITLE', 'Prosty portfel'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_TITLE', 'Portfel z klucza prywatnego'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_TITLE', 'Brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_BUTTON', 'Utwórz prosty portfel'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_BUTTON', 'Utwórz portfel z klucza prywatnego'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_BUTTON', 'Utwórz brain wallet'), _defineProperty(_$translateProvider$t, 'SIGNUP_CREATE_WALLET_WARNING', 'Proszę, przeczytaj o <a href="https://www.w3.org/TR/2014/WD-WebCryptoAPI-20140325/#RandomSource-interface" rel="nofollow" target="_blank">niebezpieczeństwach</a> związanych z własnoręcznie generowanymi kluczami, nie jesteśmy odpowiedzialni za ewentualne straty, które mogłyby być spowodowane entropią generowania kluczy. Mimo, że szansa na to jest bardzo mała, zaleca się użycie klucza prywatnego generowany przez klienta NEM.'), _defineProperty(_$translateProvider$t, 'SIGNUP_NETWORK_SELECT', 'Wybierz sieć'), _defineProperty(_$translateProvider$t, 'SIGNUP_BRAIN_WALLET_WARNING', 'Proszę, przeczytaj o <a href="https://en.bitcoin.it/wiki/Brainwallet" rel="nofollow" target="_blank">niebezpieczeństwach</a> związanych z używaniem brain wallet. Brain wallet używa tylko zakodowanego wielokrotnie hasła, dlatego istotne jest, aby wybrać BEZPIECZNE hasło. <a href="https://xkcd.com/936/" rel="nofollow" target="_blank">XKCD #936</a>'), _defineProperty(_$translateProvider$t, 'SIGNUP_PRIVATE_KEY_WALLET_WARNING', 'Portfel z klucza prywatnego używa TYLKO wielokrotnie zakodowanego hasła, dlatego istotne jest, aby wybrać BEZPIECZNE hasło.'), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING', 'Wallets are stored <a><b>temporarily</b></a> in the browser local storage! You should have triggered a download after creating the wallet. It is the .wlt file used as a backup and to import back if your browser\’s local storage is erased. If you don\'t get a backup .wlt file, log into your account, copy your private key and paste it somewhere safe. It is your responsibility to always make sure you have your private key backed up before sending any funds to your account.'), _defineProperty(_$translateProvider$t, 'SIGNUP_COMMON_WALLET_WARNING_FOOTER', 'By clicking below, you agree that you have read and understood the above warnings.'), _defineProperty(_$translateProvider$t, 'FAQ_TITLE', 'Często zadawane pytania'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_1', 'Jak działa Portfel Nano ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_1', 'Portfel Nano jest zbudowany przy użyciu najnowszych bibliotek z ES6 i AngularJS. To aplikacja client-side , nidgy nie wysyła wrażliwych danych; wszystko dzieje się w przeglądarce od tworzenia kluczy prywatnych do podpisywania transakcji.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_2', 'Czy jest bezpłatny?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_2', 'Absolutnie wszystkie operacje wykonywane są po stronie klienta, tylko ty masz kontrolę nad swoimi monetami, bez osób trzecich, bez dodatkowych opłat.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_3', 'Dlaczego posiadam już jedną mozaikę ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_3', 'Ponieważ XEM jest domyślną walutą blockchaina NEM, każdy użytkownik ma ją już zarejestrowaną w portfelu, nawet jeśli jej bilans wynosi 0. Nazwa jej Namespace to NEM a nazwa mozaiki to XEM.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_4', 'Plan działań ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_4', 'Bieżący plan to zintegrowanie z portfelem Nano wszystkich funkcji klienta NEM i projektów finansowanych przez społeczność.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_5', 'Czy mogę otrzymać darmowe XEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_5', 'Faucet NEM jest w tej chwili niedostępny, ale możesz odwiedzić forum NEM aby dowiedzieć się o dostępnych nagrodach za pomoc w testowaniu i programowaniu.'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_6', 'Gdzie znaleźć więcej informacji na temat NEM ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_FORUM', 'Oficjalne forum'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_WEBSITE', 'Oficjalna strona'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_6_BTT', 'Oficjalny wątek BitcoinTalk'), _defineProperty(_$translateProvider$t, 'FAQ_QUESTION_7', 'Jak wspierać projekt ?'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7', 'Nano Wallet jest wspierany przez Quantum_Mechanics i bazuje na portfelu lightwallet użytkownika Gimre'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_2', 'Apostille jest usługą współpracującą ze stroną <a href="http://apostille.io">apostille.io</a> we współpracy z Jabo38 w <a href="https://forum.nem.io/t/nem-apostille-a-nem-notary-system-community-fund-proposal/2001" target="_blank">projekcie Apostille</a>.'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_3', 'Jeśli chcesz pomóc finansowo, poniżej znajdują się adresy do wpłaty, dzięki :)'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_4', 'Fundusze projektu NanoWallet:'), _defineProperty(_$translateProvider$t, 'FAQ_ANSWER_7_5', 'Fundusze usług Apostille:'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_FIELD_PLACEHOLDER', 'Wpisz hasło portfela lub hasło wielowyrazowe'), _defineProperty(_$translateProvider$t, 'FORM_WALLET_NAME_FIELD_PLACEHOLDER', 'Nazwa portfela'), _defineProperty(_$translateProvider$t, 'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER', 'Hasło'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD', 'Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSWORD_CONFIRM', 'Confirm Password'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_CONFIRM', 'Confirm Passphrase'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER', 'Potwierdź hasło'), _defineProperty(_$translateProvider$t, 'FORM_PASSPHRASE_FIELD_PLACEHOLDER', 'Hasło wielowyrazowe'), _defineProperty(_$translateProvider$t, 'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER', 'Potwierdź hasło wielowyrazowe'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_FIELD_PLACEHOLDER', 'Adres konta'), _defineProperty(_$translateProvider$t, 'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER', 'Klucz prywatny'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_BALANCE', 'Saldo'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_PAY_TO', 'Zapłać'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_TX_FEE', 'Opłata transakcyjna'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_RENTAL_FEE', 'Opłata dzierżawcza'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_LEVY_FEE', 'Podatek'), _defineProperty(_$translateProvider$t, 'FORM_RECIPIENT_PLACEHOLDER', 'Adres odbiorcy lub @alias'), _defineProperty(_$translateProvider$t, 'FORM_INVOICE_RECIPIENT_PLACEHOLDER', 'Adres odbiorcy'), _defineProperty(_$translateProvider$t, 'FORM_SIDE_BTN_ALIAS_OF', 'Alias konta'), _defineProperty(_$translateProvider$t, 'FORM_MESSAGE_PLACEHOLDER', 'Wiadomość'), _defineProperty(_$translateProvider$t, 'FORM_MOSAIC_NAME_PLACEHOLDER', 'Nazwa mozaiki'), _defineProperty(_$translateProvider$t, 'FORM_ADDRESS_ALIAS_PLACEHOLDER', 'Account address or @alias'), _defineProperty(_$translateProvider$t, 'RENEW_NS_TITLE', 'Renew namespaces'), _defineProperty(_$translateProvider$t, 'RENEW_NS_NONE', 'No namespace to renew'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_1', 'You can renew a namespace starting from one month before it expires.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_INFORMATION_2', 'If not renewed in time, all sub-namespaces and mosaics created under it will be losts.'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_1', '<b>Warning !</b> The namespace:'), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_2', 'will expire in less than a month ! '), _defineProperty(_$translateProvider$t, 'RENEW_NS_ALERT_PART_3', 'Consult the <b>renew page</b> for more information.'), _$translateProvider$t));
 }
 
 exports.default = PolishProvider;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -3015,12 +3215,76 @@ var Alert = function () {
             });
         }
     }, {
+        key: 'invalidAddressBookFile',
+        value: function invalidAddressBookFile() {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_INVALID_ADDRESS_BOOK_FILE'),
+                className: 'danger'
+            });
+        }
+    }, {
         key: 'namespaceExpiryNotice',
         value: function namespaceExpiryNotice(ns, blocks) {
             this._ngToast.create({
                 content: this._$filter("translate")("RENEW_NS_ALERT_PART_1") + ' <b>' + ns + '</b> ' + this._$filter("translate")("RENEW_NS_ALERT_PART_2") + ' (~' + blocks + ' ' + this._$filter("translate")("GENERAL_BLOCKS") + '). ' + this._$filter("translate")("RENEW_NS_ALERT_PART_3"),
                 className: 'warning',
                 timeout: 10000
+            });
+        }
+    }, {
+        key: 'invalidAddress',
+        value: function invalidAddress(addr) {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_INVALID_ADDRESS'),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'invalidAmount',
+        value: function invalidAmount() {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_INVALID_AMOUNT'),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'invalidPrivateKey',
+        value: function invalidPrivateKey() {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_INVALID_PRIVATE_KEY'),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'fileSizeError',
+        value: function fileSizeError(filename) {
+            this._ngToast.create({
+                content: filename + this._$filter("translate")("ALERT_FILE_SIZE_ERROR"),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'noPublicKeyForDecoding',
+        value: function noPublicKeyForDecoding() {
+            this._ngToast.create({
+                content: this._$filter("translate")("ALERT_MESSAGE_DECODE_KEY_ERROR"),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'errorGetTimeSync',
+        value: function errorGetTimeSync() {
+            this._ngToast.create({
+                content: this._$filter("translate")("ALERT_FETCH_TIME_SYNC_ERROR"),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'errorGetBtcPrice',
+        value: function errorGetBtcPrice() {
+            this._ngToast.create({
+                content: 'Error while trying to fetch Bitcoin price',
+                className: 'danger'
             });
         }
 
@@ -3100,6 +3364,14 @@ var Alert = function () {
                 className: 'success'
             });
         }
+    }, {
+        key: 'addressBookFileSuccess',
+        value: function addressBookFileSuccess() {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_ADDRESS_BOOK_FILE_SUCCESS'),
+                className: 'success'
+            });
+        }
 
         /***
          * Transaction notifications
@@ -3120,7 +3392,474 @@ var Alert = function () {
 
 exports.default = Alert;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Network = require('../utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _convert = require('../utils/convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _KeyPair = require('../utils/KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+var _CryptoHelpers = require('../utils/CryptoHelpers');
+
+var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
+
+var _Serialization = require('../utils/Serialization');
+
+var _Serialization2 = _interopRequireDefault(_Serialization);
+
+var _helpers = require('../utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+var _Address = require('../utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _TransactionTypes = require('../utils/TransactionTypes');
+
+var _TransactionTypes2 = _interopRequireDefault(_TransactionTypes);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/** Service to build transactions */
+var Alias = function () {
+
+    /**
+     * Initialize services and properties
+     *
+     * @param {service} Wallet - The Wallet service
+     * @param {service} NetworkRequests - The NetworkRequests service
+     */
+    Alias.$inject = ["$q", "$location", "Wallet", "NetworkRequests", "Alert", "AliasAlert", "Transactions", "nemUtils"];
+    function Alias($q, $location, Wallet, NetworkRequests, Alert, AliasAlert, Transactions, nemUtils) {
+        'ngInject';
+        /***
+         * Declare services
+         */
+
+        var _this = this;
+
+        _classCallCheck(this, Alias);
+
+        this._$q = $q;
+        this._location = $location;
+        this._Wallet = Wallet;
+        this._NetworkRequests = NetworkRequests;
+
+        this._Alert = Alert;
+        this._AliasAlert = AliasAlert;
+        this._Transactions = Transactions;
+        this._nemUtils = nemUtils;
+
+        // Set Root and Namespace Index depending on the network
+        this.ALIAS_ROOT_INDEX = "";
+        this.ALIAS_NAMESPACE_INDEX = "";
+        this.ownAlias = "";
+
+        this.aliasCache = {};
+
+        // If no wallet show alert and redirect to home
+        if (!this._Wallet.current) {
+            this._Alert.noWalletLoaded();
+            this._location.path('/');
+            return;
+        }
+
+        this.fetchIndexes().then(function () {
+            _this.fetchOwnAlias();
+        });
+    }
+
+    _createClass(Alias, [{
+        key: 'getAlias',
+        value: function getAlias() {
+            return this.ownAlias;
+        }
+    }, {
+        key: 'getRootIndex',
+        value: function getRootIndex() {
+            return this.ALIAS_ROOT_INDEX;
+        }
+    }, {
+        key: 'getNamespaceIndex',
+        value: function getNamespaceIndex() {
+            return this.ALIAS_NAMESPACE_INDEX;
+        }
+    }, {
+        key: 'fetchOwnAlias',
+        value: function fetchOwnAlias() {
+            var _this2 = this;
+
+            return this.fetchAddress(this._Wallet.currentAccount.address).then(function (alias) {
+                _this2.ownAlias = "";
+                if (alias) {
+                    // console.log(this._Wallet.currentAccount.address+" is linked to "+alias);
+                    _this2.ownAlias = alias;
+                }
+                return alias;
+            }).catch(function (err) {
+                _this2._AliasAlert.unexpectedError(err);
+            });
+        }
+    }, {
+        key: 'fetchAddress',
+        value: function fetchAddress(address) {
+            var _this3 = this;
+
+            var options = {};
+            var alias;
+
+            if (!address) {
+                var deferred = this._$q.defer();
+                deferred.resolve("");
+                return deferred.promise;
+            }
+
+            // We are just interested on aliases set by the account itself
+            options.fromAddress = address;
+            // Search for the last set alias by self
+            return this._nemUtils.getLastMessageWithString(address, "alias=", options).then(function (message) {
+                // The message should have the format alias=[alias]
+                if (message) alias = message.split("=")[1];
+                return alias;
+            }).then(function (alias) {
+                // Verify that the Alias is valid
+                if (alias) return _this3.fetchAlias(alias);
+            }).then(function (fetchedAddress) {
+                if (fetchedAddress == address) return alias;else return;
+            });
+        }
+
+        /**
+         * fetchAlias() Get recipient account data from network using @alias
+          * // Example alias: @samy
+         * // Example alias: samy@atraura
+         * // atraura is a valid Namespace
+         * 
+         * @param alias: The recipient alias (namespace)
+         */
+
+    }, {
+        key: 'fetchAlias',
+        value: function fetchAlias(alias) {
+            var _this4 = this;
+
+            // TODO: Prepare to be able to update RI, do it in constructor
+
+            if (!alias) {
+                var deferred = this._$q.defer();
+                deferred.resolve("");
+                return deferred.promise;
+            }
+
+            // Alias cleanup: strip anything except for '.' and alphabetical characters
+            alias = alias.replace(/[^.A-Z0-9]/gi, "");
+            var pointer;
+
+            console.log("Fetching alias: " + alias);
+            // console.log("// 0. Check if a namespace exists with the same name as the alias, we will always prioritize this on the system");
+            return this._NetworkRequests.getNamespacesById(_helpers2.default.getHostname(this._Wallet.node), alias).then(function (data) {
+                if (data.owner) {
+                    return data.owner;
+                } else {
+                    throw "This should never happen";
+                }
+            }).catch(function () {
+                // Already cached
+                if (alias in _this4.aliasCache) {
+                    // console.log("cached");
+                    return _this4.aliasCache[alias];
+                }
+
+                // 1. Check if the alias is from a Namespace or Root
+                var a = alias.split(".");
+                if (a.length == 1) {
+                    // 1a. No '.' -> regular alias: [alias]
+                    alias = a[0];
+
+                    // console.log("// 1a.1a Search [RI] for the alias");
+                    return _this4._nemUtils.getTransactionsWithString(_this4.ALIAS_ROOT_INDEX, alias).then(function (results) {
+                        var lastExpiredOn = 0;
+                        // console.log("1a.1a", results);
+                        for (var i = 0; i < results.length; i++) {
+
+                            var result = results[i];
+
+                            // 1a.1a.1 Get Pointer Account from the FIRST message in [RI] where alias was found, where xem >= 500
+
+                            var message = result.transaction.message.split('=');
+                            if (message[0] == alias && message.length >= 2) {
+
+                                var today = _helpers2.default.createNEMTimeStamp();
+                                var txTS = result.transaction.timeStamp;
+                                // Hiring an alias is 450xem per year
+                                var years = Math.floor(result.transaction.amount / 450 / 1000000);
+                                var txExpirationDate = txTS + years * 365 * 24 * 60 * 60;
+                                if (txExpirationDate > today && lastExpiredOn < txTS) {
+                                    pointer = message[1];
+
+                                    // 1a.1a.2 Search Pointer Account for LASTS valid account
+                                    var options = {};
+                                    options.fromAddress = _this4.ALIAS_ROOT_INDEX;
+
+                                    // 1a.1a.2.1 Search PA for last message from RI -> last moderated owner, or just the first message if none -> last owner
+                                    // console.log("1a.1a.2.1 Searching "+pointer+" for LAST 'alias_owner='' from"+options.fromAddress);
+                                    return _this4._nemUtils.getLastMessageWithString(pointer, "alias_owner=", options);
+                                } else {
+                                    lastExpiredOn = txExpirationDate;
+                                }
+                            }
+                        }
+                        // 1a.1b Alias doesn't exist
+                        throw "Alias doesn't exist";
+                    }).then(function (result) {
+                        // See if this alias was overwritten by ROOT INDEX
+                        if (result && result.length > 0) {
+                            // If has been, we get the last owner's address
+                            var last_owner = result.split("=")[1];
+                            var options = {};
+                            options.fromAddress = last_owner;
+
+                            // 1a.1a.2.2 Follow owners chain in order to get the last one
+                            // console.log("1a.1a.2.2a Searching "+pointer+" for LAST 'alias_owner='' from"+options.fromAddress);
+                            return _this4._nemUtils.getLastMessageWithString(pointer, "alias_owner=", options);
+                        } else {
+                            // console.log("1a.1a.2.2b Searching "+pointer+" for FIRST 'alias_owner='' from anyone ");
+                            return _this4._nemUtils.getFirstMessageWithString(pointer, "alias_owner=");
+                        }
+                    }).then(function (result) {
+                        // Grab the last account that the last owner wanted to point
+                        var acct = result.split("=")[1];
+                        _this4.aliasCache[alias] = acct;
+                        return acct;
+                    }).catch(function (err) {
+                        if (err == "Alias doesn't exist") {
+                            // The alias does not exsts
+                            _this4._AliasAlert.doesNotExistWarning(alias);
+                        } else {
+                            _this4._AliasAlert.unexpectedError(err);
+                        }
+                    });
+                } else if (a.length == 2) {
+                    _this4._AliasAlert.nsaliasNotReady();
+                    return;
+
+                    // 1b. Has a '.' -> namespace alias
+                    // Namespaced Alias
+                    // 1b.1 Split alias in @[namespace].[alias]
+                    // 1b.2 Search [NSI] for LAST Message with namespace from [RI] -> Namespace Pointer Index [NPI]
+                    // 1b.2a (empty) Namespace doesn't have any account yet, return address from namespace owner
+                    // 1b.2b A Namespace Pointer Index account exists [NPI]
+                    // 1b.2b.1 Get real namespace owner -> [O]
+                    // 1b.2b.2 Get all messages with "alias=""
+                    // 1b.2b.3 Is there any from [O]?
+                    // 1b.2b.3b YES - Use the LAST from [O] as the valid one
+                    // 1b.2b.3b NOPE - Use the LAST as the valid one ?
+                } else {
+                    // Wrong format
+                    _this4._AliasAlert.wrongFormat();
+                    return;
+                }
+            });
+        }
+    }, {
+        key: 'fetchIndexes',
+        value: function fetchIndexes() {
+            var _this5 = this;
+
+            if (this._Wallet.network === _Network2.default.data.Mainnet.id) {
+                // console.log("MAINNET");
+                this.ALIAS_ROOT_INDEX = "NALIASJNTP65XU3Z2YADL7OJWZDDB2GJRO4X5JW6";
+                this.ALIAS_NAMESPACE_INDEX = "NALIASFMJ35B3AAC5EL4DOCIKS4RVMUG24YHURMR";
+            } else if (this._Wallet.network === _Network2.default.data.Testnet.id) {
+                // console.log("TESTNET");
+                this.ALIAS_ROOT_INDEX = "TDVYJTYYPCO5AORERRTDUJ3BYYTSF6BTLOIAF2UR";
+                this.ALIAS_NAMESPACE_INDEX = "TCEEU7QUHGBW4ICDR3PH2LAFP2M7JMHAW4BQMOUT";
+            } else {}
+            // console.log("MIJINNET");
+            // Mijin nodes
+            // TODO: SET EXPLICIT ALERT
+
+
+            // Make sure that ROOT Index has not changed
+            var options = { "fromAddress": this.ALIAS_ROOT_INDEX };
+            return this._nemUtils.getLastMessageWithString(this.ALIAS_NAMESPACE_INDEX, "@=", options).then(function (message) {
+                if (message) {
+                    var rootIndex = message.split("=")[1];
+                    if (_this5.ALIAS_ROOT_INDEX != rootIndex) {
+                        console.log("ALIAS_ROOT_INDEX has been updated to: " + rootIndex);
+                        _this5.ALIAS_ROOT_INDEX = rootIndex;
+                    }
+                }
+            }).catch();
+        }
+    }, {
+        key: 'reset',
+        value: function reset() {
+            var _this6 = this;
+
+            this.ALIAS_ROOT_INDEX = "";
+            this.ALIAS_NAMESPACE_INDEX = "";
+            this.ownAlias = "";
+            if (!this.aliasCache) this.aliasCache = {};
+            return this.fetchIndexes().then(function () {
+                return _this6.fetchOwnAlias();
+            });
+        }
+    }]);
+
+    return Alias;
+}();
+
+exports.default = Alias;
+
+},{"../utils/Address":31,"../utils/CryptoHelpers":32,"../utils/KeyPair":33,"../utils/Network":34,"../utils/Serialization":35,"../utils/TransactionTypes":36,"../utils/convert":38,"../utils/helpers":39}],22:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var AliasAlert = function () {
+    AliasAlert.$inject = ["ngToast", "$filter"];
+    function AliasAlert(ngToast, $filter) {
+        'ngInject';
+
+        // ngToast provider
+
+        _classCallCheck(this, AliasAlert);
+
+        this._ngToast = ngToast;
+        // Filters
+        this._$filter = $filter;
+    }
+
+    /***
+     * Error alerts
+     */
+
+
+    _createClass(AliasAlert, [{
+        key: 'aliasError',
+        value: function aliasError(message) {
+            this._ngToast.create({
+                content: message,
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'alreadyExistsError',
+        value: function alreadyExistsError(alias) {
+            this._ngToast.create({
+                content: "@" + alias + this._$filter('translate')('ALERT_ALIAS_ALREADY_EXISTS_ERROR'),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'isNamespaceError',
+        value: function isNamespaceError(alias) {
+            this._ngToast.create({
+                content: alias + this._$filter('translate')('ALERT_ALIAS_IS_NAMESPACE_ERROR'),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'unexpectedError',
+        value: function unexpectedError(message) {
+            console.log(message);
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_ALIAS_UNEXPECTED_ERROR') + " - " + message,
+                className: 'danger',
+                timeout: 10000
+            });
+        }
+    }, {
+        key: 'wrongFormat',
+        value: function wrongFormat(alias) {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_ALIAS_WRONG_FORMAT_ERROR'),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'nsaliasNotReady',
+        value: function nsaliasNotReady() {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_ALIAS_NS_NOT_READY_ERROR'),
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'aliasIsTooLongError',
+        value: function aliasIsTooLongError(alias) {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_ALIAS_IS_TOO_LONG_ERROR') + alias.length,
+                className: 'danger'
+            });
+        }
+    }, {
+        key: 'insuficientBalanceError',
+        value: function insuficientBalanceError() {
+            this._ngToast.create({
+                content: this._$filter('translate')('ALERT_ALIAS_INSUFICIENT_FUNDS_ERROR'),
+                className: 'danger'
+            });
+        }
+
+        /***
+         * Warning alerts
+         */
+
+    }, {
+        key: 'doesNotExistWarning',
+        value: function doesNotExistWarning(alias) {
+            this._ngToast.create({
+                content: "@" + alias + this._$filter("translate")("ALERT_ALIAS_DOES_NOT_EXIST_WARNING"),
+                className: 'warning'
+            });
+        }
+
+        /***
+         * Success alerts
+         */
+
+    }, {
+        key: 'setAliasSuccess',
+        value: function setAliasSuccess(alias, account, pointer) {
+            this._ngToast.create({
+                content: "@" + alias + this._$filter('translate')('ALERT_SET_ALIAS_SUCCESS') + account + this._$filter('translate')('ALERT_SET_ALIAS_SUCCESS2') + pointer + this._$filter('translate')('ALERT_SET_ALIAS_SUCCESS3'),
+                className: 'success',
+                timeout: 10000
+            });
+        }
+    }]);
+
+    return AliasAlert;
+}();
+
+exports.default = AliasAlert;
+
+},{}],23:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -3262,7 +4001,6 @@ var Connector = function () {
                     } else {
                         // triggers sending of most recent transfers
                         var address = _address || self.accountAddress;
-                        console.log(address);
                         self.stompClient.send("/account/transfers/unconfirmed", {}, "{'account':'" + address + "'}");
                     }
                 },
@@ -3307,9 +4045,7 @@ var Connector = function () {
                     }
 
                     var address = _address || self.accountAddress;
-                    //console.log(address);
                     self.stompClient.subscribe('/unconfirmed/' + address, function (data) {
-                        //console.log(data);
                         cbUnconfirmed(JSON.parse(data.body));
                     });
                     return true;
@@ -3398,7 +4134,7 @@ var Connector = function () {
 
 exports.default = Connector;
 
-},{}],21:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -3550,6 +4286,27 @@ var DataBridge = function () {
          * @type {object|undefined}
          */
         this.marketInfo = undefined;
+
+        /**
+         * The Bitcoin price value
+         *
+         * @type {object|undefined}
+         */
+        this.btcPrice = undefined;
+
+        /**
+         * The network time
+         *
+         * @type {number}
+         */
+        this.networkTime = undefined;
+
+        /**
+         * Store the time sync interval function
+         *
+         * @type {setInterval}
+         */
+        this.timeSyncInterval = undefined;
     }
 
     /**
@@ -3573,9 +4330,25 @@ var DataBridge = function () {
                 // Reset at new connection
                 _this.reset();
 
+                // Start time sync
+                _this.timeSync();
+
                 /***
                  * Few network requests happen on socket connection
                  */
+
+                /**
+                * Fetch network time
+                */
+                _this._NetworkRequests.getNEMTime(_helpers2.default.getHostname(_this._Wallet.node)).then(function (res) {
+                    _this._$timeout(function () {
+                        _this.networkTime = res.receiveTimeStamp / 1000;
+                    });
+                }, function (err) {
+                    _this._$timeout(function () {
+                        _this._Alert.errorGetTimeSync();
+                    });
+                });
 
                 // Gets current height
                 _this._NetworkRequests.getHeight(_helpers2.default.getHostname(_this._Wallet.node)).then(function (height) {
@@ -3621,6 +4394,18 @@ var DataBridge = function () {
                     _this._$timeout(function () {
                         _this._Alert.errorGetMarketInfo();
                         _this.marketInfo = undefined;
+                    });
+                });
+
+                // Gets btc price
+                _this._NetworkRequests.getBtcPrice().then(function (data) {
+                    _this._$timeout(function () {
+                        _this.btcPrice = data;
+                    });
+                }, function (err) {
+                    _this._$timeout(function () {
+                        _this._Alert.errorGetBtcPrice();
+                        _this.btcPrice = undefined;
                     });
                 });
 
@@ -3694,6 +4479,16 @@ var DataBridge = function () {
                             }
                             console.log("Unconfirmed data: ", d);
                         }
+
+                        if (undefined !== d.transaction.mosaics && d.transaction.mosaics.length) {
+                            for (var i = 0; i < d.transaction.mosaics.length; i++) {
+                                var mos = d.transaction.mosaics[i];
+                                if (undefined === _this.mosaicDefinitionMetaDataPair[_helpers2.default.mosaicIdToName(mos.mosaicId)]) {
+                                    // Fetch definition from network
+                                    getMosaicDefinitionMetaDataPair(mos);
+                                }
+                            }
+                        }
                     }, 0);
                 };
 
@@ -3748,6 +4543,32 @@ var DataBridge = function () {
                     }, 0);
                 };
 
+                var getMosaicDefinitionMetaDataPair = function getMosaicDefinitionMetaDataPair(mos) {
+                    if (undefined !== mos.mosaicId) {
+                        // Fetch definition from network
+                        return _this._NetworkRequests.getOtherMosaic(_helpers2.default.getHostname(_this._Wallet.node), mos.mosaicId.namespaceId).then(function (res) {
+                            if (res.data.length) {
+                                for (var i = 0; i < res.data.length; i++) {
+                                    if (res.data[i].mosaic.id.namespaceId == mos.mosaicId.namespaceId && res.data[i].mosaic.id.name == mos.mosaicId.name) {
+                                        _this.mosaicDefinitionMetaDataPair[_helpers2.default.mosaicIdToName(mos.mosaicId)] = {};
+                                        _this.mosaicDefinitionMetaDataPair[_helpers2.default.mosaicIdToName(mos.mosaicId)].supply = res.data[i].mosaic.properties[1].value;
+                                        _this.mosaicDefinitionMetaDataPair[_helpers2.default.mosaicIdToName(mos.mosaicId)].mosaicDefinition = res.data[i].mosaic;
+
+                                        if (undefined !== res.data[i].mosaic.levy) {
+                                            if (undefined === _this.mosaicDefinitionMetaDataPair[_helpers2.default.mosaicIdToName(res.data[i].mosaic.levy.mosaicId)]) {
+                                                // Fetch definition from network
+                                                return getMosaicDefinitionMetaDataPair(res.data[i].mosaic.levy);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }, function (err) {
+                            _this._Alert.transactionError('Failed to fetch definition of ' + _helpers2.default.mosaicIdToName(mos.mosaicId));
+                        });
+                    }
+                };
+
                 // Set websockets callbacks
                 connector.onConfirmed(confirmedCallback);
                 connector.onUnconfirmed(unconfirmedCallback);
@@ -3784,6 +4605,30 @@ var DataBridge = function () {
             this.harvestedBlocks = [];
             this.delegatedData = undefined;
             this.marketInfo = undefined;
+            this.networkTime = undefined;
+            clearInterval(this.timeSyncInterval);
+        }
+
+        /**
+         * Fetch network time every minute
+         */
+
+    }, {
+        key: 'timeSync',
+        value: function timeSync() {
+            var _this2 = this;
+
+            this.timeSyncInterval = setInterval(function () {
+                _this2._NetworkRequests.getNEMTime(_helpers2.default.getHostname(_this2._Wallet.node)).then(function (res) {
+                    _this2._$timeout(function () {
+                        _this2.networkTime = res.receiveTimeStamp / 1000;
+                    });
+                }, function (err) {
+                    _this2._$timeout(function () {
+                        _this2._Alert.errorGetTimeSync();
+                    });
+                });
+            }, 60 * 1000);
         }
     }]);
 
@@ -3792,7 +4637,7 @@ var DataBridge = function () {
 
 exports.default = DataBridge;
 
-},{"../utils/Address":27,"../utils/helpers":35}],22:[function(require,module,exports){
+},{"../utils/Address":31,"../utils/helpers":39}],25:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -3831,6 +4676,18 @@ var _transactions = require('./transactions.service');
 
 var _transactions2 = _interopRequireDefault(_transactions);
 
+var _nemUtils = require('./nemUtils.service');
+
+var _nemUtils2 = _interopRequireDefault(_nemUtils);
+
+var _alias = require('./alias.service');
+
+var _alias2 = _interopRequireDefault(_alias);
+
+var _aliasAlert = require('./aliasAlert.service');
+
+var _aliasAlert2 = _interopRequireDefault(_aliasAlert);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // Create the module where our functionality can attach to
@@ -3864,9 +4721,633 @@ servicesModule.service('NetworkRequests', _networkRequests2.default);
 
 servicesModule.service('Transactions', _transactions2.default);
 
+// Set nemUtils service
+
+servicesModule.service('nemUtils', _nemUtils2.default);
+
+// Set Alias service
+
+servicesModule.service('Alias', _alias2.default);
+
+// Set Alias service
+
+servicesModule.service('AliasAlert', _aliasAlert2.default);
+
 exports.default = servicesModule;
 
-},{"./alert.service":19,"./connector.service":20,"./dataBridge.service":21,"./networkRequests.service":23,"./transactions.service":24,"./wallet.service":25,"./walletBuilder.service":26,"angular":80}],23:[function(require,module,exports){
+},{"./alert.service":20,"./alias.service":21,"./aliasAlert.service":22,"./connector.service":23,"./dataBridge.service":24,"./nemUtils.service":26,"./networkRequests.service":27,"./transactions.service":28,"./wallet.service":29,"./walletBuilder.service":30,"angular":84}],26:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Network = require('../utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _convert = require('../utils/convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _KeyPair = require('../utils/KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+var _CryptoHelpers = require('../utils/CryptoHelpers');
+
+var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
+
+var _Serialization = require('../utils/Serialization');
+
+var _Serialization2 = _interopRequireDefault(_Serialization);
+
+var _helpers = require('../utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+var _Address = require('../utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _TransactionTypes = require('../utils/TransactionTypes');
+
+var _TransactionTypes2 = _interopRequireDefault(_TransactionTypes);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/** Service to build transactions */
+var nemUtils = function () {
+
+    /**
+     * Initialize services and properties
+     *
+     * @param {service} Wallet - The Wallet service
+     * @param {service} $http - The angular $http service
+     * @param {service} DataBridge - The DataBridge service
+     * @param {service} NetworkRequests - The NetworkRequests service
+     */
+    nemUtils.$inject = ["$q", "$http", "$filter", "$timeout", "Wallet", "WalletBuilder", "DataBridge", "NetworkRequests", "Alert", "Transactions"];
+    function nemUtils($q, $http, $filter, $timeout, Wallet, WalletBuilder, DataBridge, NetworkRequests, Alert, Transactions) {
+        'ngInject';
+
+        /***
+         * Declare services
+         */
+
+        _classCallCheck(this, nemUtils);
+
+        this._$q = $q;
+        this._$http = $http;
+        this._$timeout = $timeout;
+        this._$filter = $filter;
+        this._Wallet = Wallet;
+        this._WalletBuilder = WalletBuilder;
+        this._DataBridge = DataBridge;
+        this._NetworkRequests = NetworkRequests;
+        this._Alert = Alert;
+        this._Transactions = Transactions;
+        this.disableSuccessAlert = false;
+    }
+
+    _createClass(nemUtils, [{
+        key: 'disableSuccessAlerts',
+        value: function disableSuccessAlerts() {
+            this.disableSuccessAlert = true;
+        }
+    }, {
+        key: 'enableSuccessAlerts',
+        value: function enableSuccessAlerts() {
+            this.disableSuccessAlert = false;
+        }
+
+        /**
+         * getLastMessageWithString(address,str,start) Obtains the last Message that contains string after position start
+         *
+         * @param {string} address - NEM Address to explore
+         * @param {string} str - String to find on addresses txs
+         * @param {object} options - Dictionary that can contain: 
+         *                 options.fromAddress (only return transactions)
+         *                 options.start (starting character of the string to look into)
+         *
+         * @return {promise} - A promise of the NetworkRequests service that returns a string with the filtered message
+         */
+
+    }, {
+        key: 'getLastMessageWithString',
+        value: function getLastMessageWithString(address, str, options) {
+
+            // Limit transactions to be returned to 1 since we just want the last one.
+            // This way we avoid plenty of unnecessary calls
+            if (!options) options = {};
+            options.limit = 1;
+
+            return this.getTransactionsWithString(address, str, options).then(function (result) {
+                var message = void 0;
+                if (result && result.length > 0) {
+                    message = result[0].transaction.message;
+                }
+                return message;
+            });
+        }
+
+        /**
+         * getFirstMessagesWithString(address,str,start) Obtains the last Message that contains string after position start
+         *
+         * @param {string} address - NEM Address to explore
+         * @param {string} str - String to find on addresses txs
+         * @param {object} options - Dictionary that can contain: 
+         *                 options.fromAddress (only return transactions)
+         *                 options.start (starting character of the string to look into)     
+         *
+         * @return {promise} - A promise of the NetworkRequests service that returns a string with the filtered message
+         */
+
+    }, {
+        key: 'getFirstMessageWithString',
+        value: function getFirstMessageWithString(address, str, options) {
+
+            // Get ALL Transactions since the API only allows us to iterate on a descending order
+            return this.getTransactionsWithString(address, str, options).then(function (result) {
+                var message = void 0;
+                if (result && result.length > 0) {
+
+                    // Get the first message ever
+                    message = result[result.length - 1].transaction.message;
+                }
+                return message;
+            });
+        }
+
+        /**
+         * getTransactionsWithString(address, str, start) Obtains every transaction message that contains a certain string (starting from position start)
+         *
+         * @param {string} address - NEM Address to explore
+         * @param {string} str - String to find on addresses txs
+         * @param {object} options - Dictionary that can contain: 
+         *                 options.fromAddress (only return transactions)
+         *                 options.start (starting character of the string to look into)
+         *                 options.limit - Limit amount of results to return
+         *
+         * @return {promise} - A promise of the NetworkRequests service that returns an Array with the filtered messages
+         */
+
+    }, {
+        key: 'getTransactionsWithString',
+        value: function getTransactionsWithString(address, str, options) {
+
+            var signatoryPublicKey;
+            var trans = [];
+            var promise;
+
+            // Options is optional
+            if (!options || options.constructor != Object) options = {};
+            if (!options.start) options.start = 0;
+
+            // Recursive promise that will obtain every transaction from/to <address>, order it chronologically and return the ones
+            // whose message contains <str>. 
+            var getTx = function (txID) {
+                var _this = this;
+
+                // Obtain all transactions to/from the address
+                return this._NetworkRequests.getAllTransactionsFromID(_helpers2.default.getHostname(this._Wallet.node), address, txID).then(function (result) {
+                    var transactions = result.data;
+                    // If there transactions were returned and the limit was not reached
+                    if (transactions.length > 0 && (!options.limit || trans.length < options.limit)) {
+
+                        // IDs are ordered, we grab the latest
+                        var last_id = transactions[transactions.length - 1].meta.id;
+
+                        // Order transactions chronologically
+                        transactions.sort(function (a, b) {
+                            return b.transaction.timeStamp - a.transaction.timeStamp;
+                        });
+
+                        // Iterate every transaction and add the valid ones to the array
+                        for (var i = 0; transactions.length > i && (!options.limit || trans.length < options.limit); i++) {
+
+                            var transaction = transactions[i].transaction;
+                            var meta = transactions[i].meta;
+
+                            if (transaction.type == 257) {
+                                // On this version we are only using decoded messages!
+                                var msg = _this._$filter('fmtHexMessage')(transaction.message);
+
+                                // Check if transaction should be added depending on the message and its signer
+                                if (msg.includes(str, options.start) && (!signatoryPublicKey || signatoryPublicKey == transaction.signer)) {
+                                    // We decode the message and store it
+                                    transactions[i].transaction.message = msg;
+                                    trans[trans.length] = transactions[i];
+                                }
+                            }
+                        }
+                        // Keep searching for more transactions after last_id
+                        return getTx(last_id);
+                    } else {
+                        return trans;
+                    }
+                });
+            }.bind(this);
+
+            // Obtain address' publicKey and set it to signatoryPublicKey
+            var getAccountData = function (address) {
+                // console.log("Inquiring: "+address);
+                return this._NetworkRequests.getAccountData(_helpers2.default.getHostname(this._Wallet.node), address).then(function (data) {
+                    signatoryPublicKey = data.account.publicKey;
+                    return signatoryPublicKey;
+                });
+            }.bind(this);
+
+            // If the messages need to be signed by options.fromAddress
+            if (options && options.fromAddress) {
+                // Obtain address' publicKey
+                // console.log("Obtain address' "+options.fromAddress);
+                promise = getAccountData(options.fromAddress).then(function () {
+                    // Obtain transactions and check they are from signatoryPublicKey
+                    return getTx();
+                });
+            } else {
+                // Obtain all transactions
+                promise = getTx();
+            }
+
+            return promise;
+        }
+
+        /**
+         * isAvaliableForMS(address) Checks if address can be obtained and transformed to a MultiSig account.
+         *
+         * @param {string} address - Address to check
+         *
+         * @return {promise} - A promise of the NetworkRequests service that returns true if the account is not another account's cosignatory nor already has cosignaroties. 
+         */
+
+    }, {
+        key: 'isAvaliableForMS',
+        value: function isAvaliableForMS(address) {
+            var _this2 = this;
+
+            var deferred = this._$q.defer();
+            var promise = deferred.promise;
+            return this._NetworkRequests.getAccountData(_helpers2.default.getHostname(this._Wallet.node), address).then(function (data) {
+                var result = true;
+
+                // This account should not own any other account
+                if (data.meta.cosignatoryOf.length > 0) {
+                    _this2._Alert.cosignatoryCannotBeMultisig();
+                    result = false;
+
+                    // This account should not be owned already
+                } else if (data.meta.cosignatories.length > 0) {
+                    _this2._Alert.alreadyMultisig();
+                    result = false;
+                }
+                deferred.resolve(result);
+            }, function (err) {
+                if (err.status === -1) {
+                    _this2._Alert.connectionError();
+                } else {
+                    _this2._Alert.getAccountDataError(err.data.message);
+                }
+                throw err;
+            });
+            return deferred.promise;
+        }
+
+        /**
+         * processTxData(transferData) Processes transferData
+         * 
+         * @param {object} tx - The transaction data
+         *
+         * @return {promise} - An announce transaction promise of the NetworkRequests service
+         */
+
+    }, {
+        key: 'processTxData',
+        value: function processTxData(transferData) {
+            var _this3 = this;
+
+            // return if no value or address length < to min address length
+            if (!transferData || !transferData.recipient || transferData.recipient.length < 40) {
+                return;
+            }
+
+            // Clean address
+            var recipientAddress = transferData.recipient.toUpperCase().replace(/-/g, '');
+            // Check if address is from the same network
+            if (_Address2.default.isFromNetwork(recipientAddress, this._Wallet.network)) {
+                // Get recipient account data from network
+                return this._NetworkRequests.getAccountData(_helpers2.default.getHostname(this._Wallet.node), recipientAddress).then(function (data) {
+                    // Store recipient public key (needed to encrypt messages)
+                    transferData.recipientPubKey = data.account.publicKey;
+                    // Set the address to send to
+                    transferData.recipient = recipientAddress;
+                }, function (err) {
+                    _this3._Alert.getAccountDataError(err.data.message);
+                    return;
+                });
+            } else {
+                // Error
+                this._Alert.invalidAddressForNetwork(recipientAddress, this._Wallet.network);
+                // Reset recipient data
+                throw "invalidAddressForNetwork";
+            }
+        }
+
+        /**
+         * send(entity) Sends a transaction to the network based on an entity
+         *
+         * @param {object} entity - The prepared transaction object
+         * @param {object} common - A password/privateKey object
+         *
+         * @return {promise} - An announce transaction promise of the NetworkRequests service
+         */
+
+    }, {
+        key: 'send',
+        value: function send(entity, common) {
+            var _this4 = this;
+
+            if (!common.privateKey) {
+                this._Alert.invalidPassword();
+                throw "privateKey is empty";
+            }
+            // Construct transaction byte array, sign and broadcast it to the network
+            return this._Transactions.serializeAndAnnounceTransaction(entity, common).then(function (result) {
+                // Check status
+                if (result.status === 200) {
+                    // If code >= 2, it's an error
+                    if (result.data.code >= 2) {
+                        _this4._Alert.transactionError(result.data.message);
+                        throw result.data.message;
+                    } else {
+                        if (_this4.disableSuccessAlert == false) {
+                            _this4._Alert.transactionSuccess();
+                        }
+                    }
+                }
+            }, function (err) {
+                _this4._Alert.transactionError('Failed ' + err.data.error + " " + err.data.message);
+                throw err;
+            });
+        }
+
+        /**
+         * sendMessage(recipientAccount, message, common) Sends a minimal transaction containing a message to poin 
+         *
+         * @param {object} receiver - Transaction receiver's account
+         * @param {string} message - Message to be sent
+         * @param {object} common -  password/privateKey object
+         *
+         * @return {promise} - An announce transaction promise of the NetworkRequests service
+         */
+
+    }, {
+        key: 'sendMessage',
+        value: function sendMessage(receiver, message, common, amount) {
+
+            if (!amount) amount = 0;
+
+            var transferData = {};
+            // Check that the receiver is a valid account and process it's public key
+            transferData.recipient = receiver;
+            this.processTxData(transferData);
+            // transferData.receiverPubKey is set now
+
+            transferData.amount = amount;
+            transferData.message = message;
+            transferData.encryptMessage = false; // Maybe better to encrypt?
+            transferData.isMultisig = false;
+            transferData.isMosaicTransfer = false;
+
+            // Build the entity to be sent
+            var entity = this._Transactions.prepareTransfer(common, transferData, this.mosaicsMetaData);
+            return this.send(entity, common);
+        }
+
+        /**
+         * sendMosaic(recipient, namespaceId, mosaics, amount, common, options) Sends a minimal transaction containing a mosaic and optionally a message and some xem
+         *
+         * @param {object} recipient - Transaction receiver's account
+         * @param {string} namespaceId - Mosaic's namespace name
+         * @param {string} mosaic - Mosaic's name
+         * @param {integer} amount - Amount of mosaics to transfer
+         * @param {object} common -  password/privateKey object
+         * @param {object} options - An object that can contain: options.xem and options.message
+         *
+         * @return {promise} - An announce transaction promise of the NetworkRequests service
+         */
+
+    }, {
+        key: 'sendMosaic',
+        value: function sendMosaic(recipient, namespaceId, mosaics, amount, common, options) {
+            var xem = "";
+            var message = "";
+            if (options.xem) xem = options.xem;
+            if (options.message) message = options.message;
+
+            var transferData = {};
+
+            // Check that the recipient is a valid account and process it's public key
+            transferData.recipient = recipient;
+            this.processTxData(transferData);
+            // transferData.recipientPubKey is set now
+
+            // In case of mosaic transfer amount is used as multiplier, set to 1 as default
+            transferData.amount = 1;
+
+            // Other necessary
+            transferData.message = message;
+            transferData.encryptMessage = false;
+
+            // Setup mosaics information
+            transferData.mosaics = [{
+                'mosaicId': {
+                    'namespaceId': namespaceId,
+                    'name': mosaics
+                },
+                'quantity': amount
+            }];
+
+            if (xem > 0) {
+                transferData.mosaics[1] = {
+                    'mosaicId': {
+                        'namespaceId': "nem",
+                        'name': 'xem'
+                    },
+                    'quantity': xem
+                };
+            }
+
+            // Build the entity to send
+            var entity = this._Transactions.prepareTransfer(common, transferData, this.mosaicsMetaData);
+            return this.send(entity, common);
+        }
+
+        /**
+         * createNewAccount() creates a new account using a random seed
+         */
+
+    }, {
+        key: 'createNewAccount',
+        value: function createNewAccount() {
+            var _this5 = this;
+
+            var deferred = this._$q.defer();
+            var promise = deferred.promise;
+
+            var rk = _CryptoHelpers2.default.randomKey();
+            var seed = this._Wallet.currentAccount.address + " is creating an account from " + rk;
+            // console.log("creating a HDW from "+seed);
+
+            // Create the brain wallet from the seed
+            this._WalletBuilder.createBrainWallet(seed, seed, this._Wallet.network).then(function (wallet) {
+                _this5._$timeout(function () {
+                    if (wallet) {
+                        var mainAccount = {};
+                        mainAccount.address = wallet.accounts[0].address;
+                        mainAccount.password = seed;
+                        mainAccount.privateKey = "";
+
+                        // Decrypt/generate private key and check it. Returned private key is contained into mainAccount
+                        if (!_CryptoHelpers2.default.passwordToPrivatekeyClear(mainAccount, wallet.accounts[0], wallet.accounts[0].algo, false)) {
+                            _this5._Alert.invalidPassword();
+                            deferred.reject(false);
+                        }
+                        mainAccount.publicKey = _KeyPair2.default.create(mainAccount.privateKey).publicKey.toString();
+                        deferred.resolve(mainAccount);
+                    }
+                }, 10);
+            }, function (err) {
+                _this5._Alert.createWalletFailed(err);
+                deferred.reject(false);
+                console.log(err);
+            });
+            return deferred.promise;
+        }
+
+        /**
+         * isUnusedAccount(account) Checks that the account has never received any transaction
+         *
+         * @return {promise} - A promise that will return true or throw false if it has
+         *
+         */
+
+    }, {
+        key: 'isUnusedAccount',
+        value: function isUnusedAccount(account) {
+            this._NetworkRequests.getAllTransactions(_helpers2.default.getHostname(this._Wallet.node), account.address).then(function (result) {
+                if (result.data.length) {
+                    return true;
+                } else {
+                    throw false;
+                }
+            });
+        }
+
+        /**
+         * createEmptyAccount() Creates a HD account and validates that it has never been used before
+         *
+         * @return {promise} - A promise that will return a brand new account
+         *
+         */
+
+    }, {
+        key: 'createEmptyAccount',
+        value: function createEmptyAccount() {
+            var deferred = this._$q.defer();
+            var promise = deferred.promise;
+            promise.reject(false);
+            var maxAttempts = 5;
+            for (var i = 0; i < maxAttempts; i++) {
+                // Tries to create a new account, if it has a transaction
+
+                promise = promise.catch(this.createNewAccount).then(this.isUnusedAccount).catch(_helpers2.default.rejectDelay);
+            }
+            return promise;
+        }
+    }, {
+        key: 'sendOwnedBy',
+        value: function sendOwnedBy(subjectFullAccount, ownerAccountAddress) {
+            var _this6 = this;
+
+            return this._NetworkRequests.getAccountData(_helpers2.default.getHostname(this._Wallet.node), ownerAccountAddress).then(function (account) {
+                // Obtain public key and address
+                var owner = {};
+                owner.address = account.account.address;
+                owner.publicKey = account.account.publicKey;
+
+                // Set current account as owner
+                var ownersArray = [{}];
+                ownersArray[0].pubKey = owner.publicKey;
+
+                // Set transferData
+                var transferData = {};
+
+                transferData.minCosigs = 1;
+                transferData.accountToConvert = subjectFullAccount.publicKey; // OJO!!!!
+                transferData.cosignatoryAddress = owner.address;
+                transferData.multisigPubKey = subjectFullAccount.publicKey;
+
+                // Build the entity to send
+                var entity = _this6._Transactions._constructAggregate(transferData, ownersArray);
+                return _this6.send(entity, subjectFullAccount);
+            }, function (err) {
+                _this6._Alert.getAccountDataError(err);
+                throw err;
+            });
+        }
+
+        /**
+         * ownsMosaic(address,namespace, mosaic) Checks if address owns any mosaics from namespace:mosaic
+         *
+         * @param {string} address - NEM Address to check for the mosaic
+         * @param {string} namespaceId - Mosaic's namespace name
+         * @param {string} mosaic - Mosaic's name
+         *
+         * @return {promise} - A promise of the NetworkRequests service that returns wether if address owns any mosaics from namespace:mosaic or not
+         */
+
+    }, {
+        key: 'ownsMosaic',
+        value: function ownsMosaic(address, namespace, mosaic) {
+            var _this7 = this;
+
+            var deferred = this._$q.defer();
+            var promise = deferred.promise;
+            this._NetworkRequests.getMosaicsDefinitions(_helpers2.default.getHostname(this._Wallet.node), address).then(function (result) {
+                var owns = false;
+                if (result.data.length) {
+                    for (var i = 0; i < result.data.length; ++i) {
+                        var rNamespace = result.data[i].id.namespaceId;
+                        var rMosaic = result.data[i].id.name;
+                        if (namespace == rNamespace && mosaic == rMosaic) {
+                            owns = true;
+                        }
+                    }
+                }
+                deferred.resolve(owns);
+            }, function (err) {
+                if (err.status === -1) {
+                    _this7._Alert.connectionError();
+                } else {
+                    _this7._Alert.errorGetMosaicsDefintions(err.data.message);
+                }
+            });
+            return deferred.promise;
+        }
+    }]);
+
+    return nemUtils;
+}();
+
+exports.default = nemUtils;
+
+},{"../utils/Address":31,"../utils/CryptoHelpers":32,"../utils/KeyPair":33,"../utils/Network":34,"../utils/Serialization":35,"../utils/TransactionTypes":36,"../utils/convert":38,"../utils/helpers":39}],27:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -3997,7 +5478,7 @@ var NetworkRequests = function () {
             var obj = { 'params': { 'namespace': id } };
             return this._$http.get('http://' + host + ':' + port + '/namespace', obj).then(function (res) {
                 return res.data;
-            });
+            }).catch();
         }
 
         /**
@@ -4146,13 +5627,27 @@ var NetworkRequests = function () {
 
 
         /**
-         * Gets market information from CoinMarketCap api
+         * Gets market information from Poloniex api
          *
          * @return {object} - A MarketInfo object
          */
         value: function getMarketInfo() {
-            return this._$http.get('https://api.coinmarketcap.com/v1/ticker/nem/').then(function (res) {
-                return res.data[0];
+            return this._$http.get('https://poloniex.com/public?command=returnTicker').then(function (res) {
+                return res.data["BTC_XEM"];
+            });
+        }
+    }, {
+        key: 'getBtcPrice',
+
+
+        /**
+         * Gets BTC price from blockchain.info API
+         *
+         * @return {object} - A MarketInfo object
+         */
+        value: function getBtcPrice() {
+            return this._$http.get('https://blockchain.info/ticker', { params: { "cors": true } }).then(function (res) {
+                return res.data["USD"];
             });
         }
     }, {
@@ -4188,6 +5683,7 @@ var NetworkRequests = function () {
         value: function heartbeat(host) {
             var port = this.getPort();
             return this._$http.get('http://' + host + ':' + port + '/heartbeat').then(function (res) {
+                console.log(res);
                 return res.data;
             });
         }
@@ -4357,6 +5853,62 @@ var NetworkRequests = function () {
                 return res.data;
             });
         }
+
+        /**
+         * Gets all transactions of an account from a transaction ID
+         *
+         * @param {string} host - An host ip or domain
+         * @param {string} address - An account address
+         * @param {string} txID - A starting transaction ID (optional)
+         *
+         * @return {array} - An array of [TransactionMetaDataPair]{@link http://bob.nem.ninja/docs/#transactionMetaDataPair} objects
+         */
+
+    }, {
+        key: 'getAllTransactionsFromID',
+        value: function getAllTransactionsFromID(host, address, txID) {
+            var port = this.getPort();
+            var obj = { 'params': { 'address': address, 'id': txID } };
+            return this._$http.get('http://' + host + ':' + port + '/account/transfers/all', obj).then(function (res) {
+                return res.data;
+            });
+        }
+
+        /**
+         * Get network time in ms
+         *
+         * @param {string} host - An host ip or domain
+         *
+         * @return {object} - A [communicationTimeStamps]{@link http://bob.nem.ninja/docs/#communicationTimeStamps} object
+         */
+
+    }, {
+        key: 'getNEMTime',
+        value: function getNEMTime(host) {
+            var port = this.getPort();
+            return this._$http.get('http://' + host + ':' + port + '/time-sync/network-time').then(function (res) {
+                return res.data;
+            });
+        }
+
+        /**
+         * Gets mosaics of a parent namespace
+         *
+         * @param {string} host - An host ip or domain
+         * @param {string} id - The full mosaic id
+         *
+         * @return {object} - An array of [MosaicDefinition]{@link http://bob.nem.ninja/docs/#mosaicDefinition} objects
+         */
+
+    }, {
+        key: 'getOtherMosaic',
+        value: function getOtherMosaic(host, id) {
+            var port = this.getPort();
+            var obj = { 'params': { 'namespace': id } };
+            return this._$http.get('http://' + host + ':' + port + '/namespace/mosaic/definition/page', obj).then(function (res) {
+                return res.data;
+            });
+        }
     }]);
 
     return NetworkRequests;
@@ -4364,7 +5916,7 @@ var NetworkRequests = function () {
 
 exports.default = NetworkRequests;
 
-},{"../utils/Network":30,"../utils/nodes":37}],24:[function(require,module,exports){
+},{"../utils/Network":34,"../utils/nodes":41}],28:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -4493,62 +6045,38 @@ var Transactions = function () {
     }, {
         key: 'calculateMosaicsFee',
         value: function calculateMosaicsFee(multiplier, mosaics, attachedMosaics) {
-            if (this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000) {
-                var totalFee = 0;
-                var fee = 0;
-                var supplyRelatedAdjustment = 0;
-                for (var i = 0; i < attachedMosaics.length; i++) {
-                    var m = attachedMosaics[i];
-                    var mosaicName = _helpers2.default.mosaicIdToName(m.mosaicId);
-                    if (!(mosaicName in mosaics)) {
-                        return ['unknown mosaic divisibility', data];
-                    }
-                    var mosaicDefinitionMetaDataPair = mosaics[mosaicName];
-                    var divisibilityProperties = $.grep(mosaicDefinitionMetaDataPair.mosaicDefinition.properties, function (w) {
-                        return w.name === "divisibility";
-                    });
-                    var divisibility = divisibilityProperties.length === 1 ? ~~divisibilityProperties[0].value : 0;
-
-                    var supply = mosaicDefinitionMetaDataPair.supply;
-                    var quantity = m.quantity;
-                    // Small business mosaic fee
-                    if (supply <= 10000 && divisibility === 0) {
-                        fee = 1;
-                    } else {
-                        var maxMosaicQuantity = 9000000000000000;
-                        var totalMosaicQuantity = supply * Math.pow(10, divisibility);
-                        supplyRelatedAdjustment = Math.floor(0.8 * Math.log(maxMosaicQuantity / totalMosaicQuantity));
-                        var numNem = _helpers2.default.calcXemEquivalent(multiplier, quantity, supply, divisibility);
-                        // Using Math.ceil below because xem equivalent returned is sometimes a bit lower than it should
-                        // Ex: 150'000 of nem:xem gives 149999.99999999997
-                        fee = _helpers2.default.calcMinFee(Math.ceil(numNem));
-                    }
-                    totalFee += Math.max(1, fee - supplyRelatedAdjustment);
+            var totalFee = 0;
+            var fee = 0;
+            var supplyRelatedAdjustment = 0;
+            for (var i = 0; i < attachedMosaics.length; i++) {
+                var m = attachedMosaics[i];
+                var mosaicName = _helpers2.default.mosaicIdToName(m.mosaicId);
+                if (!(mosaicName in mosaics)) {
+                    return ['unknown mosaic divisibility', data];
                 }
-                return Math.max(1, totalFee);
-            } else {
-                var _totalFee = 0;
-                for (var _i = 0; _i < attachedMosaics.length; _i++) {
-                    var _m = attachedMosaics[_i];
-                    var _mosaicName = _helpers2.default.mosaicIdToName(_m.mosaicId);
-                    if (!(_mosaicName in mosaics)) {
-                        return ['unknown mosaic divisibility', data];
-                    }
-                    var _mosaicDefinitionMetaDataPair = mosaics[_mosaicName];
-                    var _divisibilityProperties = $.grep(_mosaicDefinitionMetaDataPair.mosaicDefinition.properties, function (w) {
-                        return w.name === "divisibility";
-                    });
-                    var _divisibility = _divisibilityProperties.length === 1 ? ~~_divisibilityProperties[0].value : 0;
+                var mosaicDefinitionMetaDataPair = mosaics[mosaicName];
+                var divisibilityProperties = $.grep(mosaicDefinitionMetaDataPair.mosaicDefinition.properties, function (w) {
+                    return w.name === "divisibility";
+                });
+                var divisibility = divisibilityProperties.length === 1 ? ~~divisibilityProperties[0].value : 0;
 
-                    var _supply = _mosaicDefinitionMetaDataPair.supply;
-                    var _quantity = _m.quantity;
-                    var _numNem = _helpers2.default.calcXemEquivalent(multiplier, _quantity, _supply, _divisibility);
-                    var _fee = Math.ceil(Math.max(10 - _numNem, 2, Math.floor(Math.atan(_numNem / 150000.0) * 3 * 33)));
-
-                    _totalFee += _fee;
+                var supply = mosaicDefinitionMetaDataPair.supply;
+                var quantity = m.quantity;
+                // Small business mosaic fee
+                if (supply <= 10000 && divisibility === 0) {
+                    fee = 1;
+                } else {
+                    var maxMosaicQuantity = 9000000000000000;
+                    var totalMosaicQuantity = supply * Math.pow(10, divisibility);
+                    supplyRelatedAdjustment = Math.floor(0.8 * Math.log(maxMosaicQuantity / totalMosaicQuantity));
+                    var numNem = _helpers2.default.calcXemEquivalent(multiplier, quantity, supply, divisibility);
+                    // Using Math.ceil below because xem equivalent returned is sometimes a bit lower than it should
+                    // Ex: 150'000 of nem:xem gives 149999.99999999997
+                    fee = _helpers2.default.calcMinFee(Math.ceil(numNem));
                 }
-                return _totalFee * 5 / 4;
+                totalFee += Math.max(1, fee - supplyRelatedAdjustment);
             }
+            return Math.max(1, totalFee);
         }
 
         /**
@@ -4564,7 +6092,8 @@ var Transactions = function () {
     }, {
         key: '_multisigWrapper',
         value: function _multisigWrapper(senderPublicKey, innerEntity, due) {
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = this.CURRENT_NETWORK_VERSION(1);
             var data = this.CREATE_DATA(_TransactionTypes2.default.MultisigTransaction, senderPublicKey, timeStamp, due, version);
             var custom = {
@@ -4626,11 +6155,12 @@ var Transactions = function () {
     }, {
         key: '_constructTransfer',
         value: function _constructTransfer(senderPublicKey, recipientCompressedKey, amount, message, due, mosaics, mosaicsFee) {
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = mosaics ? this.CURRENT_NETWORK_VERSION(2) : this.CURRENT_NETWORK_VERSION(1);
             var data = this.CREATE_DATA(_TransactionTypes2.default.Transfer, senderPublicKey, timeStamp, due, version);
-            var msgFee = this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 && message.payload.length || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000 && message.payload.length ? Math.max(1, Math.floor(message.payload.length / 32 + 1)) : message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
-            var fee = mosaics ? mosaicsFee : this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000 ? _helpers2.default.calcMinFee(amount / 1000000) : Math.ceil(Math.max(10 - amount / 1000000, 2, Math.floor(Math.atan(amount / 1000000 / 150000.0) * 3 * 33)));
+            var msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 32) + 1) : 0;
+            var fee = mosaics ? mosaicsFee : _helpers2.default.calcMinFee(amount / 1000000);
             var totalFee = (msgFee + fee) * 1000000;
             var custom = {
                 'recipient': recipientCompressedKey.toUpperCase().replace(/-/g, ''),
@@ -4657,7 +6187,8 @@ var Transactions = function () {
         value: function _constructAggregate(tx, signatoryArray) {
             var _this = this;
 
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = this.CURRENT_NETWORK_VERSION(2);
             var due = this._Wallet.network === _Network2.default.data.Testnet.id ? 60 : 24 * 60;
             var data = this.CREATE_DATA(_TransactionTypes2.default.MultisigModification, tx.multisigPubKey, timeStamp, due, version);
@@ -4707,7 +6238,8 @@ var Transactions = function () {
         value: function _constructAggregateModifications(senderPublicKey, tx, signatoryArray) {
             var _this2 = this;
 
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = void 0;
             var custom = void 0;
             var totalFee = void 0;
@@ -4769,20 +6301,11 @@ var Transactions = function () {
             var actualSender = tx.isMultisig ? tx.multisigAccount.publicKey : kp.publicKey.toString();
             var rentalFeeSink = tx.rentalFeeSink.toString();
             var rentalFee = void 0;
-            if (this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000) {
-                // Set fee depending if namespace or sub
-                if (tx.namespaceParent) {
-                    rentalFee = 200 * 1000000;
-                } else {
-                    rentalFee = 5000 * 1000000;
-                }
+            // Set fee depending if namespace or sub
+            if (tx.namespaceParent) {
+                rentalFee = 200 * 1000000;
             } else {
-                // Set fee depending if namespace or sub
-                if (tx.namespaceParent) {
-                    rentalFee = 5000 * 1000000;
-                } else {
-                    rentalFee = 50000 * 1000000;
-                }
+                rentalFee = 5000 * 1000000;
             }
             var namespaceParent = tx.namespaceParent ? tx.namespaceParent.fqn : null;
             var namespaceName = tx.namespaceName.toString();
@@ -4810,10 +6333,11 @@ var Transactions = function () {
          * @return {object} - A [ProvisionNamespaceTransaction]{@link http://bob.nem.ninja/docs/#provisionNamespaceTransaction} object
          */
         value: function _constructNamespace(senderPublicKey, rentalFeeSink, rentalFee, namespaceParent, namespaceName, due) {
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = this.CURRENT_NETWORK_VERSION(1);
             var data = this.CREATE_DATA(_TransactionTypes2.default.ProvisionNamespace, senderPublicKey, timeStamp, due, version);
-            var fee = this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000 ? 20 * 1000000 : 2 * 3 * 18 * 1000000;
+            var fee = 20 * 1000000;
             var custom = {
                 'rentalFeeSink': rentalFeeSink.toUpperCase().replace(/-/g, ''),
                 'rentalFee': rentalFee,
@@ -4840,12 +6364,7 @@ var Transactions = function () {
             var kp = _KeyPair2.default.create(_helpers2.default.fixPrivateKey(common.privateKey));
             var actualSender = tx.isMultisig ? tx.multisigAccount.publicKey : kp.publicKey.toString();
             var rentalFeeSink = tx.mosaicFeeSink.toString();
-            var rentalFee = void 0;
-            if (this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000) {
-                rentalFee = 500 * 1000000;
-            } else {
-                rentalFee = 50000 * 1000000;
-            }
+            var rentalFee = 500 * 1000000;
             var namespaceParent = tx.namespaceParent.fqn;
             var mosaicName = tx.mosaicName.toString();
             var mosaicDescription = tx.mosaicDescription.toString();
@@ -4878,11 +6397,12 @@ var Transactions = function () {
          * @return {object} - A [MosaicDefinitionCreationTransaction]{@link http://bob.nem.ninja/docs/#mosaicDefinitionCreationTransaction} object
          */
         value: function _constructMosaicDefinition(senderPublicKey, rentalFeeSink, rentalFee, namespaceParent, mosaicName, mosaicDescription, mosaicProperties, levy, due) {
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = this.CURRENT_NETWORK_VERSION(1);
             var data = this.CREATE_DATA(_TransactionTypes2.default.MosaicDefinition, senderPublicKey, timeStamp, due, version);
 
-            var fee = this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000 ? 20 * 1000000 : 2 * 3 * 18 * 1000000;
+            var fee = 20 * 1000000;
             var levyData = levy ? {
                 'type': levy.feeType,
                 'recipient': levy.address.toUpperCase().replace(/-/g, ''),
@@ -4950,11 +6470,12 @@ var Transactions = function () {
     }, {
         key: '_constructMosaicSupply',
         value: function _constructMosaicSupply(senderPublicKey, mosaicId, supplyType, delta, due) {
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = this.CURRENT_NETWORK_VERSION(1);
             var data = this.CREATE_DATA(_TransactionTypes2.default.MosaicSupply, senderPublicKey, timeStamp, due, version);
 
-            var fee = this._Wallet.network === _Network2.default.data.Testnet.id && this._DataBridge.nisHeight >= 572500 || this._Wallet.network === _Network2.default.data.Mainnet.id && this._DataBridge.nisHeight >= 875000 ? 20 * 1000000 : 2 * 3 * 18 * 1000000;
+            var fee = 20 * 1000000;
             var custom = {
                 'mosaicId': mosaicId,
                 'supplyType': supplyType,
@@ -5001,7 +6522,8 @@ var Transactions = function () {
     }, {
         key: '_constructImportanceTransfer',
         value: function _constructImportanceTransfer(senderPublicKey, recipientKey, mode, due) {
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = this.CURRENT_NETWORK_VERSION(1);
             var data = this.CREATE_DATA(_TransactionTypes2.default.ImportanceTransfer, senderPublicKey, timeStamp, due, version);
             var custom = {
@@ -5086,7 +6608,8 @@ var Transactions = function () {
          * @return {object} - An [MultisigSignatureTransaction]{@link http://bob.nem.ninja/docs/#multisigSignatureTransaction} object
          */
         value: function _constructSignature(senderPublicKey, otherAccount, otherHash, due) {
-            var timeStamp = _helpers2.default.createNEMTimeStamp();
+            var d = new Date();
+            var timeStamp = Math.floor(this._DataBridge.networkTime) + Math.floor(d.getSeconds() / 10);
             var version = this.CURRENT_NETWORK_VERSION(1);
             var data = this.CREATE_DATA(_TransactionTypes2.default.MultisigSignature, senderPublicKey, timeStamp, due, version);
             var totalFee = 2 * 3 * 1000000;
@@ -5153,7 +6676,7 @@ var Transactions = function () {
 
 exports.default = Transactions;
 
-},{"../utils/Address":27,"../utils/CryptoHelpers":28,"../utils/KeyPair":29,"../utils/Network":30,"../utils/Serialization":31,"../utils/TransactionTypes":32,"../utils/convert":34,"../utils/helpers":35}],25:[function(require,module,exports){
+},{"../utils/Address":31,"../utils/CryptoHelpers":32,"../utils/KeyPair":33,"../utils/Network":34,"../utils/Serialization":35,"../utils/TransactionTypes":36,"../utils/convert":38,"../utils/helpers":39}],29:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -5400,7 +6923,7 @@ var Wallet = function () {
 
 exports.default = Wallet;
 
-},{"../utils/Network":30,"../utils/helpers":35,"../utils/nodes":37}],26:[function(require,module,exports){
+},{"../utils/Network":34,"../utils/helpers":39,"../utils/nodes":41}],30:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -5618,7 +7141,7 @@ var WalletBuilder = function () {
 
 exports.default = WalletBuilder;
 
-},{"../utils/Address":27,"../utils/CryptoHelpers":28,"../utils/KeyPair":29,"../utils/convert":34,"../utils/nacl-fast":36}],27:[function(require,module,exports){
+},{"../utils/Address":31,"../utils/CryptoHelpers":32,"../utils/KeyPair":33,"../utils/convert":38,"../utils/nacl-fast":40}],31:[function(require,module,exports){
 'use strict';
 
 var _convert = require('./convert');
@@ -5771,7 +7294,7 @@ module.exports = {
     isValid: isValid
 };
 
-},{"./Network":30,"./convert":34}],28:[function(require,module,exports){
+},{"./Network":34,"./convert":38}],32:[function(require,module,exports){
 'use strict';
 
 var _KeyPair = require('./KeyPair');
@@ -6232,15 +7755,15 @@ function updateResult(bip32_source_key, bip32_derivation_path, k_index, i_index,
             // if this is the case then there's an error state set on the source key
             return reject("Error state set on the source key");
         }
-        console.log("Deriving: " + p);
+        //console.log("Deriving: " + p);
         result = bip32_source_key.derive(p);
     } catch (err) {
         return reject(err);
     }
 
     if (result.has_private_key) {
-        console.log('Derived private key: ' + result.extended_private_key_string("base58"));
-        console.log('Derived private key HEX: ' + Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()));
+        //console.log('Derived private key: ' + result.extended_private_key_string("base58"));
+        //console.log('Derived private key HEX: ' + Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()));
         var privkeyBytes = result.eckey.priv.toByteArrayUnsigned();
         while (privkeyBytes.length < 32) {
             privkeyBytes.unshift(0);
@@ -6308,7 +7831,7 @@ module.exports = {
     BIP32derivation: BIP32derivation
 };
 
-},{"./Address":27,"./KeyPair":29,"./Network":30,"./bip32":33,"./convert":34,"./nacl-fast":36}],29:[function(require,module,exports){
+},{"./Address":31,"./KeyPair":33,"./Network":34,"./bip32":37,"./convert":38,"./nacl-fast":40}],33:[function(require,module,exports){
 'use strict';
 
 var _naclFast = require('./nacl-fast');
@@ -6419,7 +7942,7 @@ module.exports = {
     create: create
 };
 
-},{"./convert":34,"./nacl-fast":36}],30:[function(require,module,exports){
+},{"./convert":38,"./nacl-fast":40}],34:[function(require,module,exports){
 "use strict";
 
 /** @module utils/Network */
@@ -6505,7 +8028,7 @@ module.exports = {
     char2Id: char2Id
 };
 
-},{}],31:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 var _convert = require('./convert');
@@ -6993,7 +8516,7 @@ module.exports = {
     serializeTransaction: serializeTransaction
 };
 
-},{"./TransactionTypes":32,"./convert":34,"./helpers":35}],32:[function(require,module,exports){
+},{"./TransactionTypes":36,"./convert":38,"./helpers":39}],36:[function(require,module,exports){
 "use strict";
 
 /** @module utils/TransactionTypes */
@@ -7081,7 +8604,7 @@ module.exports = {
   MosaicSupply: MosaicSupply
 };
 
-},{}],33:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 'use strict';
 
 var _KeyPair = require('./KeyPair');
@@ -7437,7 +8960,7 @@ module.exports = {
     BIP32: BIP32
 };
 
-},{"./Address":27,"./KeyPair":29}],34:[function(require,module,exports){
+},{"./Address":31,"./KeyPair":33}],38:[function(require,module,exports){
 'use strict';
 
 /** @module utils/convert */
@@ -7640,7 +9163,7 @@ module.exports = {
     utf82rstr: utf82rstr
 };
 
-},{}],35:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 'use strict';
 
 var _convert = require('./convert');
@@ -8001,6 +9524,44 @@ var convertDateToString = function convertDateToString(date) {
     return date.toDateString();
 };
 
+/**
+ * Returns a promise that will wait t miliseconds and will get rejected
+ *
+ * @param {object} reason - The reason for the rejection
+ * @param {integer} t - Miliseconds until it gets rejected
+ *
+ * @return {promise}
+ */
+function rejectDelay(reason, t) {
+    return new Promise(function (resolve, reject) {
+        setTimeout(reject.bind(null, reason), t);
+    });
+}
+
+/**
+ * Check if an input amount is valid
+ *
+ * @param {string} n - The number as a string
+ *
+ * @return {boolean} - True if valid, false otherwise
+ */
+var isAmountValid = function isAmountValid(n) {
+    // Force n as a string and replace decimal comma by a dot if any
+    var nn = Number(n.toString().replace(/,/g, '.'));
+    return !Number.isNaN(nn) && Number.isFinite(nn) && nn >= 0;
+};
+
+/**
+ * Clean an input amount and return it as number
+ *
+ * @param {string} n - The number as a string
+ *
+ * @return {number} - The clean amount
+ */
+var cleanAmount = function cleanAmount(n) {
+    return Number(n.toString().replace(/,/g, '.'));
+};
+
 module.exports = {
     haveWallet: haveWallet,
     needsSignature: needsSignature,
@@ -8020,10 +9581,13 @@ module.exports = {
     checkAndFormatUrl: checkAndFormatUrl,
     createTimeStamp: createTimeStamp,
     getTimestampShort: getTimestampShort,
-    convertDateToString: convertDateToString
+    convertDateToString: convertDateToString,
+    rejectDelay: rejectDelay,
+    isAmountValid: isAmountValid,
+    cleanAmount: cleanAmount
 };
 
-},{"./CryptoHelpers":28,"./TransactionTypes":32,"./convert":34}],36:[function(require,module,exports){
+},{"./CryptoHelpers":32,"./TransactionTypes":36,"./convert":38}],40:[function(require,module,exports){
 'use strict';
 
 (function (nacl) {
@@ -9172,7 +10736,7 @@ module.exports = {
   })();
 })(typeof module !== 'undefined' && module.exports ? module.exports : window.nacl = window.nacl || {});
 
-},{"crypto":99}],37:[function(require,module,exports){
+},{"crypto":103}],41:[function(require,module,exports){
 'use strict';
 
 /** @module utils/nodes */
@@ -9183,8 +10747,6 @@ module.exports = {
  * @type {string}
  */
 var defaultTestnetNode = 'http://bob.nem.ninja:7778';
-
-//let defaultTestnetNode = 'http://104.128.226.60:7778';
 
 /**
  * The default mainnet node
@@ -9353,7 +10915,7 @@ module.exports = {
   apostilleAuditServer: apostilleAuditServer
 };
 
-},{}],38:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 'use strict';
 
 var _angular = require('angular');
@@ -9514,7 +11076,7 @@ _angular2.default.bootstrap(document, ['app'], {
     strictDi: true
 });
 
-},{"../../nanowallet/src/app/components":4,"../../nanowallet/src/app/filters":13,"../../nanowallet/src/app/modules/languages":16,"../../nanowallet/src/app/services":22,"./app.templates":39,"./components/":40,"./config/app.config":42,"./config/app.constants":43,"./config/app.run":44,"./filters/":46,"./layout/":49,"./modules/account":52,"./modules/balance":55,"./modules/loadWallet":56,"./modules/register":59,"./modules/transactions":62,"./modules/transfer":65,"./modules/transferConfirm":68,"angular":80,"angular-animate":72,"angular-chart.js":73,"angular-mocks":74,"angular-sanitize":76,"angular-translate":77,"angular-ui-router":78,"bootstrap":81,"jquery":359,"ng-toast":360,"ngstorage":361}],39:[function(require,module,exports){
+},{"../../nanowallet/src/app/components":5,"../../nanowallet/src/app/filters":14,"../../nanowallet/src/app/modules/languages":17,"../../nanowallet/src/app/services":25,"./app.templates":43,"./components/":44,"./config/app.config":46,"./config/app.constants":47,"./config/app.run":48,"./filters/":50,"./layout/":53,"./modules/account":56,"./modules/balance":59,"./modules/loadWallet":60,"./modules/register":63,"./modules/transactions":66,"./modules/transfer":69,"./modules/transferConfirm":72,"angular":84,"angular-animate":76,"angular-chart.js":77,"angular-mocks":78,"angular-sanitize":80,"angular-translate":81,"angular-ui-router":82,"bootstrap":85,"jquery":363,"ng-toast":364,"ngstorage":365}],43:[function(require,module,exports){
 "use strict";
 
 angular.module("templates", []).run(["$templateCache", function ($templateCache) {
@@ -9526,17 +11088,17 @@ angular.module("templates", []).run(["$templateCache", function ($templateCache)
   $templateCache.put("layout/lines/lineMosaicSupply.html", "<table id=\"MDSTable\" class=\"table table-bordered table-hover\" data-toggle=\"tooltip\" data-placement=\"{{tooltipPosition}}\" title=\"{{ \'MOSAIC_SUPPLY_CHANGE_NAME\' | translate }}\" style=\"cursor:pointer;outline:0;margin-bottom:0;table-layout:fixed\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n    <tbody style=\"outline:0;\" class=\"text-center\">\n        <tr data-toggle=\"collapse\" data-target=\"#MDStable{{number}}\">\n            <td style=\"overflow:hidden;text-overflow: ellipsis;\"><span class=\"fa fa-upload text-danger\" ng-show=\"!parent\"></span> <span class=\"fa fa-group text-danger\" ng-show=\"parent\"></span> <tt>{{ \'LINE_TX_DETAILS_MOS_EDIT\' | translate }} <span class=\"text-muted\">{{tx.mosaicId.namespaceId}}</span>:<strong>{{tx.mosaicId.name}}</strong>\"</tt></td>\n            <td>\n                <span ng-show=\"!parent\">\n                    <strong>{{((tx.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <span ng-show=\"parent\">\n                    <strong>{{((tx.fee+parent.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.fee+parent.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <div class=\"row\" ng-show=\"needsSignature\">\n                    <span style=\"color:red\">{{ \'LINE_TX_DETAILS_NEED_SIG_2\' | translate }}</span>\n                </div>\n            </td>\n            <td></td>\n            <td>{{tx.timeStamp |  fmtNemPayDate}}</td>\n        </tr>\n        </tody>\n</table>\n\n<div id=\"MDStable{{number}}\" class=\"collapse\">\n    <div class=\"accordion-inner\" style=\"padding-left: 8px; background-color: #e3e0cf;\">\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <strong>\n                    <span ng-show=\"!parent\">{{ \'MOSAIC_SUPPLY_CHANGE_NAME\' | translate }}</span>\n                    <span ng-show=\"parent\">{{ \'MOSAIC_SUPPLY_CHANGE_MULTISIG_NAME\' | translate }}</span>\n                </strong>\n            </div>\n        </div>\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div ng-show=\"parent\">\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-3\"><b>{{ \'GENERAL_MULTISIG_ACCOUNT\' | translate }}</b></div>\n                        <div class=\"col-sm-9\">\n                            <tt>{{tx.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                        </div>\n                    </div>\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_ISSUER\' | translate }}</b></div>\n                        <div class=\"col-sm-9\">\n                            <tt>{{parent.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                        </div>\n                    </div>\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-12\">\n                            <hr style=\"border-style: dashed;margin:5px;\" />\n                        </div>\n                    </div>\n\n                </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_FEE\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                {{(tx.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(tx.fee | fmtNemValue)[1]}}</span> XEM\n            </div>\n        </div>\n\n        <div class=\"row\" ng-show=\"parent\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_FEE\' | translate }}</b></div>\n                <div class=\"col-sm-9\">{{(parent.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(parent.fee | fmtNemValue)[1]}}</span> XEM</div>\n            </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n        \n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_NAME\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n               <span class=\"text-muted\">{{tx.mosaicId.namespaceId}}</span>:{{tx.mosaicId.name}}\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'MOSAIC_SUPPLY_CHANGE_TYPE\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <span ng-show=\"tx.supplyType === 1\">{{ \'MOSAIC_SUPPLY_CHANGE_TYPE_1\' | translate }}</span>\n                <span ng-show=\"tx.supplyType === 2\">{{ \'MOSAIC_SUPPLY_CHANGE_TYPE_2\' | translate }}</span>\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'MOSAIC_SUPPLY_CHANGE_AMOUNT\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n               {{tx.delta}}\n            </div>\n        </div>\n\n        <div class=\"row\" ng-show=\"parent.signatures.length\">\n\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n\n                <div class=\"col-sm-12\" >\n                    <strong>{{ \'LINE_TX_DETAILS_SIGNATURES\' | translate }}: </strong>\n                </div>\n            </div>\n\n            <div ng-repeat=\"sig in parent.signatures\">\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_COSIGNATORY\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.signer | fmtPubToAddress:networkId | fmtAddress}}</div>\n                </div>\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_TIMESTAMP\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.timeStamp |  fmtNemPayDate}}</div>\n                </div>\n            </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n    \n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_BLOCK\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <span ng-show=\"{{meta.height}} !== 9007199254740991\">{{meta.height}}</span>\n                <span ng-show=\"{{meta.height}} === 9007199254740991\">{{ \'LINE_TX_DETAILS_WAITING\' | translate }} <span ng-show=\"parent\">- {{ \'LINE_TX_DETAILS_NEED_SIG\' | translate }}</span></span>\n            </div>\n        </div>\n\n        <div class=\"row\">\n                <div class=\"col-sm-3\"> \n                    <b>{{ \'LINE_TX_DETAILS_HASH\' | translate }}</b>\n                </div>\n                <div class=\"col-sm-9\">\n                    <span ng-show=\"parent\"> {{meta.innerHash.data}} </span>\n                    <span ng-show=\"!parent\"> {{meta.hash.data}} </span>\n                </div>\n            </div>\n\n            <div class=\"row\" ng-show=\"parent\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_HASH\' | translate }}</b></div>\n                <div class=\"col-sm-9\"><tt>{{meta.hash.data}}</tt></div>\n            </div>\n\n    </div>\n\n    <div style=\"padding: 5px 30px;background-color: rgb(65, 191, 118);\" ng-show=\"needsSignature\">\n        <div class=\"input-group\">\n            <input type=\"password\" class=\"form-control ng-valid ng-touched ng-dirty ng-valid-parse\" ng-model=\"walletScope.common.password\" id=\"passwordDecoding\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" aria-invalid=\"false\">\n            <span class=\"input-group-btn\">\n                <button class=\"btn btn-default\" style=\"color: white; border-radius: 0px; border-color:#444;\" type=\"button\" ng-click=\"walletScope.cosign(parent, tx, meta)\">{{ \'LINE_TX_DETAILS_COSIGN\' | translate }}</button>\n            </span>\n        </div>\n    </div>\n\n</div>");
   $templateCache.put("layout/lines/lineMultisigModification.html", "<table id=\"MSMTable\" class=\"table table-bordered table-hover\" data-toggle=\"tooltip\" data-placement=\"{{tooltipPosition}}\" title=\"{{ \'AGGREGATE_MODIFICATION_NAME\' | translate }}\" style=\"cursor:pointer;outline:0;margin-bottom:0;table-layout:fixed\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n    <tbody style=\"outline:0;\" class=\"text-center\">\n        <tr data-toggle=\"collapse\" data-target=\"#MSMtable{{number}}\">\n            <td>\n                <span class=\"fa fa-refresh text-danger\" ng-show=\"(tx.signer | fmtPubToAddress:networkId) === mainAccount\"></span>\n                <span class=\"fa fa-refresh text-success\" ng-show=\"(tx.signer | fmtPubToAddress:networkId) !== mainAccount\"></span>\n                 <tt> \n                    <span ng-show=\"!parent\">{{ \'LINE_TX_DETAILS_MULTISIG_CREATE\' | translate }}</span>\n                    <span ng-show=\"parent\">{{ \'LINE_TX_DETAILS_MULTISIG_EDIT\' | translate }}</span>\n                </tt>\n            </td>\n            <td>\n                <span ng-show=\"!parent\">\n                    <strong>{{((tx.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <span ng-show=\"parent\">\n                    <strong>{{((tx.fee+parent.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.fee+parent.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <div class=\"row\" ng-show=\"needsSignature\">\n                    <span style=\"color:red\">{{ \'LINE_TX_DETAILS_NEED_SIG_2\' | translate }}</span>\n                </div>\n            </td>\n            <td></td>\n            <td>{{tx.timeStamp |  fmtNemPayDate}}</td>\n        </tr>\n        </tody>\n</table>\n\n<div id=\"MSMtable{{number}}\" class=\"collapse\">\n    <div class=\"accordion-inner\" style=\"padding-left: 8px; background-color: #e3e0cf;\">\n        <div class=\"row\" ng-show=\"!parent\">\n            <div class=\"col-sm-12\"><b>{{ \'AGGREGATE_MODIFICATION_NAME\' | translate }}</b></div>\n        </div>\n        <div class=\"row\" ng-show=\"parent\">\n            <div class=\"col-sm-12\"><b>{{ \'AGGREGATE_MODIFICATION_MULTISIG_NAME\' | translate }}</b></div>\n        </div>\n\n            <div class=\"row\">\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n            </div>\n\n        <div ng-show=\"parent\">\n\n            <div class=\"row\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_ISSUER\' | translate }}</b></div>\n                <div class=\"col-sm-9\">\n                    <tt>{{parent.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                </div>\n            </div>\n\n            <div class=\"row\">\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n            </div>\n\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_FEE\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                {{(tx.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(tx.fee | fmtNemValue)[1]}}</span> XEM\n            </div>\n        </div>\n\n        <div class=\"row\" ng-show=\"parent\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_FEE\' | translate }}</b></div>\n            <div class=\"col-sm-9\">{{(parent.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(parent.fee | fmtNemValue)[1]}}</span> XEM</div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_AFFECTED\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                {{tx.signer | fmtPubToAddress:networkId | fmtAddress}}\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_MOD\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                {{tx.modifications.length}}\n            </div>\n        </div>\n        <div class=\"row\" ng-show=\"tx.minCosignatories\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_MIN_COSIG\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <tt>{{tx.minCosignatories.relativeChange}}</tt>\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\" >\n                <strong>{{ \'AGGREGATE_MODIFICATION_LIST\' | translate }}: </strong>\n            </div>\n        </div>\n\n        <div class=\"row\" ng-repeat=\"mod in tx.modifications\">\n            <div class=\"col-sm-1\">&nbsp;</div>\n            <div class=\"col-sm-2\"><b><span ng-show=\"mod.modificationType === 1\">{{ \'GENERAL_ADDED\' | translate }}</span><span ng-show=\"mod.modificationType === 2\">{{ \'GENERAL_REMOVED\' | translate }}</span></b></div>\n            <div class=\"col-sm-9\">\n                <tt>{{mod.cosignatoryAccount | fmtPubToAddress:networkId | fmtAddress}}</tt>\n            </div>\n        </div>\n\n        <div class=\"row\" ng-show=\"parent.signatures.length\">\n\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n\n                <div class=\"col-sm-12\" >\n                    <strong>{{ \'LINE_TX_DETAILS_SIGNATURES\' | translate }}: </strong>\n                </div>\n            </div>\n\n            <div ng-repeat=\"sig in parent.signatures\">\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_COSIGNATORY\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.signer | fmtPubToAddress:networkId | fmtAddress}}</div>\n                </div>\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_TIMESTAMP\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.timeStamp |  fmtNemPayDate}}</div>\n                </div>\n            </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_BLOCK\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <span ng-show=\"{{meta.height}} !== 9007199254740991\">{{meta.height}}</span>\n                <span ng-show=\"{{meta.height}} === 9007199254740991\">{{ \'LINE_TX_DETAILS_WAITING\' | translate }}\n                        <span ng-if=\"parent\">- {{ \'LINE_TX_DETAILS_NEED_SIG\' | translate }}</span></span>\n            </div>\n        </div>\n        \n            <div class=\"row\">\n                <div class=\"col-sm-3\"> \n                    <b>{{ \'LINE_TX_DETAILS_HASH\' | translate }}</b>\n                </div>\n                <div class=\"col-sm-9\">\n                    <span ng-show=\"parent\"> {{meta.innerHash.data}} </span>\n                    <span ng-show=\"!parent\"> {{meta.hash.data}} </span>\n                </div>\n            </div>\n\n            <div class=\"row\" ng-show=\"parent\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_HASH\' | translate }}</b></div>\n                <div class=\"col-sm-9\"><tt>{{meta.hash.data}}</tt></div>\n            </div>\n\n    </div>\n\n    <div style=\"padding: 5px 30px;background-color: rgb(65, 191, 118);\" ng-show=\"needsSignature\">\n        <div class=\"input-group\">\n            <input type=\"password\" class=\"form-control ng-valid ng-touched ng-dirty ng-valid-parse\" ng-model=\"walletScope.common.password\" id=\"passwordDecoding\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" aria-invalid=\"false\">\n            <span class=\"input-group-btn\">\n                <button class=\"btn btn-default\" style=\"color: white; border-radius: 0px; border-color:#444;\" type=\"button\" ng-click=\"walletScope.cosign(parent, tx, meta)\">{{ \'LINE_TX_DETAILS_COSIGN\' | translate }}</button>\n            </span>\n        </div>\n    </div>\n\n</div>");
   $templateCache.put("layout/lines/lineProvisionNamespace.html", "<table id=\"NSTable\" class=\"table table-bordered table-hover\" data-toggle=\"tooltip\" data-placement=\"{{tooltipPosition}}\" title=\"{{ \'NAMESPACE_PROVISION_NAME\' | translate }}\" style=\"cursor:pointer;outline:0;margin-bottom:0;table-layout:fixed\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n    <tbody style=\"outline:0;\" class=\"text-center\">\n        <tr data-toggle=\"collapse\" data-target=\"#NStable{{number}}\">\n            <td style=\"overflow:hidden;text-overflow: ellipsis;\"><span class=\"fa fa-upload text-danger\" ng-show=\"!parent\"></span> <span class=\"fa fa-group text-danger\" ng-show=\"parent\"></span> <tt>{{ \'LINE_TX_DETAILS_NS_CREATE\' | translate }} \"<span class=\"text-muted\">{{tx.parent}}</span><span ng-show=\"tx.parent\">.</span><strong>{{tx.newPart}}</strong>\"</tt></td>\n            <td>\n                <span ng-show=\"!parent\">\n                    <strong>{{((tx.rentalFee+tx.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.rentalFee+tx.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <span ng-show=\"parent\">\n                    <strong>{{((tx.rentalFee+tx.fee+parent.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.rentalFee+tx.fee+parent.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <div class=\"row\" ng-show=\"needsSignature\">\n                    <span style=\"color:red\">{{ \'LINE_TX_DETAILS_NEED_SIG_2\' | translate }}</span>\n                </div>\n            </td>\n            <td></td>\n            <td>{{tx.timeStamp |  fmtNemPayDate}}</td>\n        </tr>\n        </tody>\n</table>\n\n<div id=\"NStable{{number}}\" class=\"collapse\">\n    <div class=\"accordion-inner\" style=\"padding-left: 8px; background-color: #e3e0cf;\">\n                <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <strong>\n                            <span ng-show=\"!parent\">{{ \'NAMESPACE_PROVISION_NAME\' | translate }}</span>\n                            <span ng-show=\"parent\">{{ \'NAMESPACE_PROVISION_MULTISIG_NAME\' | translate }}</span>\n                        </strong>\n                    </div>\n                </div>\n\n                <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <hr style=\"border-style: dashed;margin:5px;\" />\n                    </div>\n                </div>\n\n                <div ng-show=\"parent\">\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-3\"><b>{{ \'GENERAL_MULTISIG_ACCOUNT\' | translate }}</b></div>\n                        <div class=\"col-sm-9\">\n                            <tt>{{tx.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                        </div>\n                    </div>\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_ISSUER\' | translate }}</b></div>\n                        <div class=\"col-sm-9\">\n                            <tt>{{parent.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                        </div>\n                    </div>\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-12\">\n                            <hr style=\"border-style: dashed;margin:5px;\" />\n                        </div>\n                    </div>\n\n                </div>\n\n                <div class=\"row\">\n                    <div class=\"col-sm-3\"><b>{{ \'GENERAL_AMOUNT\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">\n                        <strong>{{(tx.rentalFee | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{(tx.rentalFee | fmtNemValue)[1]}}</span> XEM\n                    </div>\n                </div>\n                <div class=\"row\">\n                    <div class=\"col-sm-3\"><b>{{ \'GENERAL_FEE\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">\n                        {{(tx.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(tx.fee | fmtNemValue)[1]}}</span> XEM\n                    </div>\n                </div>\n\n                <div class=\"row\" ng-show=\"parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_FEE\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{(parent.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(parent.fee | fmtNemValue)[1]}}</span> XEM</div>\n                </div>\n\n                <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <hr style=\"border-style: dashed;margin:5px;\" />\n                    </div>\n                </div>\n\n                <div class=\"row\" ng-show=\"!tx.parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'NAMESPACE_PROVISION_NEW_ROOT\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{tx.newPart}}</div>\n                </div>\n\n                <div class=\"row\" ng-show=\"tx.parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_NS_ROOT\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{tx.parent}}</div>\n                </div>\n\n                <div class=\"row\" ng-show=\"tx.parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_NS_NEW_SUB\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{tx.newPart}}</div>\n                </div>\n\n                <div class=\"row\" ng-show=\"parent.signatures.length\">\n\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n\n                <div class=\"col-sm-12\" >\n                    <strong>{{ \'LINE_TX_DETAILS_SIGNATURES\' | translate }}: </strong>\n                </div>\n            </div>\n\n            <div ng-repeat=\"sig in parent.signatures\">\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_COSIGNATORY\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.signer | fmtPubToAddress:networkId | fmtAddress}}</div>\n                </div>\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_TIMESTAMP\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.timeStamp |  fmtNemPayDate}}</div>\n                </div>\n            </div>\n\n            <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <hr style=\"border-style: dashed;margin:5px;\" />\n                    </div>\n                </div>\n        \n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_BLOCK\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <span ng-show=\"{{meta.height}} !== 9007199254740991\">{{meta.height}}</span>\n                <span ng-show=\"{{meta.height}} === 9007199254740991\">{{ \'LINE_TX_DETAILS_WAITING\' | translate }} <span ng-show=\"parent\">- {{ \'LINE_TX_DETAILS_NEED_SIG\' | translate }}</span></span>\n            </div>\n        </div>\n\n        <div class=\"row\">\n                <div class=\"col-sm-3\"> \n                    <b>{{ \'LINE_TX_DETAILS_HASH\' | translate }}</b>\n                </div>\n                <div class=\"col-sm-9\">\n                    <span ng-show=\"parent\"> {{meta.innerHash.data}} </span>\n                    <span ng-show=\"!parent\"> {{meta.hash.data}} </span>\n                </div>\n            </div>\n\n            <div class=\"row\" ng-show=\"parent\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_HASH\' | translate }}</b></div>\n                <div class=\"col-sm-9\"><tt>{{meta.hash.data}}</tt></div>\n            </div>\n\n    </div>\n\n    <div style=\"padding: 5px 30px;background-color: rgb(65, 191, 118);\" ng-show=\"needsSignature\">\n        <div class=\"input-group\">\n            <input type=\"password\" class=\"form-control ng-valid ng-touched ng-dirty ng-valid-parse\" ng-model=\"walletScope.common.password\" id=\"passwordDecoding\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" aria-invalid=\"false\">\n            <span class=\"input-group-btn\">\n                <button class=\"btn btn-default\" style=\"color: white; border-radius: 0px; border-color:#444;\" type=\"button\" ng-click=\"walletScope.cosign(parent, tx, meta)\">{{ \'LINE_TX_DETAILS_COSIGN\' | translate }}</button>\n            </span>\n        </div>\n    </div>\n\n</div>");
-  $templateCache.put("layout/lines/lineTransfer.html", "<table id=\"txTable\" class=\"table table-bordered table-hover transaction-row\" title=\"{{ \'TRANSFER_TRANSACTION_NAME\' | translate }}\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n   <tbody style=\"outline:0;\">\n   <tr data-toggle=\"collapse\" data-target=\"#table{{number}}\" style=\"outline:0\">\n      <td>\n         <span ng-show=\"tx.mosaics.length\">\n            <span ng-repeat=\"mos in tx.mosaics\">\n               <span>\n                  <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2>\n                  <span class=\"text-lowercase mosaic-name\">{{mos.mosaicId.name}}</span>\n                   <span class=\"pull-right\" ng-show=\"tx.mosaics.length\">\n                  {{tx.timeStamp | fmtNemPayDate}}\n                  <span ng-repeat=\"sig in parent.signatures\">\n                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>\n                  </span>\n               </span>\n               </span>\n            </span>\n         </span>\n         <div ng-class=\"{\'send-card\': tx.recipient !== mainAccount && !parent}\" class=\"transition-card\">\n            <span ng-hide=\"tx.mosaics.length\">\n               <span ng-show=\"!parent\">\n                  <span ng-show=\"tx.recipient !== mainAccount\">\n                     <h2>{{((tx.amount+tx.fee) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount+tx.fee) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span ng-show=\"tx.recipient === mainAccount\">\n                     <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span class=\"text-lowercase mosaic-name\"> xem</span>\n               </span>\n               <span ng-show=\"parent\">\n                  <span ng-show=\"parent.otherTrans.recipient !== mainAccount\">\n                     <h2> {{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span ng-show=\"parent.otherTrans.recipient === mainAccount\">\n                     <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span class=\"text-lowercase mosaic-name\"> xem</span>\n               </span>\n               <span class=\"pull-right\">\n                  {{tx.timeStamp | fmtNemPayDate}}\n                  <span ng-repeat=\"sig in parent.signatures\">\n                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>\n                  </span>\n               </span>\n            </span>\n         </div>\n         <div>\n            <small class=\"address\"  ng-show=\"tx.recipient !== mainAccount && !parent\"> <b>To:</b> {{tx.recipient | fmtAddress | limitTo: 15}} ...</small>\n            <small class=\"selectable address\" ng-show=\"tx.recipient === mainAccount && !parent && !parent\"><b>From:</b> {{tx.signer | fmtPubToAddress:networkId | fmtAddress | limitTo: 15}} ...</span></small>\n         </div>\n         <div>\n            <span  ng-show=\"tx.message.type === 1\">{{tx.message | fmtHexMessage}}</span>\n            <span ng-show=\"tx.message.type === 2\" id=\"line-{{tx.timeStamp}}\">\n               {{ \'LINE_TX_DETAILS_MESS_ENC\' | translate }}\n               <div ng-show=\"!requiresKey\">\n                  {{decoded | fmtHexMessage}}\n               </div>\n            </span>\n         </div>\n      </td>\n   </tr>\n   </tbody>\n</table>");
-  $templateCache.put("modules/account/account.html", "<ion-content class=\"has-header\">\n <div class=\"page-account\">\n   <div class=\"container\">\n     <div class=\"content double-padding\">\n       <div class=\"account-page\">\n        <div id=\"accountInfoQR\"></div>\n        <h4 class=\"nem-color\">{{ \'GENERAL_ADDRESS\' | translate }}</h4>\n        <p><span show-account-data=\"address\" ng-class=\"selectable\"></span></p>\n        </br>\n        <button  ng-click=\"$ctrl.shareAnywhere()\" class=\"button button-block button-positive button-nem ink\">Share Address</button>\n\n\n      </div>\n    </div>\n  </div>\n</div>\n</ion-content>\n");
+  $templateCache.put("layout/lines/lineTransfer.html", "<table id=\"txTable\" class=\"table table-bordered table-hover transaction-row\" title=\"{{ \'TRANSFER_TRANSACTION_NAME\' | translate }}\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n   <tbody style=\"outline:0;\">\n   <tr data-toggle=\"collapse\" data-target=\"#table{{number}}\" style=\"outline:0\">\n      <td>\n         <span ng-show=\"tx.mosaics.length\">\n            <span ng-repeat=\"mos in tx.mosaics\">\n               <span>\n                  <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2>\n                  <span class=\"text-lowercase mosaic-name\">{{mos.mosaicId.name}}</span>\n                   <span class=\"pull-right\" ng-show=\"tx.mosaics.length\">\n                  {{tx.timeStamp | fmtNemPayDate}}\n                  <span ng-repeat=\"sig in parent.signatures\">\n                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>\n                  </span>\n               </span>\n               </span>\n            </span>\n         </span>\n         <div ng-class=\"{\'send-card\': tx.recipient !== mainAccount && !parent}\" class=\"transition-card\">\n            <span ng-hide=\"tx.mosaics.length\">\n               <span ng-show=\"!parent\">\n                  <span ng-show=\"tx.recipient !== mainAccount\">\n                     <h2>{{((tx.amount+tx.fee) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount+tx.fee) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span ng-show=\"tx.recipient === mainAccount\">\n                     <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span class=\"text-lowercase mosaic-name\"> xem</span>\n               </span>\n               <span ng-show=\"parent\">\n                  <span ng-show=\"parent.otherTrans.recipient !== mainAccount\">\n                     <h2> {{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount+tx.fee+parent.fee) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span ng-show=\"parent.otherTrans.recipient === mainAccount\">\n                     <h2>{{((tx.amount) | fmtNemValue)[0]}}.<span class=\"text-muted\">{{((tx.amount) | fmtNemValue)[1]}}</span></h2>\n                  </span>\n                  <span class=\"text-lowercase mosaic-name\"> xem</span>\n               </span>\n               <span class=\"pull-right\">\n                  {{tx.timeStamp | fmtNemPayDate}}\n                  <span ng-repeat=\"sig in parent.signatures\">\n                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>\n                  </span>\n               </span>\n            </span>\n         </div>\n         <div>\n            <small class=\"address\"  ng-show=\"tx.recipient !== mainAccount && !parent\"> <b>To:</b> <span  ng-bind-html=\'tx.recipient | fmtAlias\'></span></small>\n            <small class=\"selectable address\" ng-show=\"tx.recipient === mainAccount && !parent && !parent\"><b>From:</b>  <span ng-bind-html=\'tx.signer | fmtPubToAddress:networkId | fmtAlias\'></span></small>\n         </div>\n         <div>\n            <span  ng-show=\"tx.message.type === 1\">{{tx.message | fmtHexMessage}}</span>\n            <span ng-show=\"tx.message.type === 2\" id=\"line-{{tx.timeStamp}}\">\n               {{ \'LINE_TX_DETAILS_MESS_ENC\' | translate }}\n               <div ng-show=\"!requiresKey\">\n                  {{decoded | fmtHexMessage}}\n               </div>\n            </span>\n         </div>\n      </td>\n   </tr>\n   </tbody>\n</table>");
+  $templateCache.put("modules/account/account.html", "<ion-content class=\"has-header\">\n    <div class=\"page-account\">\n        <div class=\"container\">\n            <div class=\"content double-padding\">\n                <div class=\"account-page\">\n                    <div id=\"accountInfoQR\"></div>\n                    <h4>{{ \'GENERAL_ADDRESS\' | translate }}</h4>\n                    <p><span show-account-data=\"address\" ng-class=\"selectable\"></span></p>\n                    </br>\n                    <button  ng-click=\"$ctrl.shareAnywhere()\" class=\"button button-block button-positive button-nem ink\">Share Address</button\n                    </br>\n                    <h4>{{ \'ACCOUNT_ALIAS_TITLE\' | translate }}</h4>\n                    <div class=\"form-group\">\n                        <p class=\"bg-info\"><span ng-bind-html=\"\'ACCOUNT_ALIAS_NOTE\' | translate\"></span>\n                            <br/><small>Cost: ~500 XEM/Year</small><br/><small style=\"color:red\">This operation can only be done <b>ONCE</b> per account</small></p>\n                        <div class=\"input-group\" ng-if=\"!$ctrl.showAliasField\">\n                            <!-- PASSWORD -->\n                            <span class=\"input-group-btn \"><label>{{ \'FORM_PASSWORD\' | translate }}:</label></span>\n                            <input class=\"form-control\" type=\"password\" ng-model=\"$ctrl.common.password\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\"/>\n                            <span class=\"input-group-btn showHide\"><button class=\"btn btn-primary\" type=\"button\" ng-click=\"$ctrl.showAlias()\" title=\"{{\'ACCOUNT_ALIAS_SHOW\' | translate }}\"><i class=\"fa fa-plus\"></i></button></span>\n                        </div>\n                        <div class=\"input-group\" ng-if=\"$ctrl.showAliasField\">\n                            <!-- ALIAS -->\n                            <span class=\"input-group-btn\"><label>Alias: </label></span>\n                            <!-- New alias field -->\n                            <input class=\"form-control\" type=\"text\" ng-model=\"$ctrl.alias\" placeholder=\"alias\" ng-model-options=\"{debounce:500}\" ng-change=\"$ctrl.isAliasAvaliable()\" ng-readonly=\"$ctrl.hasAlias\"/>\n\n                            <span ng-if=\"!$ctrl.hasAlias\" class=\"input-group-btn showHide\"><button class=\"btn btn-primary\" type=\"button\" ng-show=\"$ctrl.aliasSpinningButton\" ng-disabled=\'true\'><i class=\"fa fa-spinner\"></i></button><button class=\"btn btn-primary\" type=\"button\" ng-show=\"!$ctrl.aliasSpinningButton\" ng-click=\"$ctrl.setAlias()\" ng-disabled=\"$ctrl.disableAliasSave\" title=\"{{ \'ACCOUNT_ALIAS_SET\' | translate }}\"><i class=\"fa fa-floppy-o\"></i></button></span>\n                        </div>\n                    </div>\n                </div>\n            </div>\n        </div>\n    </div>\n</ion-content>\n");
   $templateCache.put("modules/balance/balance.html", "<ion-content class=\"has-header initial\">\n   <div class=\"page-balance\">\n      <div class=\"content double-padding\" >\n         <div class=\"list\"  ng-show=\"$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]\">\n            <div class=\"item item-avatar item-icon-right\" ng-repeat=\"mos in $ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]\">\n\n               <img ng-src=\"images/assets/xem.png\"/>\n\n               <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[0]}}<span class=\"text-muted\">.{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1]}}</span> <span class=\"mosaic-name\">{{mos.mosaicId.name}}</span></h2>\n               <p><b>{{mos.mosaicId.namespaceId}}</b>:{{mos.mosaicId.name}}</p>\n            </div>\n         </div>\n      </div>\n   </div>\n</ion-content>\n<div class=\"button-bottom-container\" ng-show=\"$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]\">\n   <div class=\"button-position\"> <a ui-sref=\"app.transfer\" class=\"button button-fab button-nem icon ion-paper-airplane\"></a></div>\n</div>");
   $templateCache.put("modules/loadWallet/loadWallet.html", "<ion-content scroll=\"false\">\n   <div class=\"login-page text-center\">\n      <div class=\"hero no-header flat hide-on-keyboard-open\">\n         <div class=\"content\">\n            <img class=\"logo\" src=\"images/logo-b.png\"/>\n         </div>\n      </div>\n      <div class=\"list\">\n         <label class=\"item item-input item-md-label\" type=\"text\">\n            <select selectclick ng-model=\"$ctrl.selectedWallet\" ng-options=\"wallet.name group by (wallet.accounts[0].network | toNetworkName) for wallet in $ctrl._storage.wallets\">\n               <option value=\"\" disabled selected>Select a wallet</option>\n            </select>\n         </label>\n\n         <label class=\"item item-input item-md-label\" placeholder=\"Wallet Password\" highlight-color=\"energized\" type=\"password\">\n            <input type=\"password\" ng-model=\"$ctrl.common.password\" placeholder=\"Wallet Password\"  ng-keypress=\"$ctrl.onEnter($event)\"/>\n            <div class=\"highlight highlight-nem\"></div>\n         </label>\n      </div>\n      <div class=\"small-padding\">\n         <button class=\"button button-block button-light border-radius-none\"\n                 type=\"submit\" ng-click=\"$ctrl.login($ctrl.selectedWallet)\" ng-disabled=\"!$ctrl.selectedWallet\">\n            {{ \'LOGIN_LOGIN_BUTTON\' | translate }}\n         </button>\n      </div>\n\n\n      <div class=\"small-padding\">\n         <a  ui-sref=\"app.register\" class=\"button button-block button-light button-outline-light border-radius-none\" style=\"display: block;\"\n             type=\"submit\" ng-click=\"$ctrl.login($ctrl.selectedWallet)\">\n            SIGN UP\n         </a>\n      </div>\n\n\n      <div class=\"padding\">\n         <div class=\"form-group\">\n            <button class=\"fileUpload btn-import\">\n               <span>{{ \'LOGIN_IMPORT_BUTTON\' | translate }}</span>\n               <input type=\"file\" accept=\"*/*\" class=\"upload\" multiple=\'multiple\' read-wallet-files=\"$ctrl.loadWallet($fileContent, $isNCC)\" />\n            </button>\n         </div>\n      </div>\n   </div>\n\n</ion-content>");
-  $templateCache.put("modules/register/register.html", "<ion-content class=\"has-header\">\n  <div class=\"register-page\">\n\n    <div class=\"content double-padding\">\n\n      <div ng-show=\"$ctrl._selectedType.type == 1\">\n        <!-- SIMPLE WALLET -->\n        <form>\n          <!-- WALLET NAME -->\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\" placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\" ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n          <!-- SELECT NETWORK -->\n\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select  selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n\n          <!-- SIMPLE WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_CREATE_WALLET_WARNING\' | translate\"></span>\n          </p>\n\n          <div>\n            <button class=\"button button-block button-positive button-nem ink\"\n                    type=\"submit\" ng-click=\"$ctrl.createWallet()\">\n              {{\'SIGNUP_CREATE_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n      <div ng-show=\"$ctrl._selectedType.type == 2\">\n        <!-- BRAIN WALLET -->\n        <form>\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\" ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n\n          <!-- SELECT NETWORK -->\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n          <!-- BRAIN WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_BRAIN_WALLET_WARNING\' | translate\"></span>\n          </p>\n          <!-- CONFIRM BUTTON -->\n          <div>\n\n            <button class=\"button button-block button-positive button-nem ink\"\n                    type=\"submit\" ng-click=\"$ctrl.createBrainWallet()\">\n              {{\'SIGNUP_BRAIN_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n      <div ng-show=\"$ctrl._selectedType.type == 3\">\n        <!-- PRIVATE KEY WALLET -->\n        <form>\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n\n          <!-- ADDRESS TO ADD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_ADDRESS_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_ADDRESS_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.address\" />\n\n          </label>\n\n          <!-- PRIVATE KEY OF ADDRESS TO ADD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.privateKey\" />\n\n          </label>\n\n          <!-- SELECT NETWORK -->\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n\n          <!-- PRIVATE KEY WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_PRIVATE_KEY_WALLET_WARNING\' | translate\"></span>\n          </p>\n\n\n          <!-- CONFIRM BUTTON -->\n          <div>\n            <button class=\"button button-block button-positive button-nem\"\n                    type=\"submit\"\n                    ng-click=\"$ctrl.createPrivateKeyWallet()\">\n              {{\'SIGNUP_PRIVATE_KEY_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n    </div>\n  </div>\n\n  <a id=\"downloadWallet\" target=\"_blank\"></a>\n</ion-content>\n\n<div class=\"tabs\">\n\n  <ion-tabs class=\"tabs-positive  tabs-nem tabs-icon-top\">\n\n    <ion-tab title=\"{{\'SIGNUP_CREATE_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(1)\" icon-on=\"ion-ios-filing\" icon-off=\"ion-ios-filing-outline\"></ion-tab>\n\n    <ion-tab title=\"{{\'SIGNUP_BRAIN_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(2)\" icon-on=\"ion-ios-clock\" icon-off=\"ion-ios-clock-outline\"></ion-tab>\n\n    <ion-tab title=\"{{\'SIGNUP_PRIVATE_KEY_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(3)\" icon-on=\"ion-ios-gear\" icon-off=\"ion-ios-gear-outline\"></ion-tab>\n\n  </ion-tabs>\n\n</div>\n");
+  $templateCache.put("modules/register/register.html", "<ion-content class=\"has-header\">\n  <div class=\"register-page\">\n\n    <div class=\"content double-padding\">\n\n      <div ng-show=\"$ctrl._selectedType.type == 1\">\n        <!-- SIMPLE WALLET -->\n        <form>\n          <!-- WALLET NAME -->\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\" placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\" ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n          <!-- SELECT NETWORK -->\n\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select  selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n\n          <!-- SIMPLE WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_CREATE_WALLET_WARNING\' | translate\"></span>\n          </p>\n\n          <div>\n            <button class=\"button button-block button-positive button-nem ink\"\n                    type=\"submit\" ng-click=\"$ctrl.createWallet()\">\n              {{\'SIGNUP_CREATE_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n      <div ng-show=\"$ctrl._selectedType.type == 2\">\n        <!-- BRAIN WALLET -->\n        <form>\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\" ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n\n          <!-- SELECT NETWORK -->\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n          <!-- BRAIN WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_BRAIN_WALLET_WARNING\' | translate\"></span>\n          </p>\n          <!-- CONFIRM BUTTON -->\n          <div>\n\n            <button class=\"button button-block button-positive button-nem ink\"\n                    type=\"submit\" ng-click=\"$ctrl.createBrainWallet()\">\n              {{\'SIGNUP_BRAIN_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n      <div ng-show=\"$ctrl._selectedType.type == 3\">\n        <!-- PRIVATE KEY WALLET -->\n        <form>\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n\n          <!-- ADDRESS TO ADD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_ADDRESS_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_ADDRESS_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.address\" />\n\n          </label>\n\n          <!-- PRIVATE KEY OF ADDRESS TO ADD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.privateKey\" />\n\n          </label>\n\n          <!-- SELECT NETWORK -->\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n\n          <!-- PRIVATE KEY WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_PRIVATE_KEY_WALLET_WARNING\' | translate\"></span>\n          </p>\n\n\n          <!-- CONFIRM BUTTON -->\n          <div>\n            <button class=\"button button-block button-positive button-nem\"\n                    type=\"submit\"\n                    ng-click=\"$ctrl.createPrivateKeyWallet()\">\n              {{\'SIGNUP_PRIVATE_KEY_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n    </div>\n  </div>\n\n  <a id=\"downloadWallet\" target=\"_blank\"></a>\n</ion-content>\n\n<div class=\"tabs\">\n\n  <ion-tabs class=\"tabs-positive  tabs-nem tabs-icon-top\">\n\n    <ion-tab title=\"{{\'SIGNUP_CREATE_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(1)\" icon-on=\"ion-ios-filing\" icon-off=\"ion-ios-filing-outline\"></ion-tab>\n\n    <ion-tab title=\"{{\'SIGNUP_BRAIN_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(2)\" icon-on=\"ion-ios-clock\" icon-off=\"ion-ios-clock-outline\"></ion-tab>\n\n    <ion-tab title=\"{{\'SIGNUP_PRIVATE_KEY_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(3)\" icon-on=\"ion-key\" icon-off=\"ion-key\"></ion-tab>\n\n  </ion-tabs>\n\n</div>\n");
   $templateCache.put("modules/transactions/transactions.html", "<ion-content class=\"has-header\">\n    <div class=\"transactions-page\">\n        <div class=\"content double-padding\">\n\n            <table class=\"table\">\n                <tbody>\n                <div ng-show=\"$ctrl.tabConfirmed\">\n                    <div ng-repeat=\"tx in $ctrl._DataBridge.transactions | orderBy:\'-transaction.timeStamp\'\">\n                        <!-- Only if is a XEM or Mosaic transacton -->\n                        <nempay-transaction ng-if=\"tx.transaction.type == 257\" d=\"tx\" z=\"$ctrl._Wallet.currentAccount.address\" h=\"$ctrl._DataBridge\" tooltip-position=\"\'left\'\"></nempay-transaction>\n                    </div>\n                </div>\n                </tbody>\n            </table>\n\n            <div class=\"panel-body\" ng-show=\"$ctrl._DataBridge.transactions.length == 0 && $ctrl.tabConfirmed\">\n                <p>{{ \'GENERAL_NO_RESULTS\' | translate }}</p>\n            </div>\n\n        </div>\n    </div>\n    </div>\n</ion-content>");
   $templateCache.put("modules/transfer/transfer.html", "<ion-content class=\"has-header\">\n    <div class=\"page-transfer\">\n        <div class=\"container\">\n            <div class=\"content double-padding\">\n                <form>\n                    <div class=\"list\">\n                        <!--  recipient address -->\n                        <div>\n                            <label class=\"item item-input item-floating-label\">\n                                <span class=\"input-label\">To</span>\n                                <input type=\"text\" placeholder=\"{{\'FORM_RECIPIENT_PLACEHOLDER\' | translate}}\" ng-model=\"$ctrl.formData.rawRecipient\" ng-model-options=\"{debounce:3000}\" ng-change=\"$ctrl.processRecipientInput()\"/>\n                            </label>\n                            <label class=\"item item-input item-floating-label\" ng-show=\"$ctrl.showAlias\" class=\"gap\">\n                                <input type=\"text\" placeholder=\"Alias\" type=\"text\" ng-model=\"$ctrl.aliasAddress\" readOnly/>\n                            </label>\n                        </div>\n                        <!-- Amount of XEM to send -->\n                        <div class=\"gap\">\n                            <div style=\"width: 49%; float: left;margin-right: 1%;\">\n                                <label class=\"item item-input item-floating-label\">\n                                    <span class=\"input-label\">Amount</span>\n                                    <input type=\"text\" placeholder=\"Amount\" type=\"number\" ng-model=\"$ctrl.formData.amount\" min=\"0\" ng-disabled=\"$ctrl.formData.isMosaicTransfer\">\n                                </label>\n                            </div>\n                            <div style=\"width: 49%; float: left; margin-left: 1%; margin-top: 30px;\">\n                                <div>\n                                    <label class=\"item item-input item-select\">\n                                        <div class=\"input-label\">\n                                            <!--Currency-->\n                                        </div>\n                                        <select selectclick ng-options=\"mos for mos in $ctrl.currentAccountMosaicNames\" ng-model=\"$ctrl.selectedMosaic\" ng-change=\"$ctrl.updateMosaicUnitToTransfer();\"></select>\n                                    </label>\n                                </div>\n                            </div>\n                            <!-- Message Field -->\n                        </div>\n                        <div class=\"gap\">\n                            <label class=\"item item-input item-floating-label\">\n                                <span class=\"input-label\">Message</span>\n                                <textarea rows=\"5\" type=\"text\" ng-model=\"$ctrl.formData.message\" placeholder=\"{{\'FORM_MESSAGE_PLACEHOLDER\' | translate}}\"></textarea>\n                            </label>\n                        </div>\n                        <div class=\"gap\">\n\n                            <a ng-click=\"$ctrl.moveToTransferConfirm()\" class=\"button button-block button-positive button-nem ink\" type=\"submit\" ng-disabled=\"$ctrl.okPressed || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length || $ctrl.formData.amount == 0\">\n                                CONTINUE\n                            </a>\n                        </div>\n                    </div>\n                </form>\n            </div>\n        </div>\n    </div>\n</ion-content>");
   $templateCache.put("modules/transferConfirm/transferConfirm.html", "<ion-content class=\"has-header\">\n   <div class=\"page-transfer-confirm\">\n   <div class=\"container\">\n      <div class=\"content double-padding\">\n         <h2 class=\"text-center\">Confirm Transaction</h2>\n\n         <h4 ng-show=\"$ctrl.aliasAddress\" class=\"nem-color\">To</h4>\n         <p><span ng-hide=\"!$ctrl.aliasAddress\">{{$ctrl.aliasAddress}}</span></p>\n         <p class=\"text-muted\">\n            {{$ctrl.formData.recipient}}\n         </p>\n\n         <h4 class=\"nem-color\">Amount</h4>\n         <p>{{$ctrl.formData.amount}} {{$ctrl.unit}}</p>\n         <h4 class=\"nem-color\">Fee</h4>\n            <p class=\"text-muted\">\n            <span class=\"margin-right-10\">\n               <!-- Multisig fee  -->\n               <span ng-show=\"$ctrl.formData.isMultisig\">{{($ctrl.formData.innerFee | fmtNemValue)[0]}}.{{($ctrl.formData.innerFee | fmtNemValue)[1]}} + \n               </span> \n               <!-- Transaction fee -->\n               <span class=\"color-black\">{{($ctrl.formData.fee | fmtNemValue)[0]}}.{{($ctrl.formData.fee | fmtNemValue)[1]}}  <span style=\"color: #fff\">XEM</span> <span ng-show=\"$ctrl.formData.encryptMessage\">(+ encryption fees)</span></span>\n            </span>\n         </p>\n         <div ng-show=\"$ctrl.formData.message\">\n         <h4 class=\"nem-color\">Message</h4>\n         <p class=\"text-muted\">\n            {{$ctrl.formData.message}}\n         </p>\n         </div>\n         <!-- Password Field -->\n\n\n         <h5 class=\"nem-color text-center\">Enter your password to confirm transaction </h5>\n         \n        <!-- Send button disabled if already pressed or no password or no clean recipient address or message is supposed to be encrypted but no recipient public key or is a mosaic transfer and no mosaics in array -->\n\n         <input class=\"item item-input item-floating-label full-width form-control-lg\" type=\"password\" placeholder=\"{{ \'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" ng-model=\"$ctrl.common.password\" />\n         <div class=\"gap\">\n            <a class=\"button button-block button-nem ink\" type=\"submit\" ng-disabled=\"$ctrl.okPressed || !$ctrl.common.password.length || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length\" ng-click=\"$ctrl.send()\">\n            <i class=\"fa fa-send\"></i> CONFIRM\n            </a>\n         </div>\n      </div>\n   </div>\n</ion-content>\n<div class=\"fixed-bottom-button\"></div>\n");
 }]);
 
-},{}],40:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9562,7 +11124,7 @@ componentsnempayModule.directive('nempayTransaction', _nempayTransaction2.defaul
 
 exports.default = componentsnempayModule;
 
-},{"./nempayTransaction.directive":41,"angular":80}],41:[function(require,module,exports){
+},{"./nempayTransaction.directive":45,"angular":84}],45:[function(require,module,exports){
 'use strict';
 
 NemPayTransaction.$inject = ["NetworkRequests", "Alert", "Wallet", "$filter", "Transactions", "$timeout", "$state"];
@@ -9759,7 +11321,7 @@ function NemPayTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions
 
 exports.default = NemPayTransaction;
 
-},{"../../../nanowallet/src/app/utils/Address":27,"../../../nanowallet/src/app/utils/CryptoHelpers":28,"../../../nanowallet/src/app/utils/KeyPair":29,"../../../nanowallet/src/app/utils/Network":30,"../../../nanowallet/src/app/utils/helpers":35}],42:[function(require,module,exports){
+},{"../../../nanowallet/src/app/utils/Address":31,"../../../nanowallet/src/app/utils/CryptoHelpers":32,"../../../nanowallet/src/app/utils/KeyPair":33,"../../../nanowallet/src/app/utils/Network":34,"../../../nanowallet/src/app/utils/helpers":39}],46:[function(require,module,exports){
 'use strict';
 
 AppConfig.$inject = ["$httpProvider", "$stateProvider", "$locationProvider", "$urlRouterProvider", "ngToastProvider", "$translateProvider"];
@@ -9790,7 +11352,7 @@ function AppConfig($httpProvider, $stateProvider, $locationProvider, $urlRouterP
 
 exports.default = AppConfig;
 
-},{}],43:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9838,7 +11400,7 @@ var AppConstants = {
 
 exports.default = AppConstants;
 
-},{}],44:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 'use strict';
 
 AppRun.$inject = ["AppConstants", "$rootScope", "$timeout", "Wallet", "$ionicPlatform"];
@@ -9863,7 +11425,7 @@ function AppRun(AppConstants, $rootScope, $timeout, Wallet, $ionicPlatform) {
 
 exports.default = AppRun;
 
-},{}],45:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 var _helpers = require('../../../nanowallet/src/app/utils/helpers');
@@ -9913,7 +11475,7 @@ module.exports = {
     fmtNemPayDate: fmtNemPayDate
 };
 
-},{"../../../nanowallet/src/app/utils/Address":27,"../../../nanowallet/src/app/utils/KeyPair":29,"../../../nanowallet/src/app/utils/Network":30,"../../../nanowallet/src/app/utils/convert":34,"../../../nanowallet/src/app/utils/helpers":35}],46:[function(require,module,exports){
+},{"../../../nanowallet/src/app/utils/Address":31,"../../../nanowallet/src/app/utils/KeyPair":33,"../../../nanowallet/src/app/utils/Network":34,"../../../nanowallet/src/app/utils/convert":38,"../../../nanowallet/src/app/utils/helpers":39}],50:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9936,7 +11498,7 @@ filtersModule.filter('fmtNemPayDate', _filters2.default.fmtNemPayDate);
 
 exports.default = filtersModule;
 
-},{"./filters":45,"angular":80}],47:[function(require,module,exports){
+},{"./filters":49,"angular":84}],51:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9963,7 +11525,7 @@ var AppFooter = {
 
 exports.default = AppFooter;
 
-},{}],48:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10214,7 +11776,7 @@ var AppHeader = {
 
 exports.default = AppHeader;
 
-},{"../../../nanowallet/src/app/utils/Network":30,"../../../nanowallet/src/app/utils/helpers":35,"../../../nanowallet/src/app/utils/nodes":37}],49:[function(require,module,exports){
+},{"../../../nanowallet/src/app/utils/Network":34,"../../../nanowallet/src/app/utils/helpers":39,"../../../nanowallet/src/app/utils/nodes":41}],53:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10246,7 +11808,7 @@ layoutModule.component('appFooter', _footer2.default);
 
 exports.default = layoutModule;
 
-},{"./footer.component":47,"./header.component":48,"angular":80}],50:[function(require,module,exports){
+},{"./footer.component":51,"./header.component":52,"angular":84}],54:[function(require,module,exports){
 'use strict';
 
 AccountConfig.$inject = ["$stateProvider"];
@@ -10268,7 +11830,7 @@ function AccountConfig($stateProvider) {
 
 exports.default = AccountConfig;
 
-},{}],51:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10289,38 +11851,60 @@ var _Network = require('../../../../nanowallet/src/app/utils/Network');
 
 var _Network2 = _interopRequireDefault(_Network);
 
+var _Address = require('../../../../nanowallet/src/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _KeyPair = require('../../../../nanowallet/src/app/utils/KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var AccountCtrl = function () {
-    AccountCtrl.$inject = ["AppConstants", "$localStorage", "$location", "Alert", "Wallet", "Connector", "DataBridge", "$timeout", "$ionicPopover", "$scope", "$cordovaSocialSharing", "ngToast"];
-    function AccountCtrl(AppConstants, $localStorage, $location, Alert, Wallet, Connector, DataBridge, $timeout, $ionicPopover, $scope, $cordovaSocialSharing, ngToast) {
+    AccountCtrl.$inject = ["AppConstants", "$scope", "$q", "$filter", "$localStorage", "$location", "Alert", "NetworkRequests", "Wallet", "WalletBuilder", "Transactions", "Connector", "DataBridge", "$timeout", "$cordovaSocialSharing", "nemUtils", "Alias", "AliasAlert"];
+    function AccountCtrl(AppConstants, $scope, $q, $filter, $localStorage, $location, Alert, NetworkRequests, Wallet, WalletBuilder, Transactions, Connector, DataBridge, $timeout, $cordovaSocialSharing, nemUtils, Alias, AliasAlert) {
         'ngInject';
 
-        // Application constants
+        var _this = this;
 
         _classCallCheck(this, AccountCtrl);
 
+        this._q = $q;
+        this._filter = $filter;
+
+        // Application constants
         this._AppConstants = AppConstants;
         // Wallet service
         this._Wallet = Wallet;
+        // Wallet Builder service
+        this._WalletBuilder = WalletBuilder;
+
         // $location to redirect
         this._location = $location;
         //Local storage
         this._storage = $localStorage;
         // Alert service
         this._Alert = Alert;
+
         // Connector service
         this._Connector = Connector;
         // DataBridge service
         this._DataBridge = DataBridge;
+        // Transactions service
+        this._Transactions = Transactions;
+        // NetworkRequests service
+        this._NetworkRequests = NetworkRequests;
         // $timeout for async digest
         this._$timeout = $timeout;
 
-        this._$cordovaSocialSharing = $cordovaSocialSharing;
-
-        this._ngToast = ngToast;
+        // Common nem functions
+        this._nemUtils = nemUtils;
+        // Alias Service
+        this._Alias = Alias;
+        this._AliasAlert = AliasAlert;
 
         // Default account properties
         this.selectedWallet = '';
@@ -10341,6 +11925,9 @@ var AccountCtrl = function () {
 
         // Check number of accounts in wallet to show account selection in view
         this.checkNumberOfAccounts();
+
+        //cordova social sharing plugin
+        this._$cordovaSocialSharing = $cordovaSocialSharing;
 
         // Object to contain our password & private key data.
         this.common = {
@@ -10398,27 +11985,84 @@ var AccountCtrl = function () {
         // Generate the QRs
         this.encodeQrCode(this.walletString, "wallet");
         this.encodeQrCode(this.accountString, "accountInfo");
+
+        // NEM ALIAS SYSTEM
+        this.ALIAS_ROOT_INDEX = this._Alias.getRootIndex();
+        this.ALIAS_NAMESPACE_INDEX = this._Alias.getNamespaceIndex();
+
+        this.alias = "";
+        this.hasAlias = false;
+        this.showAliasField = false;
+        this.aliasSpinningButton = false;
+        this.disableAliasSave = true;
+
+        var temp_alias = this._Alias.getAlias();
+        if (temp_alias != "") {
+            this.hasAlias = true;
+            this.showAliasField = true;
+            this.alias = temp_alias;
+        }
+
+        $scope.$watch(function () {
+            return _this._Alias.ownAlias;
+        }, function (val) {
+            if (val) {
+                _this.hasAlias = true;
+                _this.showAliasField = true;
+                _this.alias = val;
+            } else {
+                _this.hasAlias = false;
+                _this.alias = "";
+            }
+        });
+        this._Alias.fetchIndexes().then(function () {
+            _this._Alias.fetchOwnAlias();
+        });
     }
 
-    /**
-     * Generate the mobile wallet QR
-     */
-
-
     _createClass(AccountCtrl, [{
-        key: 'generateWalletQR',
-        value: function generateWalletQR() {
+        key: 'isAliasAvaliable',
+        value: function isAliasAvaliable() {
+            var _this2 = this;
+
+            this.disableAliasSave = true;
+            this.aliasSpinningButton = true;
+            this._Alias.fetchAlias(this.alias).then(function (result) {
+                _this2.aliasSpinningButton = false;
+                if (!result) {
+                    _this2.disableAliasSave = false;
+                } else {
+                    _this2._AliasAlert.alreadyExistsError(_this2.alias);
+                }
+            });
+        }
+
+        /**
+         * checkAccess() Ensure that the user is authentic by checking his password and setting the private key to this.common
+         */
+
+    }, {
+        key: 'checkAccess',
+        value: function checkAccess() {
             // Decrypt/generate private key and check it. Returned private key is contained into this.common
             if (!_CryptoHelpers2.default.passwordToPrivatekeyClear(this.common, this._Wallet.currentAccount, this._Wallet.algo, false)) {
                 this._Alert.invalidPassword();
-                this.showPrivateKeyField = false;
-                return;
+                return false;
             } else if (!_CryptoHelpers2.default.checkAddress(this.common.privateKey, this._Wallet.network, this._Wallet.currentAccount.address)) {
                 this._Alert.invalidPassword();
-                this.showPrivateKeyField = false;
-                return;
+                return false;
             }
+            return true;
+        }
 
+        /**
+         * Generate the mobile wallet QR
+         */
+
+    }, {
+        key: 'generateWalletQR',
+        value: function generateWalletQR() {
+            this.showPrivateKeyField = this.checkAccess();
             var mobileKeys = _CryptoHelpers2.default.AES_PBKF2_encryption(this.common.password, this.common.privateKey);
 
             var QR = {
@@ -10443,17 +12087,7 @@ var AccountCtrl = function () {
     }, {
         key: 'showPrivateKey',
         value: function showPrivateKey() {
-            // Decrypt/generate private key and check it. Returned private key is contained into this.common
-            if (!_CryptoHelpers2.default.passwordToPrivatekeyClear(this.common, this._Wallet.currentAccount, this._Wallet.algo, true)) {
-                this._Alert.invalidPassword();
-                this.showPrivateKeyField = false;
-                return;
-            } else if (!_CryptoHelpers2.default.checkAddress(this.common.privateKey, this._Wallet.network, this._Wallet.currentAccount.address)) {
-                this._Alert.invalidPassword();
-                this.showPrivateKeyField = false;
-                return;
-            }
-            this.showPrivateKeyField = true;
+            this.showPrivateKeyField = this.checkAccess();
         }
 
         /**
@@ -10465,6 +12099,8 @@ var AccountCtrl = function () {
     }, {
         key: 'changeCurrentAccount',
         value: function changeCurrentAccount(accountIndex) {
+            var _this3 = this;
+
             // Close the connector
             this._DataBridge.connector.close();
             this._DataBridge.connectionStatus = false;
@@ -10477,6 +12113,21 @@ var AccountCtrl = function () {
                 'uri': this._Wallet.node
             }, this._Wallet.currentAccount.address);
             this._DataBridge.openConnection(connector);
+
+            // We need to wait till the connection is ready but it's not a promise, so we simply wait.
+            // Setup alias system
+            this._Alias.reset().then(function () {
+                _this3.ALIAS_ROOT_INDEX = _this3._Alias.getRootIndex();
+                _this3.ALIAS_NAMESPACE_INDEX = _this3._Alias.getNamespaceIndex();
+                _this3.showAliasField = false;
+                _this3.hasAlias = false;
+                _this3.alias = _this3._Alias.getAlias();
+                if (_this3.alias) {
+                    _this3.hasAlias = true;
+                    _this3.showAlias = true;
+                }
+            });
+
             // Redirect to dashboard
             this._location.path('/dashboard');
         }
@@ -10524,14 +12175,10 @@ var AccountCtrl = function () {
     }, {
         key: 'addNewAccount',
         value: function addNewAccount() {
-            var _this = this;
+            var _this4 = this;
 
-            // Decrypt/generate private key and check it. Returned private key is contained into this.common
-            if (!_CryptoHelpers2.default.passwordToPrivatekeyClear(this.common, this._Wallet.current.accounts[0], this._Wallet.algo, false)) {
-                this._Alert.invalidPassword();
-                return;
-            } else if (!_CryptoHelpers2.default.checkAddress(this.common.privateKey, this._Wallet.network, this._Wallet.current.accounts[0].address)) {
-                this._Alert.invalidPassword();
+            // Verify password and generate/get the PK into this.common
+            if (!this.checkAccess()) {
                 return;
             }
             // Current number of accounts in wallet + 1
@@ -10541,38 +12188,38 @@ var AccountCtrl = function () {
                 var generatedAccount = data.address;
                 var generatedPrivateKey = data.privateKey;
                 // Generate the bip32 seed for the new account
-                _CryptoHelpers2.default.generateBIP32Data(generatedPrivateKey, _this.common.password, 0, _this._Wallet.network).then(function (data) {
-                    _this._$timeout(function () {
+                _CryptoHelpers2.default.generateBIP32Data(generatedPrivateKey, _this4.common.password, 0, _this4._Wallet.network).then(function (data) {
+                    _this4._$timeout(function () {
                         // Encrypt generated account's private key
-                        var encrypted = _CryptoHelpers2.default.encodePrivKey(generatedPrivateKey, _this.common.password);
+                        var encrypted = _CryptoHelpers2.default.encodePrivKey(generatedPrivateKey, _this4.common.password);
                         // Build account object
                         var obj = {
                             "address": generatedAccount,
-                            "label": _this.newAccountLabel,
+                            "label": _this4.newAccountLabel,
                             "child": data.publicKey,
                             "encrypted": encrypted.ciphertext,
                             "iv": encrypted.iv
                         };
                         // Set created object in wallet
-                        _this._Wallet.current.accounts[newAccountIndex] = obj;
+                        _this4._Wallet.current.accounts[newAccountIndex] = obj;
                         // Update to show account selection
-                        _this.checkNumberOfAccounts();
+                        _this4.checkNumberOfAccounts();
                         // Show alert
-                        _this._Alert.generateNewAccountSuccess();
+                        _this4._Alert.generateNewAccountSuccess();
                         // Clean
-                        _this.clearSensitiveData();
+                        _this4.clearSensitiveData();
                         // Hide modal
                         $("#addAccountModal").modal('hide');
                     }, 0);
                 }, function (err) {
-                    _this._$timeout(function () {
-                        _this._Alert.bip32GenerationFailed(err);
+                    _this4._$timeout(function () {
+                        _this4._Alert.bip32GenerationFailed(err);
                         return;
                     }, 0);
                 });
             }, function (err) {
-                _this._$timeout(function () {
-                    _this._Alert.derivationFromSeedFailed(err);
+                _this4._$timeout(function () {
+                    _this4._Alert.derivationFromSeedFailed(err);
                     return;
                 }, 0);
             });
@@ -10592,6 +12239,120 @@ var AccountCtrl = function () {
             this.showPrivateKeyField = false;
             this.newAccountLabel = "";
         }
+
+        /**** NEM ALIAS SYSTEM ****/
+
+        /**
+         * Reveal the alias Field
+         */
+
+    }, {
+        key: 'showAlias',
+        value: function showAlias() {
+            if (this.checkAccess()) {
+                this.showAliasField = true;
+            }
+        }
+
+        /**
+         * Attempt to save the desired alias in this.alias as a valid alias
+         */
+
+    }, {
+        key: 'setAlias',
+        value: function setAlias() {
+            var _this5 = this;
+
+            this.disableAliasSave = true;
+            var currentAddress = this._Wallet.currentAccount.address;
+            var message = "";
+            var pointerAccount = "";
+
+            // Alias cleanup: strip anything except for '.' and alphabetical characters
+            var temp = this.alias.replace(/[^.A-Z0-9]/gi, "").toLowerCase();
+            this.alias = temp.split(".")[0];
+
+            // Initial checks that may forbid the operation move forward
+            if (this._DataBridge.accountData.account.balance < 500) {
+                // This account has insufficient funds to perform the operation
+                this._AliasAlert.insuficientBalanceError();
+                this.disableAliasSave = false;
+                return;
+            } else if (this.alias.length > 40) {
+                // Alias could hold up to 119 chars but for now we will only allow <40
+                this._AliasAlert.aliasIsTooLongError(this.alias);
+                this.disableAliasSave = false;
+                return;
+            } else if (temp.split(".")[1]) {
+                // Namespace aliases are not ready yet.
+                this._AliasAlert.nsaliasNotReady();
+                this.disableAliasSave = false;
+                return;
+            }
+
+            // We don't want all the Alerts to pop up
+            this._nemUtils.disableSuccessAlerts();
+            this.aliasSpinningButton = true;
+
+            console.log("// 0. Check if a namespace exists with the same name as the alias, we will always prioritize this on the system");
+            this._NetworkRequests.getNamespacesById(_helpers2.default.getHostname(this._Wallet.node), this.alias).then(function (data) {
+
+                if (data.owner) {
+                    throw "This alias is already a namespace";
+                }
+            }).catch(function (err) {
+                // We need to catch this since we are expecting getNamespacesById to fail
+
+                if (err == "This alias is already a namespace") {
+                    _this5._AliasAlert.isNamespaceError(_this5.alias);
+                    throw "";
+                } else {
+                    console.log("// 1. Check alias not in [RI]");
+                    return _this5._nemUtils.getFirstMessageWithString(_this5.ALIAS_ROOT_INDEX, _this5.alias + "=");
+                }
+            }).then(function (result) {
+                if (!result || !result.length > 0) {
+                    // Alias has not been set yet
+                    console.log("// 2. Generate a new and empty HDA pointer for alias [PU]");
+                    return _this5._nemUtils.createNewAccount();
+                } else {
+                    throw "Alias already exists";
+                }
+            }).then(function (data) {
+                console.log("// 3. Send message to [PU] with alias_owner=[ACCT]");
+                pointerAccount = data;
+                message = "alias_owner=" + currentAddress;
+                return _this5._nemUtils.sendMessage(pointerAccount.address, message, _this5.common, 22);
+            }).then(function (data) {
+                console.log("// 4. Own pointer by [RI]");
+                return _this5._nemUtils.sendOwnedBy(pointerAccount, _this5.ALIAS_ROOT_INDEX);
+            }).then(function (data) {
+                console.log("// 5. Write to self NEMAS=alias");
+                message = "alias=" + _this5.alias;
+                return _this5._nemUtils.sendMessage(currentAddress, message, _this5.common);
+            }).then(function (data) {
+                console.log("// 6. Send message to [RI] with alias=[PU] including 450xem");
+                message = _this5.alias + "=" + pointerAccount.address;
+                return _this5._nemUtils.sendMessage(_this5.ALIAS_ROOT_INDEX, message, _this5.common, 450);
+            }).then(function (data) {
+                // The alias has been successfully created and linked to the current account
+                _this5._AliasAlert.setAliasSuccess(_this5.alias, currentAddress, pointerAccount.address);
+                _this5._nemUtils.enableSuccessAlerts();
+                _this5.aliasSpinningButton = false;
+                _this5.disableAliasSave = true;
+                _this5.clearSensitiveData();
+            }).catch(function (err) {
+                if (err == "Alias already exists") {
+                    _this5._AliasAlert.alreadyExistsError(_this5.alias);
+                } else if (err != "") {
+                    _this5._AliasAlert.unexpectedError(err);
+                }
+                _this5._nemUtils.enableSuccessAlerts();
+                _this5.aliasSpinningButton = false;
+                _this5.clearSensitiveData();
+                _this5.disableAliasSave = false;
+            });
+        }
     }, {
         key: 'shareAnywhere',
         value: function shareAnywhere() {
@@ -10605,7 +12366,7 @@ var AccountCtrl = function () {
 
 exports.default = AccountCtrl;
 
-},{"../../../../nanowallet/src/app/utils/CryptoHelpers":28,"../../../../nanowallet/src/app/utils/Network":30,"../../../../nanowallet/src/app/utils/helpers":35}],52:[function(require,module,exports){
+},{"../../../../nanowallet/src/app/utils/Address":31,"../../../../nanowallet/src/app/utils/CryptoHelpers":32,"../../../../nanowallet/src/app/utils/KeyPair":33,"../../../../nanowallet/src/app/utils/Network":34,"../../../../nanowallet/src/app/utils/helpers":39}],56:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10639,7 +12400,7 @@ accountModule.controller('AccountCtrl', _account4.default);
 
 exports.default = accountModule;
 
-},{"./account.config":50,"./account.controller":51,"angular":80}],53:[function(require,module,exports){
+},{"./account.config":54,"./account.controller":55,"angular":84}],57:[function(require,module,exports){
 'use strict';
 
 BalanceConfig.$inject = ["$stateProvider"];
@@ -10662,7 +12423,7 @@ function BalanceConfig($stateProvider) {
 
 exports.default = BalanceConfig;
 
-},{}],54:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10719,7 +12480,7 @@ BalanceCtrl.$inject = ["Wallet", "Alert", "$location", "DataBridge", "$scope", "
 
 exports.default = BalanceCtrl;
 
-},{}],55:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10753,7 +12514,7 @@ balanceModule.controller('BalanceCtrl', _balance4.default);
 
 exports.default = balanceModule;
 
-},{"./balance.config":53,"./balance.controller":54,"angular":80}],56:[function(require,module,exports){
+},{"./balance.config":57,"./balance.controller":58,"angular":84}],60:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10787,7 +12548,7 @@ loadWalletModule.controller('LoadWalletCtrl', _loadWallet4.default);
 
 exports.default = loadWalletModule;
 
-},{"./loadWallet.config":57,"./loadWallet.controller":58,"angular":80}],57:[function(require,module,exports){
+},{"./loadWallet.config":61,"./loadWallet.controller":62,"angular":84}],61:[function(require,module,exports){
 'use strict';
 
 LoadWalletConfig.$inject = ["$stateProvider"];
@@ -10810,7 +12571,7 @@ function LoadWalletConfig($stateProvider) {
 
 exports.default = LoadWalletConfig;
 
-},{}],58:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -11097,7 +12858,7 @@ var LoadWalletCtrl = function () {
 
 exports.default = LoadWalletCtrl;
 
-},{"../../../../nanowallet/src/app/utils/CryptoHelpers":28,"../../../../nanowallet/src/app/utils/Network":30,"../../../../nanowallet/src/app/utils/helpers":35}],59:[function(require,module,exports){
+},{"../../../../nanowallet/src/app/utils/CryptoHelpers":32,"../../../../nanowallet/src/app/utils/Network":34,"../../../../nanowallet/src/app/utils/helpers":39}],63:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -11131,7 +12892,7 @@ registerModule.controller('RegisterCtrl', _register4.default);
 
 exports.default = registerModule;
 
-},{"./register.config":60,"./register.controller":61,"angular":80}],60:[function(require,module,exports){
+},{"./register.config":64,"./register.controller":65,"angular":84}],64:[function(require,module,exports){
 'use strict';
 
 RegisterConfig.$inject = ["$stateProvider"];
@@ -11154,7 +12915,7 @@ function RegisterConfig($stateProvider) {
 
 exports.default = RegisterConfig;
 
-},{}],61:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -11464,7 +13225,7 @@ var RegisterCtrl = function () {
 
 exports.default = RegisterCtrl;
 
-},{"../../../../nanowallet/src/app/utils/CryptoHelpers":28,"../../../../nanowallet/src/app/utils/Network":30,"../../../../nanowallet/src/app/utils/helpers":35}],62:[function(require,module,exports){
+},{"../../../../nanowallet/src/app/utils/CryptoHelpers":32,"../../../../nanowallet/src/app/utils/Network":34,"../../../../nanowallet/src/app/utils/helpers":39}],66:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -11498,7 +13259,7 @@ transactionsModule.controller('TransactionsCtrl', _transactions4.default);
 
 exports.default = transactionsModule;
 
-},{"./transactions.config":63,"./transactions.controller":64,"angular":80}],63:[function(require,module,exports){
+},{"./transactions.config":67,"./transactions.controller":68,"angular":84}],67:[function(require,module,exports){
 'use strict';
 
 TransactionsConfig.$inject = ["$stateProvider"];
@@ -11521,7 +13282,7 @@ function TransactionsConfig($stateProvider) {
 
 exports.default = TransactionsConfig;
 
-},{}],64:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -11533,8 +13294,8 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var TransactionsCtrl = function () {
-    TransactionsCtrl.$inject = ["Wallet", "Alert", "$location", "DataBridge", "$scope", "$filter", "Transactions", "NetworkRequests", "$ionicLoading", "$timeout", "$ionicPopover"];
-    function TransactionsCtrl(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $ionicLoading, $timeout, $ionicPopover) {
+    TransactionsCtrl.$inject = ["Wallet", "Alert", "$location", "DataBridge", "$scope", "$filter", "Transactions", "NetworkRequests", "Alias"];
+    function TransactionsCtrl(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, Alias) {
         'ngInject';
 
         // Alert service
@@ -11555,6 +13316,7 @@ var TransactionsCtrl = function () {
         // DataBridge service
         this._DataBridge = DataBridge;
         this._NetworkRequests = NetworkRequests;
+        this._Alias = Alias;
 
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
@@ -11562,20 +13324,8 @@ var TransactionsCtrl = function () {
             this._location.path('/');
         }
 
-        if (window.Connection) {
-            if (navigator.connection.type == Connection.NONE) {
-                this._Alert.noInternet();
-                this._location.path('/');
-            }
-        }
-
-        /* $ionicLoading.show();
-          $timeout(function () {
-             $ionicLoading.hide();
-         }, 1000);*/
-
         /**
-         * Default Dashboard properties 
+         * Default Dashboard properties
          */
 
         // Harvesting chart data
@@ -11652,6 +13402,22 @@ var TransactionsCtrl = function () {
                 // Alert error
                 _this2._Alert.errorGetMarketInfo();
             });
+            // Gets btc price
+            this._NetworkRequests.getBtcPrice().then(function (data) {
+                _this2._DataBridge.btcPrice = data;
+            }, function (err) {
+                _this2._Alert.errorGetBtcPrice();
+            });
+        }
+
+        /**
+         * Fix a value to 4 decimals
+         */
+
+    }, {
+        key: 'toFixed4',
+        value: function toFixed4(value) {
+            return value.toFixed(4);
         }
     }]);
 
@@ -11660,7 +13426,7 @@ var TransactionsCtrl = function () {
 
 exports.default = TransactionsCtrl;
 
-},{}],65:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -11694,7 +13460,7 @@ transferModule.controller('TransferCtrl', _transfer4.default);
 
 exports.default = transferModule;
 
-},{"./transfer.config":66,"./transfer.controller":67,"angular":80}],66:[function(require,module,exports){
+},{"./transfer.config":70,"./transfer.controller":71,"angular":84}],70:[function(require,module,exports){
 'use strict';
 
 TransferConfig.$inject = ["$stateProvider"];
@@ -11710,14 +13476,16 @@ function TransferConfig($stateProvider) {
         controllerAs: '$ctrl',
         templateUrl: 'modules/transfer/transfer.html',
         title: 'Transfer',
-        activetab: 'transfer'
-
+        activetab: 'transfer',
+        params: {
+            address: ''
+        }
     });
 };
 
 exports.default = TransferConfig;
 
-},{}],67:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -11746,13 +13514,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var TransferCtrl = function () {
-    TransferCtrl.$inject = ["$location", "Wallet", "Alert", "Transactions", "NetworkRequests", "DataBridge", "$state", "$ionicLoading", "$timeout", "$ionicPopover", "$scope"];
-    function TransferCtrl($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $state, $ionicLoading, $timeout, $ionicPopover, $scope) {
+var TransferTransactionCtrl = function () {
+    TransferTransactionCtrl.$inject = ["$state", "$localStorage", "$location", "Wallet", "Alert", "Transactions", "NetworkRequests", "DataBridge", "nemUtils", "Alias"];
+    function TransferTransactionCtrl($state, $localStorage, $location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, nemUtils, Alias) {
+
         'ngInject';
+
         // Alert service
 
-        _classCallCheck(this, TransferCtrl);
+        _classCallCheck(this, TransferTransactionCtrl);
 
         this._Alert = Alert;
         // $location to redirect
@@ -11766,6 +13536,18 @@ var TransferCtrl = function () {
         // DataBridge service
         this._DataBridge = DataBridge;
 
+        // Common NEM Functions
+        this._nemUtils = nemUtils;
+        // Alias Service
+        this._Alias = Alias;
+
+        // $state
+        this._$state = $state;
+        //Local storage
+        this._storage = $localStorage;
+        // use helpers in view
+        this._helpers = _helpers2.default;
+
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
             this._Alert.noWalletLoaded();
@@ -11773,31 +13555,29 @@ var TransferCtrl = function () {
             return;
         }
 
-        if (window.Connection) {
-            if (navigator.connection.type == Connection.NONE) {
-                this._Alert.noInternet();
-                this._location.path('/');
-            }
-        }
-        this._state = $state;
-
         /**
-         * Default transfer transaction properties 
+         * Default transfer transaction properties
          */
         this.formData = {};
         // Alias or address user type in
-        this.formData.rawRecipient = '';
+        this.formData.rawRecipient = this._$state.params.address.length ? this._$state.params.address : '';
+        if (this.formData.rawRecipient.length) {
+            this.processRecipientInput();
+        }
         // Cleaned recipient from @alias or input
         this.formData.recipient = '';
         this.formData.recipientPubKey = '';
         this.formData.message = '';
+        this.rawAmount = 0;
         this.formData.amount = 0;
         this.formData.fee = 0;
         this.formData.encryptMessage = false;
+
         // Multisig data
         this.formData.innerFee = 0;
         this.formData.isMultisig = false;
         this.formData.multisigAccount = this._DataBridge.accountData.meta.cosignatoryOf.length == 0 ? '' : this._DataBridge.accountData.meta.cosignatoryOf[0];
+
         // Mosaics data
         // Counter for mosaic gid
         this.counter = 1;
@@ -11821,19 +13601,127 @@ var TransferCtrl = function () {
         // Needed to prevent user to click twice on send when already processing
         this.okPressed = false;
 
+        // Object to contain our password & private key data.
+        this.common = {
+            'password': '',
+            'privateKey': ''
+        };
+
+        this.contacts = [];
+
+        if (undefined !== this._storage.contacts && undefined !== this._storage.contacts[this._Wallet.currentAccount.address] && this._storage.contacts[this._Wallet.currentAccount.address].length) {
+            this.contacts = this._storage.contacts[this._Wallet.currentAccount.address];
+        }
+
+        // Contacts to address book pagination properties
+        this.currentPageAb = 0;
+        this.pageSizeAb = 5;
+        this.numberOfPagesAb = function () {
+            return Math.ceil(this.contacts.length / this.pageSizeAb);
+        };
+
+        // Invoice model for QR
+        this.invoiceData = {
+            "v": this._Wallet.network === _Network2.default.data.Testnet.id ? 1 : 2,
+            "type": 2,
+            "data": {
+                "addr": this._Wallet.currentAccount.address,
+                "amount": 0,
+                "msg": "",
+                "name": "NanoWallet XEM invoice"
+            }
+        };
+
         // Init account mosaics
         this.updateCurrentAccountMosaics();
+
+        // Init invoice QR
+        this.updateInvoiceQR();
+
+        this.updateFees();
+
+        // NEM ALIAS SYSTEM
+        this.alias = "";
+        this.hasAlias = false;
+        this.showAliasField = false;
+
+        // Address Book
+        this.processRecipientInput();
     }
 
     /**
-     * processRecipientInput() Process recipient input and get data from network
-     * 
-     * @note: I'm using debounce in view to get data typed with a bit of delay,
-     * it limits network requests
+     * generateQRCode() Generate QR using kjua lib
      */
 
 
-    _createClass(TransferCtrl, [{
+    _createClass(TransferTransactionCtrl, [{
+        key: 'generateQRCode',
+        value: function generateQRCode(text) {
+            var qrCode = kjua({
+                size: 256,
+                text: text,
+                fill: '#000',
+                quiet: 0,
+                ratio: 2
+            });
+            $('#invoiceQR').html(qrCode);
+        }
+
+        /**
+         * updateInvoiceQR() Create the QR according to invoice data
+         */
+
+    }, {
+        key: 'updateInvoiceQR',
+        value: function updateInvoiceQR() {
+            // Clean input address
+            this.invoiceData.data.addr = this.invoiceData.data.addr.toUpperCase().replace(/-/g, '');
+            // Convert user input to micro XEM
+            this.invoiceData.data.amount = this.rawAmountInvoice * 1000000;
+            this.invoiceString = JSON.stringify(this.invoiceData);
+            // Generate the QR
+            this.generateQRCode(this.invoiceString);
+        }
+
+        /**
+         * setMosaicTransfer() Set or unset data for mosaic transfer
+         */
+
+    }, {
+        key: 'setMosaicTransfer',
+        value: function setMosaicTransfer() {
+            if (this.formData.isMosaicTransfer) {
+                // Set the initial mosaic array
+                this.formData.mosaics = [{
+                    'mosaicId': {
+                        'namespaceId': 'nem',
+                        'name': 'xem'
+                    },
+                    'quantity': 0,
+                    'gid': 'mos_id_0'
+                }];
+                // In case of mosaic transfer amount is used as multiplier,
+                // set to 1 as default
+                this.rawAmount = 1;
+                this.formData.amount = 1;
+            } else {
+                // Reset mosaics array
+                this.formData.mosaics = null;
+                // Reset amount
+                this.rawAmount = 0;
+                this.formData.amount = 0;
+            }
+            this.updateFees();
+        }
+
+        /**
+         * processRecipientInput() Process recipient input and get data from network
+         *
+         * @note: I'm using debounce in view to get data typed with a bit of delay,
+         * it limits network requests
+         */
+
+    }, {
         key: 'processRecipientInput',
         value: function processRecipientInput() {
             // Check if value is an alias
@@ -11848,10 +13736,8 @@ var TransferCtrl = function () {
 
             // Get recipient data depending of address or alias used
             if (isAlias) {
-                // Clean namespace name of the @
-                var nsForLookup = this.formData.rawRecipient.substring(1);
-                // Get namespace info and account data from network
-                this.getRecipientDataFromAlias(nsForLookup);
+                // Get alias info and account data from network
+                this.getRecipientDataFromAlias(this.formData.rawRecipient);
             } else {
                 // Normal address used
                 // Clean address
@@ -11871,8 +13757,31 @@ var TransferCtrl = function () {
         }
 
         /**
+         * updateFees() Update transaction fee
+         */
+
+    }, {
+        key: 'updateFees',
+        value: function updateFees() {
+            if (!_helpers2.default.isAmountValid(this.rawAmount)) {
+                this._Alert.invalidAmount();
+                return;
+            } else {
+                this.formData.amount = _helpers2.default.cleanAmount(this.rawAmount);
+                //console.log(this.formData.amount)
+            }
+            var entity = this._Transactions.prepareTransfer(this.common, this.formData, this.mosaicsMetaData);
+            if (this.formData.isMultisig) {
+                this.formData.innerFee = entity.otherTrans.fee;
+            } else {
+                this.formData.innerFee = 0;
+            }
+            this.formData.fee = entity.fee;
+        }
+
+        /**
          * getRecipientData() Get recipient account data from network
-         * 
+         *
          * @param address: The recipient address
          */
 
@@ -11884,6 +13793,7 @@ var TransferCtrl = function () {
             return this._NetworkRequests.getAccountData(_helpers2.default.getHostname(this._Wallet.node), address).then(function (data) {
                 // Store recipient public key (needed to encrypt messages)
                 _this.formData.recipientPubKey = data.account.publicKey;
+                //console.log(this.formData.recipientPubKey)
                 // Set the address to send to
                 _this.formData.recipient = address;
             }, function (err) {
@@ -11893,11 +13803,25 @@ var TransferCtrl = function () {
                 return;
             });
         }
-
+    }, {
+        key: 'checkAddress',
+        value: function checkAddress(address) {
+            // Check if address is from network
+            if (_Address2.default.isFromNetwork(address, this._Wallet.network)) {
+                // Get recipient account data from network
+                this.getRecipientData(address);
+            } else {
+                // Unexpected error, this alert will not dismiss on timeout
+                this._Alert.invalidAddressForNetwork(address, this._Wallet.network);
+                // Reset recipient data
+                this.resetRecipientData();
+                return;
+            }
+        }
         /**
          * getRecipientDataFromAlias() Get recipient account data from network using @alias
-         * 
-         * @param alias: The recipient alias (namespace)
+         *
+         * @param alias: The recipient alias (NEM ALIAS SYSTEM)
          */
 
     }, {
@@ -11905,28 +13829,62 @@ var TransferCtrl = function () {
         value: function getRecipientDataFromAlias(alias) {
             var _this2 = this;
 
-            return this._NetworkRequests.getNamespacesById(_helpers2.default.getHostname(this._Wallet.node), alias).then(function (data) {
-                // Set the alias address
-                _this2.aliasAddress = data.owner;
-                // Show the read-only input containing alias address
-                _this2.showAlias = true;
-                // Check if address is from network
-                if (_Address2.default.isFromNetwork(_this2.aliasAddress, _this2._Wallet.network)) {
-                    // Get recipient account data from network
-                    _this2.getRecipientData(_this2.aliasAddress);
-                } else {
-                    // Unexpected error, this alert will not dismiss on timeout
-                    _this2._Alert.invalidAddressForNetwork(_this2.aliasAddress, _this2._Wallet.network);
-                    // Reset recipient data
-                    _this2.resetRecipientData();
-                    return;
+            this._Alias.fetchAlias(alias).then(function (address) {
+                if (address) {
+                    // Set the alias address
+                    _this2.aliasAddress = address;
+                    // Show the read-only input containing alias address
+                    _this2.showAlias = true;
+                    // Check that address is from the network
+                    _this2.checkAddress(_this2.aliasAddress);
                 }
-            }, function (err) {
-                _this2._Alert.getNamespacesByIdError(err.data.message);
-                // Reset recipient data
-                _this2.resetRecipientData();
-                return;
             });
+        }
+
+        /**
+         * attachMosaic() Get selected mosaic and push it in mosaics array
+         */
+
+    }, {
+        key: 'attachMosaic',
+        value: function attachMosaic() {
+            // increment counter
+            this.counter++;
+            // Get current account
+            var acct = this._Wallet.currentAccount.address;
+            if (this.formData.isMultisig) {
+                // Use selected multisig
+                acct = this.formData.multisigAccount.address;
+            }
+            // Get the mosaic selected
+            var mosaic = this._DataBridge.mosaicOwned[acct][this.selectedMosaic];
+            // Check if mosaic already present in mosaics array
+            var elem = $.grep(this.formData.mosaics, function (w) {
+                return _helpers2.default.mosaicIdToName(mosaic.mosaicId) === _helpers2.default.mosaicIdToName(w.mosaicId);
+            });
+            // If not present, update the array
+            if (elem.length === 0) {
+                this.formData.mosaics.push({
+                    'mosaicId': mosaic['mosaicId'],
+                    'quantity': 0,
+                    'gid': 'mos_id_' + this.counter
+                });
+
+                this.updateFees();
+            }
+        }
+
+        /**
+         * removeMosaic() Remove a mosaic from mosaics array
+         *
+         * @param index: Index of mosaic object in the array
+         */
+
+    }, {
+        key: 'removeMosaic',
+        value: function removeMosaic(index) {
+            this.formData.mosaics.splice(index, 1);
+            this.updateFees();
         }
 
         /**
@@ -11957,9 +13915,6 @@ var TransferCtrl = function () {
             // Default selected is nem:xem
             this.selectedMosaic = "nem:xem";
         }
-    }, {
-        key: 'updateMosaicUnitToTransfer',
-        value: function updateMosaicUnitToTransfer() {}
 
         /**
          * resetRecipientData() Reset data stored for recipient
@@ -11984,7 +13939,7 @@ var TransferCtrl = function () {
             if (this.showAlias) {
                 alias = this.formData.rawRecipient;
             }
-            this._state.go('app.transferConfirm', { to: this.formData.recipient,
+            this._$state.go('app.transferConfirm', { to: this.formData.recipient,
                 alias: alias,
                 amount: this.formData.amount,
                 currency: this.selectedMosaic,
@@ -11992,12 +13947,12 @@ var TransferCtrl = function () {
         }
     }]);
 
-    return TransferCtrl;
+    return TransferTransactionCtrl;
 }();
 
-exports.default = TransferCtrl;
+exports.default = TransferTransactionCtrl;
 
-},{"../../../../nanowallet/src/app/utils/Address":27,"../../../../nanowallet/src/app/utils/CryptoHelpers":28,"../../../../nanowallet/src/app/utils/Network":30,"../../../../nanowallet/src/app/utils/helpers":35}],68:[function(require,module,exports){
+},{"../../../../nanowallet/src/app/utils/Address":31,"../../../../nanowallet/src/app/utils/CryptoHelpers":32,"../../../../nanowallet/src/app/utils/Network":34,"../../../../nanowallet/src/app/utils/helpers":39}],72:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -12031,7 +13986,7 @@ transferConfirmModule.controller('TransferConfirmCtrl', _transferConfirm4.defaul
 
 exports.default = transferConfirmModule;
 
-},{"./transferConfirm.config":69,"./transferConfirm.controller":70,"angular":80}],69:[function(require,module,exports){
+},{"./transferConfirm.config":73,"./transferConfirm.controller":74,"angular":84}],73:[function(require,module,exports){
 'use strict';
 
 TransferConfirmConfig.$inject = ["$stateProvider"];
@@ -12053,7 +14008,7 @@ function TransferConfirmConfig($stateProvider) {
 
 exports.default = TransferConfirmConfig;
 
-},{}],70:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -12312,7 +14267,7 @@ var TransferConfirmCtrl = function () {
 
 exports.default = TransferConfirmCtrl;
 
-},{"../../../../nanowallet/src/app/utils/Address":27,"../../../../nanowallet/src/app/utils/CryptoHelpers":28,"../../../../nanowallet/src/app/utils/Network":30,"../../../../nanowallet/src/app/utils/helpers":35}],71:[function(require,module,exports){
+},{"../../../../nanowallet/src/app/utils/Address":31,"../../../../nanowallet/src/app/utils/CryptoHelpers":32,"../../../../nanowallet/src/app/utils/Network":34,"../../../../nanowallet/src/app/utils/helpers":39}],75:[function(require,module,exports){
 /**
  * @license AngularJS v1.5.7
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -16460,11 +18415,11 @@ angular.module('ngAnimate', [])
 
 })(window, window.angular);
 
-},{}],72:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 require('./angular-animate');
 module.exports = 'ngAnimate';
 
-},{"./angular-animate":71}],73:[function(require,module,exports){
+},{"./angular-animate":75}],77:[function(require,module,exports){
 /*!
  * angular-chart.js - An angular.js wrapper for Chart.js
  * http://jtblin.github.io/angular-chart.js/
@@ -16840,7 +18795,7 @@ module.exports = 'ngAnimate';
   }
 }));
 
-},{"angular":80,"chart.js":322}],74:[function(require,module,exports){
+},{"angular":84,"chart.js":326}],78:[function(require,module,exports){
 /**
  * @license AngularJS v1.5.8
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -19968,7 +21923,7 @@ angular.mock.$RootScopeDecorator = ['$delegate', function($delegate) {
 
 })(window, window.angular);
 
-},{}],75:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 /**
  * @license AngularJS v1.6.1
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -20709,11 +22664,11 @@ angular.module('ngSanitize').filter('linky', ['$sanitize', function($sanitize) {
 
 })(window, window.angular);
 
-},{}],76:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 require('./angular-sanitize');
 module.exports = 'ngSanitize';
 
-},{"./angular-sanitize":75}],77:[function(require,module,exports){
+},{"./angular-sanitize":79}],81:[function(require,module,exports){
 /*!
  * angular-translate - v2.11.0 - 2016-03-20
  * 
@@ -24119,7 +26074,7 @@ return 'pascalprecht.translate';
 
 }));
 
-},{}],78:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 /**
  * State-based routing for AngularJS
  * @version v0.3.2
@@ -28729,7 +30684,7 @@ angular.module('ui.router.state')
   .filter('isState', $IsStateFilter)
   .filter('includedByState', $IncludedByStateFilter);
 })(window, window.angular);
-},{}],79:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /**
  * @license AngularJS v1.6.1
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -61712,11 +63667,11 @@ $provide.value("$locale", {
 })(window);
 
 !window.angular.$$csp().noInlineStyle && window.angular.element(document.head).prepend('<style type="text/css">@charset "UTF-8";[ng\\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>');
-},{}],80:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 require('./angular');
 module.exports = angular;
 
-},{"./angular":79}],81:[function(require,module,exports){
+},{"./angular":83}],85:[function(require,module,exports){
 // This file is autogenerated via the `commonjs` Grunt task. You can require() this file in a CommonJS environment.
 require('../../js/transition.js')
 require('../../js/alert.js')
@@ -61730,7 +63685,7 @@ require('../../js/popover.js')
 require('../../js/scrollspy.js')
 require('../../js/tab.js')
 require('../../js/affix.js')
-},{"../../js/affix.js":82,"../../js/alert.js":83,"../../js/button.js":84,"../../js/carousel.js":85,"../../js/collapse.js":86,"../../js/dropdown.js":87,"../../js/modal.js":88,"../../js/popover.js":89,"../../js/scrollspy.js":90,"../../js/tab.js":91,"../../js/tooltip.js":92,"../../js/transition.js":93}],82:[function(require,module,exports){
+},{"../../js/affix.js":86,"../../js/alert.js":87,"../../js/button.js":88,"../../js/carousel.js":89,"../../js/collapse.js":90,"../../js/dropdown.js":91,"../../js/modal.js":92,"../../js/popover.js":93,"../../js/scrollspy.js":94,"../../js/tab.js":95,"../../js/tooltip.js":96,"../../js/transition.js":97}],86:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: affix.js v3.3.6
  * http://getbootstrap.com/javascript/#affix
@@ -61894,7 +63849,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],83:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: alert.js v3.3.6
  * http://getbootstrap.com/javascript/#alerts
@@ -61990,7 +63945,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],84:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: button.js v3.3.6
  * http://getbootstrap.com/javascript/#buttons
@@ -62112,7 +64067,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],85:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: carousel.js v3.3.6
  * http://getbootstrap.com/javascript/#carousel
@@ -62351,7 +64306,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],86:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: collapse.js v3.3.6
  * http://getbootstrap.com/javascript/#collapse
@@ -62564,7 +64519,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],87:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: dropdown.js v3.3.6
  * http://getbootstrap.com/javascript/#dropdowns
@@ -62731,7 +64686,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],88:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: modal.js v3.3.6
  * http://getbootstrap.com/javascript/#modals
@@ -63070,7 +65025,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],89:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: popover.js v3.3.6
  * http://getbootstrap.com/javascript/#popovers
@@ -63180,7 +65135,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],90:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: scrollspy.js v3.3.6
  * http://getbootstrap.com/javascript/#scrollspy
@@ -63354,7 +65309,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],91:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: tab.js v3.3.6
  * http://getbootstrap.com/javascript/#tabs
@@ -63511,7 +65466,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],92:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: tooltip.js v3.3.6
  * http://getbootstrap.com/javascript/#tooltip
@@ -64027,7 +65982,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],93:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: transition.js v3.3.6
  * http://getbootstrap.com/javascript/#transitions
@@ -64088,9 +66043,9 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],94:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
 
-},{}],95:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -65883,7 +67838,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":96,"ieee754":97,"isarray":98}],96:[function(require,module,exports){
+},{"base64-js":100,"ieee754":101,"isarray":102}],100:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -65999,7 +67954,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],97:[function(require,module,exports){
+},{}],101:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -66085,14 +68040,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],98:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],99:[function(require,module,exports){
+},{}],103:[function(require,module,exports){
 'use strict'
 
 exports.randomBytes = exports.rng = exports.pseudoRandomBytes = exports.prng = require('randombytes')
@@ -66171,7 +68126,7 @@ var publicEncrypt = require('public-encrypt')
   }
 })
 
-},{"browserify-cipher":100,"browserify-sign":130,"browserify-sign/algos":129,"create-ecdh":197,"create-hash":223,"create-hmac":236,"diffie-hellman":237,"pbkdf2":244,"public-encrypt":246,"randombytes":291}],100:[function(require,module,exports){
+},{"browserify-cipher":104,"browserify-sign":134,"browserify-sign/algos":133,"create-ecdh":201,"create-hash":227,"create-hmac":240,"diffie-hellman":241,"pbkdf2":248,"public-encrypt":250,"randombytes":295}],104:[function(require,module,exports){
 var ebtk = require('evp_bytestokey')
 var aes = require('browserify-aes/browser')
 var DES = require('browserify-des')
@@ -66246,7 +68201,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"browserify-aes/browser":103,"browserify-aes/modes":107,"browserify-des":118,"browserify-des/modes":119,"evp_bytestokey":128}],101:[function(require,module,exports){
+},{"browserify-aes/browser":107,"browserify-aes/modes":111,"browserify-des":122,"browserify-des/modes":123,"evp_bytestokey":132}],105:[function(require,module,exports){
 (function (Buffer){
 // based on the aes implimentation in triple sec
 // https://github.com/keybase/triplesec
@@ -66427,7 +68382,7 @@ AES.prototype._doCryptBlock = function (M, keySchedule, SUB_MIX, SBOX) {
 exports.AES = AES
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],102:[function(require,module,exports){
+},{"buffer":99}],106:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -66528,7 +68483,7 @@ function xorTest (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":101,"./ghash":106,"buffer":95,"buffer-xor":115,"cipher-base":116,"inherits":293}],103:[function(require,module,exports){
+},{"./aes":105,"./ghash":110,"buffer":99,"buffer-xor":119,"cipher-base":120,"inherits":297}],107:[function(require,module,exports){
 var ciphers = require('./encrypter')
 exports.createCipher = exports.Cipher = ciphers.createCipher
 exports.createCipheriv = exports.Cipheriv = ciphers.createCipheriv
@@ -66541,7 +68496,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"./decrypter":104,"./encrypter":105,"./modes":107}],104:[function(require,module,exports){
+},{"./decrypter":108,"./encrypter":109,"./modes":111}],108:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -66682,7 +68637,7 @@ exports.createDecipher = createDecipher
 exports.createDecipheriv = createDecipheriv
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":101,"./authCipher":102,"./modes":107,"./modes/cbc":108,"./modes/cfb":109,"./modes/cfb1":110,"./modes/cfb8":111,"./modes/ctr":112,"./modes/ecb":113,"./modes/ofb":114,"./streamCipher":117,"buffer":95,"cipher-base":116,"evp_bytestokey":128,"inherits":293}],105:[function(require,module,exports){
+},{"./aes":105,"./authCipher":106,"./modes":111,"./modes/cbc":112,"./modes/cfb":113,"./modes/cfb1":114,"./modes/cfb8":115,"./modes/ctr":116,"./modes/ecb":117,"./modes/ofb":118,"./streamCipher":121,"buffer":99,"cipher-base":120,"evp_bytestokey":132,"inherits":297}],109:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -66808,7 +68763,7 @@ exports.createCipheriv = createCipheriv
 exports.createCipher = createCipher
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":101,"./authCipher":102,"./modes":107,"./modes/cbc":108,"./modes/cfb":109,"./modes/cfb1":110,"./modes/cfb8":111,"./modes/ctr":112,"./modes/ecb":113,"./modes/ofb":114,"./streamCipher":117,"buffer":95,"cipher-base":116,"evp_bytestokey":128,"inherits":293}],106:[function(require,module,exports){
+},{"./aes":105,"./authCipher":106,"./modes":111,"./modes/cbc":112,"./modes/cfb":113,"./modes/cfb1":114,"./modes/cfb8":115,"./modes/ctr":116,"./modes/ecb":117,"./modes/ofb":118,"./streamCipher":121,"buffer":99,"cipher-base":120,"evp_bytestokey":132,"inherits":297}],110:[function(require,module,exports){
 (function (Buffer){
 var zeros = new Buffer(16)
 zeros.fill(0)
@@ -66910,7 +68865,7 @@ function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],107:[function(require,module,exports){
+},{"buffer":99}],111:[function(require,module,exports){
 exports['aes-128-ecb'] = {
   cipher: 'AES',
   key: 128,
@@ -67083,7 +69038,7 @@ exports['aes-256-gcm'] = {
   type: 'auth'
 }
 
-},{}],108:[function(require,module,exports){
+},{}],112:[function(require,module,exports){
 var xor = require('buffer-xor')
 
 exports.encrypt = function (self, block) {
@@ -67102,7 +69057,7 @@ exports.decrypt = function (self, block) {
   return xor(out, pad)
 }
 
-},{"buffer-xor":115}],109:[function(require,module,exports){
+},{"buffer-xor":119}],113:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -67137,7 +69092,7 @@ function encryptStart (self, data, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"buffer-xor":115}],110:[function(require,module,exports){
+},{"buffer":99,"buffer-xor":119}],114:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad
@@ -67175,7 +69130,7 @@ function shiftIn (buffer, value) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],111:[function(require,module,exports){
+},{"buffer":99}],115:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad = self._cipher.encryptBlock(self._prev)
@@ -67194,7 +69149,7 @@ exports.encrypt = function (self, chunk, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],112:[function(require,module,exports){
+},{"buffer":99}],116:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -67229,7 +69184,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"buffer-xor":115}],113:[function(require,module,exports){
+},{"buffer":99,"buffer-xor":119}],117:[function(require,module,exports){
 exports.encrypt = function (self, block) {
   return self._cipher.encryptBlock(block)
 }
@@ -67237,7 +69192,7 @@ exports.decrypt = function (self, block) {
   return self._cipher.decryptBlock(block)
 }
 
-},{}],114:[function(require,module,exports){
+},{}],118:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -67257,7 +69212,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"buffer-xor":115}],115:[function(require,module,exports){
+},{"buffer":99,"buffer-xor":119}],119:[function(require,module,exports){
 (function (Buffer){
 module.exports = function xor (a, b) {
   var length = Math.min(a.length, b.length)
@@ -67271,7 +69226,7 @@ module.exports = function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],116:[function(require,module,exports){
+},{"buffer":99}],120:[function(require,module,exports){
 (function (Buffer){
 var Transform = require('stream').Transform
 var inherits = require('inherits')
@@ -67365,7 +69320,7 @@ CipherBase.prototype._toString = function (value, enc, fin) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"inherits":293,"stream":312,"string_decoder":313}],117:[function(require,module,exports){
+},{"buffer":99,"inherits":297,"stream":316,"string_decoder":317}],121:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -67394,7 +69349,7 @@ StreamCipher.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":101,"buffer":95,"cipher-base":116,"inherits":293}],118:[function(require,module,exports){
+},{"./aes":105,"buffer":99,"cipher-base":120,"inherits":297}],122:[function(require,module,exports){
 (function (Buffer){
 var CipherBase = require('cipher-base')
 var des = require('des.js')
@@ -67441,7 +69396,7 @@ DES.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"cipher-base":120,"des.js":121,"inherits":293}],119:[function(require,module,exports){
+},{"buffer":99,"cipher-base":124,"des.js":125,"inherits":297}],123:[function(require,module,exports){
 exports['des-ecb'] = {
   key: 8,
   iv: 0
@@ -67467,9 +69422,9 @@ exports['des-ede'] = {
   iv: 0
 }
 
-},{}],120:[function(require,module,exports){
-arguments[4][116][0].apply(exports,arguments)
-},{"buffer":95,"dup":116,"inherits":293,"stream":312,"string_decoder":313}],121:[function(require,module,exports){
+},{}],124:[function(require,module,exports){
+arguments[4][120][0].apply(exports,arguments)
+},{"buffer":99,"dup":120,"inherits":297,"stream":316,"string_decoder":317}],125:[function(require,module,exports){
 'use strict';
 
 exports.utils = require('./des/utils');
@@ -67478,7 +69433,7 @@ exports.DES = require('./des/des');
 exports.CBC = require('./des/cbc');
 exports.EDE = require('./des/ede');
 
-},{"./des/cbc":122,"./des/cipher":123,"./des/des":124,"./des/ede":125,"./des/utils":126}],122:[function(require,module,exports){
+},{"./des/cbc":126,"./des/cipher":127,"./des/des":128,"./des/ede":129,"./des/utils":130}],126:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -67545,7 +69500,7 @@ proto._update = function _update(inp, inOff, out, outOff) {
   }
 };
 
-},{"inherits":293,"minimalistic-assert":127}],123:[function(require,module,exports){
+},{"inherits":297,"minimalistic-assert":131}],127:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -67688,7 +69643,7 @@ Cipher.prototype._finalDecrypt = function _finalDecrypt() {
   return this._unpad(out);
 };
 
-},{"minimalistic-assert":127}],124:[function(require,module,exports){
+},{"minimalistic-assert":131}],128:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -67833,7 +69788,7 @@ DES.prototype._decrypt = function _decrypt(state, lStart, rStart, out, off) {
   utils.rip(l, r, out, off);
 };
 
-},{"../des":121,"inherits":293,"minimalistic-assert":127}],125:[function(require,module,exports){
+},{"../des":125,"inherits":297,"minimalistic-assert":131}],129:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -67890,7 +69845,7 @@ EDE.prototype._update = function _update(inp, inOff, out, outOff) {
 EDE.prototype._pad = DES.prototype._pad;
 EDE.prototype._unpad = DES.prototype._unpad;
 
-},{"../des":121,"inherits":293,"minimalistic-assert":127}],126:[function(require,module,exports){
+},{"../des":125,"inherits":297,"minimalistic-assert":131}],130:[function(require,module,exports){
 'use strict';
 
 exports.readUInt32BE = function readUInt32BE(bytes, off) {
@@ -68148,7 +70103,7 @@ exports.padSplit = function padSplit(num, size, group) {
   return out.join(' ');
 };
 
-},{}],127:[function(require,module,exports){
+},{}],131:[function(require,module,exports){
 module.exports = assert;
 
 function assert(val, msg) {
@@ -68161,7 +70116,7 @@ assert.equal = function assertEqual(l, r, msg) {
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
 };
 
-},{}],128:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 (function (Buffer){
 var md5 = require('create-hash/md5')
 module.exports = EVP_BytesToKey
@@ -68233,7 +70188,7 @@ function EVP_BytesToKey (password, salt, keyLen, ivLen) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"create-hash/md5":225}],129:[function(require,module,exports){
+},{"buffer":99,"create-hash/md5":229}],133:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 exports['RSA-SHA224'] = exports.sha224WithRSAEncryption = {
@@ -68309,7 +70264,7 @@ exports['RSA-MD5'] = exports.md5WithRSAEncryption = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],130:[function(require,module,exports){
+},{"buffer":99}],134:[function(require,module,exports){
 (function (Buffer){
 var _algos = require('./algos')
 var createHash = require('create-hash')
@@ -68416,7 +70371,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./algos":129,"./sign":195,"./verify":196,"buffer":95,"create-hash":223,"inherits":293,"stream":312}],131:[function(require,module,exports){
+},{"./algos":133,"./sign":199,"./verify":200,"buffer":99,"create-hash":227,"inherits":297,"stream":316}],135:[function(require,module,exports){
 'use strict'
 exports['1.3.132.0.10'] = 'secp256k1'
 
@@ -68430,7 +70385,7 @@ exports['1.3.132.0.34'] = 'p384'
 
 exports['1.3.132.0.35'] = 'p521'
 
-},{}],132:[function(require,module,exports){
+},{}],136:[function(require,module,exports){
 (function (module, exports) {
   'use strict';
 
@@ -71859,7 +73814,7 @@ exports['1.3.132.0.35'] = 'p521'
   };
 })(typeof module === 'undefined' || module, this);
 
-},{}],133:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 var randomBytes = require('randombytes');
@@ -71903,7 +73858,7 @@ function getr(priv) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":132,"buffer":95,"randombytes":291}],134:[function(require,module,exports){
+},{"bn.js":136,"buffer":99,"randombytes":295}],138:[function(require,module,exports){
 'use strict';
 
 var elliptic = exports;
@@ -71919,7 +73874,7 @@ elliptic.curves = require('./elliptic/curves');
 elliptic.ec = require('./elliptic/ec');
 elliptic.eddsa = require('./elliptic/eddsa');
 
-},{"../package.json":157,"./elliptic/curve":137,"./elliptic/curves":140,"./elliptic/ec":141,"./elliptic/eddsa":144,"./elliptic/hmac-drbg":147,"./elliptic/utils":149,"brorand":150}],135:[function(require,module,exports){
+},{"../package.json":161,"./elliptic/curve":141,"./elliptic/curves":144,"./elliptic/ec":145,"./elliptic/eddsa":148,"./elliptic/hmac-drbg":151,"./elliptic/utils":153,"brorand":154}],139:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -72296,7 +74251,7 @@ BasePoint.prototype.dblp = function dblp(k) {
   return r;
 };
 
-},{"../../elliptic":134,"bn.js":132}],136:[function(require,module,exports){
+},{"../../elliptic":138,"bn.js":136}],140:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -72731,7 +74686,7 @@ Point.prototype.eqXToP = function eqXToP(x) {
 Point.prototype.toP = Point.prototype.normalize;
 Point.prototype.mixedAdd = Point.prototype.add;
 
-},{"../../elliptic":134,"../curve":137,"bn.js":132,"inherits":293}],137:[function(require,module,exports){
+},{"../../elliptic":138,"../curve":141,"bn.js":136,"inherits":297}],141:[function(require,module,exports){
 'use strict';
 
 var curve = exports;
@@ -72741,7 +74696,7 @@ curve.short = require('./short');
 curve.mont = require('./mont');
 curve.edwards = require('./edwards');
 
-},{"./base":135,"./edwards":136,"./mont":138,"./short":139}],138:[function(require,module,exports){
+},{"./base":139,"./edwards":140,"./mont":142,"./short":143}],142:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -72923,7 +74878,7 @@ Point.prototype.getX = function getX() {
   return this.x.fromRed();
 };
 
-},{"../../elliptic":134,"../curve":137,"bn.js":132,"inherits":293}],139:[function(require,module,exports){
+},{"../../elliptic":138,"../curve":141,"bn.js":136,"inherits":297}],143:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -73863,7 +75818,7 @@ JPoint.prototype.isInfinity = function isInfinity() {
   return this.z.cmpn(0) === 0;
 };
 
-},{"../../elliptic":134,"../curve":137,"bn.js":132,"inherits":293}],140:[function(require,module,exports){
+},{"../../elliptic":138,"../curve":141,"bn.js":136,"inherits":297}],144:[function(require,module,exports){
 'use strict';
 
 var curves = exports;
@@ -74070,7 +76025,7 @@ defineCurve('secp256k1', {
   ]
 });
 
-},{"../elliptic":134,"./precomputed/secp256k1":148,"hash.js":151}],141:[function(require,module,exports){
+},{"../elliptic":138,"./precomputed/secp256k1":152,"hash.js":155}],145:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -74309,7 +76264,7 @@ EC.prototype.getKeyRecoveryParam = function(e, signature, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-},{"../../elliptic":134,"./key":142,"./signature":143,"bn.js":132}],142:[function(require,module,exports){
+},{"../../elliptic":138,"./key":146,"./signature":147,"bn.js":136}],146:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -74418,7 +76373,7 @@ KeyPair.prototype.inspect = function inspect() {
          ' pub: ' + (this.pub && this.pub.inspect()) + ' >';
 };
 
-},{"bn.js":132}],143:[function(require,module,exports){
+},{"bn.js":136}],147:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -74555,7 +76510,7 @@ Signature.prototype.toDER = function toDER(enc) {
   return utils.encode(res, enc);
 };
 
-},{"../../elliptic":134,"bn.js":132}],144:[function(require,module,exports){
+},{"../../elliptic":138,"bn.js":136}],148:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -74675,7 +76630,7 @@ EDDSA.prototype.isPoint = function isPoint(val) {
   return val instanceof this.pointClass;
 };
 
-},{"../../elliptic":134,"./key":145,"./signature":146,"hash.js":151}],145:[function(require,module,exports){
+},{"../../elliptic":138,"./key":149,"./signature":150,"hash.js":155}],149:[function(require,module,exports){
 'use strict';
 
 var elliptic = require('../../elliptic');
@@ -74773,7 +76728,7 @@ KeyPair.prototype.getPublic = function getPublic(enc) {
 
 module.exports = KeyPair;
 
-},{"../../elliptic":134}],146:[function(require,module,exports){
+},{"../../elliptic":138}],150:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -74841,7 +76796,7 @@ Signature.prototype.toHex = function toHex() {
 
 module.exports = Signature;
 
-},{"../../elliptic":134,"bn.js":132}],147:[function(require,module,exports){
+},{"../../elliptic":138,"bn.js":136}],151:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -74957,7 +76912,7 @@ HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
   return utils.encode(res, enc);
 };
 
-},{"../elliptic":134,"hash.js":151}],148:[function(require,module,exports){
+},{"../elliptic":138,"hash.js":155}],152:[function(require,module,exports){
 module.exports = {
   doubles: {
     step: 4,
@@ -75739,7 +77694,7 @@ module.exports = {
   }
 };
 
-},{}],149:[function(require,module,exports){
+},{}],153:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -75913,7 +77868,7 @@ function intFromLE(bytes) {
 utils.intFromLE = intFromLE;
 
 
-},{"bn.js":132}],150:[function(require,module,exports){
+},{"bn.js":136}],154:[function(require,module,exports){
 var r;
 
 module.exports = function rand(len) {
@@ -75972,7 +77927,7 @@ if (typeof window === 'object') {
   }
 }
 
-},{"crypto":94}],151:[function(require,module,exports){
+},{"crypto":98}],155:[function(require,module,exports){
 var hash = exports;
 
 hash.utils = require('./hash/utils');
@@ -75989,7 +77944,7 @@ hash.sha384 = hash.sha.sha384;
 hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 
-},{"./hash/common":152,"./hash/hmac":153,"./hash/ripemd":154,"./hash/sha":155,"./hash/utils":156}],152:[function(require,module,exports){
+},{"./hash/common":156,"./hash/hmac":157,"./hash/ripemd":158,"./hash/sha":159,"./hash/utils":160}],156:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -76082,7 +78037,7 @@ BlockHash.prototype._pad = function pad() {
   return res;
 };
 
-},{"../hash":151}],153:[function(require,module,exports){
+},{"../hash":155}],157:[function(require,module,exports){
 var hmac = exports;
 
 var hash = require('../hash');
@@ -76132,7 +78087,7 @@ Hmac.prototype.digest = function digest(enc) {
   return this.outer.digest(enc);
 };
 
-},{"../hash":151}],154:[function(require,module,exports){
+},{"../hash":155}],158:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 
@@ -76278,7 +78233,7 @@ var sh = [
   8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
 ];
 
-},{"../hash":151}],155:[function(require,module,exports){
+},{"../hash":155}],159:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -76844,7 +78799,7 @@ function g1_512_lo(xh, xl) {
   return r;
 }
 
-},{"../hash":151}],156:[function(require,module,exports){
+},{"../hash":155}],160:[function(require,module,exports){
 var utils = exports;
 var inherits = require('inherits');
 
@@ -77103,7 +79058,7 @@ function shr64_lo(ah, al, num) {
 };
 exports.shr64_lo = shr64_lo;
 
-},{"inherits":293}],157:[function(require,module,exports){
+},{"inherits":297}],161:[function(require,module,exports){
 module.exports={
   "name": "elliptic",
   "version": "6.3.2",
@@ -77189,7 +79144,7 @@ module.exports={
   "readme": "ERROR: No README data found!"
 }
 
-},{}],158:[function(require,module,exports){
+},{}],162:[function(require,module,exports){
 module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.2": "aes-128-cbc",
 "2.16.840.1.101.3.4.1.3": "aes-128-ofb",
@@ -77203,7 +79158,7 @@ module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.43": "aes-256-ofb",
 "2.16.840.1.101.3.4.1.44": "aes-256-cfb"
 }
-},{}],159:[function(require,module,exports){
+},{}],163:[function(require,module,exports){
 // from https://github.com/indutny/self-signed/blob/gh-pages/lib/asn1.js
 // Fedor, you are amazing.
 
@@ -77322,7 +79277,7 @@ exports.signature = asn1.define('signature', function () {
   )
 })
 
-},{"asn1.js":162}],160:[function(require,module,exports){
+},{"asn1.js":166}],164:[function(require,module,exports){
 (function (Buffer){
 // adapted from https://github.com/apatil/pemstrip
 var findProc = /Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: AES-((?:128)|(?:192)|(?:256))-CBC,([0-9A-H]+)\r?\n\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n/m
@@ -77356,7 +79311,7 @@ module.exports = function (okey, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"browserify-aes":179,"buffer":95,"evp_bytestokey":194}],161:[function(require,module,exports){
+},{"browserify-aes":183,"buffer":99,"evp_bytestokey":198}],165:[function(require,module,exports){
 (function (Buffer){
 var asn1 = require('./asn1')
 var aesid = require('./aesid.json')
@@ -77461,7 +79416,7 @@ function decrypt (data, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aesid.json":158,"./asn1":159,"./fixProc":160,"browserify-aes":179,"buffer":95,"pbkdf2":244}],162:[function(require,module,exports){
+},{"./aesid.json":162,"./asn1":163,"./fixProc":164,"browserify-aes":183,"buffer":99,"pbkdf2":248}],166:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
@@ -77472,7 +79427,7 @@ asn1.constants = require('./asn1/constants');
 asn1.decoders = require('./asn1/decoders');
 asn1.encoders = require('./asn1/encoders');
 
-},{"./asn1/api":163,"./asn1/base":165,"./asn1/constants":169,"./asn1/decoders":171,"./asn1/encoders":174,"bn.js":132}],163:[function(require,module,exports){
+},{"./asn1/api":167,"./asn1/base":169,"./asn1/constants":173,"./asn1/decoders":175,"./asn1/encoders":178,"bn.js":136}],167:[function(require,module,exports){
 var asn1 = require('../asn1');
 var inherits = require('inherits');
 
@@ -77535,7 +79490,7 @@ Entity.prototype.encode = function encode(data, enc, /* internal */ reporter) {
   return this._getEncoder(enc).encode(data, reporter);
 };
 
-},{"../asn1":162,"inherits":293,"vm":314}],164:[function(require,module,exports){
+},{"../asn1":166,"inherits":297,"vm":318}],168:[function(require,module,exports){
 var inherits = require('inherits');
 var Reporter = require('../base').Reporter;
 var Buffer = require('buffer').Buffer;
@@ -77653,7 +79608,7 @@ EncoderBuffer.prototype.join = function join(out, offset) {
   return out;
 };
 
-},{"../base":165,"buffer":95,"inherits":293}],165:[function(require,module,exports){
+},{"../base":169,"buffer":99,"inherits":297}],169:[function(require,module,exports){
 var base = exports;
 
 base.Reporter = require('./reporter').Reporter;
@@ -77661,7 +79616,7 @@ base.DecoderBuffer = require('./buffer').DecoderBuffer;
 base.EncoderBuffer = require('./buffer').EncoderBuffer;
 base.Node = require('./node');
 
-},{"./buffer":164,"./node":166,"./reporter":167}],166:[function(require,module,exports){
+},{"./buffer":168,"./node":170,"./reporter":171}],170:[function(require,module,exports){
 var Reporter = require('../base').Reporter;
 var EncoderBuffer = require('../base').EncoderBuffer;
 var DecoderBuffer = require('../base').DecoderBuffer;
@@ -78297,7 +80252,7 @@ Node.prototype._isPrintstr = function isPrintstr(str) {
   return /^[A-Za-z0-9 '\(\)\+,\-\.\/:=\?]*$/.test(str);
 };
 
-},{"../base":165,"minimalistic-assert":176}],167:[function(require,module,exports){
+},{"../base":169,"minimalistic-assert":180}],171:[function(require,module,exports){
 var inherits = require('inherits');
 
 function Reporter(options) {
@@ -78420,7 +80375,7 @@ ReporterError.prototype.rethrow = function rethrow(msg) {
   return this;
 };
 
-},{"inherits":293}],168:[function(require,module,exports){
+},{"inherits":297}],172:[function(require,module,exports){
 var constants = require('../constants');
 
 exports.tagClass = {
@@ -78464,7 +80419,7 @@ exports.tag = {
 };
 exports.tagByName = constants._reverse(exports.tag);
 
-},{"../constants":169}],169:[function(require,module,exports){
+},{"../constants":173}],173:[function(require,module,exports){
 var constants = exports;
 
 // Helper
@@ -78485,7 +80440,7 @@ constants._reverse = function reverse(map) {
 
 constants.der = require('./der');
 
-},{"./der":168}],170:[function(require,module,exports){
+},{"./der":172}],174:[function(require,module,exports){
 var inherits = require('inherits');
 
 var asn1 = require('../../asn1');
@@ -78811,13 +80766,13 @@ function derDecodeLen(buf, primitive, fail) {
   return len;
 }
 
-},{"../../asn1":162,"inherits":293}],171:[function(require,module,exports){
+},{"../../asn1":166,"inherits":297}],175:[function(require,module,exports){
 var decoders = exports;
 
 decoders.der = require('./der');
 decoders.pem = require('./pem');
 
-},{"./der":170,"./pem":172}],172:[function(require,module,exports){
+},{"./der":174,"./pem":176}],176:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -78868,7 +80823,7 @@ PEMDecoder.prototype.decode = function decode(data, options) {
   return DERDecoder.prototype.decode.call(this, input, options);
 };
 
-},{"./der":170,"buffer":95,"inherits":293}],173:[function(require,module,exports){
+},{"./der":174,"buffer":99,"inherits":297}],177:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -79165,13 +81120,13 @@ function encodeTag(tag, primitive, cls, reporter) {
   return res;
 }
 
-},{"../../asn1":162,"buffer":95,"inherits":293}],174:[function(require,module,exports){
+},{"../../asn1":166,"buffer":99,"inherits":297}],178:[function(require,module,exports){
 var encoders = exports;
 
 encoders.der = require('./der');
 encoders.pem = require('./pem');
 
-},{"./der":173,"./pem":175}],175:[function(require,module,exports){
+},{"./der":177,"./pem":179}],179:[function(require,module,exports){
 var inherits = require('inherits');
 
 var DEREncoder = require('./der');
@@ -79194,45 +81149,45 @@ PEMEncoder.prototype.encode = function encode(data, options) {
   return out.join('\n');
 };
 
-},{"./der":173,"inherits":293}],176:[function(require,module,exports){
-arguments[4][127][0].apply(exports,arguments)
-},{"dup":127}],177:[function(require,module,exports){
-arguments[4][101][0].apply(exports,arguments)
-},{"buffer":95,"dup":101}],178:[function(require,module,exports){
-arguments[4][102][0].apply(exports,arguments)
-},{"./aes":177,"./ghash":182,"buffer":95,"buffer-xor":191,"cipher-base":192,"dup":102,"inherits":293}],179:[function(require,module,exports){
-arguments[4][103][0].apply(exports,arguments)
-},{"./decrypter":180,"./encrypter":181,"./modes":183,"dup":103}],180:[function(require,module,exports){
-arguments[4][104][0].apply(exports,arguments)
-},{"./aes":177,"./authCipher":178,"./modes":183,"./modes/cbc":184,"./modes/cfb":185,"./modes/cfb1":186,"./modes/cfb8":187,"./modes/ctr":188,"./modes/ecb":189,"./modes/ofb":190,"./streamCipher":193,"buffer":95,"cipher-base":192,"dup":104,"evp_bytestokey":194,"inherits":293}],181:[function(require,module,exports){
+},{"./der":177,"inherits":297}],180:[function(require,module,exports){
+arguments[4][131][0].apply(exports,arguments)
+},{"dup":131}],181:[function(require,module,exports){
 arguments[4][105][0].apply(exports,arguments)
-},{"./aes":177,"./authCipher":178,"./modes":183,"./modes/cbc":184,"./modes/cfb":185,"./modes/cfb1":186,"./modes/cfb8":187,"./modes/ctr":188,"./modes/ecb":189,"./modes/ofb":190,"./streamCipher":193,"buffer":95,"cipher-base":192,"dup":105,"evp_bytestokey":194,"inherits":293}],182:[function(require,module,exports){
+},{"buffer":99,"dup":105}],182:[function(require,module,exports){
 arguments[4][106][0].apply(exports,arguments)
-},{"buffer":95,"dup":106}],183:[function(require,module,exports){
+},{"./aes":181,"./ghash":186,"buffer":99,"buffer-xor":195,"cipher-base":196,"dup":106,"inherits":297}],183:[function(require,module,exports){
 arguments[4][107][0].apply(exports,arguments)
-},{"dup":107}],184:[function(require,module,exports){
+},{"./decrypter":184,"./encrypter":185,"./modes":187,"dup":107}],184:[function(require,module,exports){
 arguments[4][108][0].apply(exports,arguments)
-},{"buffer-xor":191,"dup":108}],185:[function(require,module,exports){
+},{"./aes":181,"./authCipher":182,"./modes":187,"./modes/cbc":188,"./modes/cfb":189,"./modes/cfb1":190,"./modes/cfb8":191,"./modes/ctr":192,"./modes/ecb":193,"./modes/ofb":194,"./streamCipher":197,"buffer":99,"cipher-base":196,"dup":108,"evp_bytestokey":198,"inherits":297}],185:[function(require,module,exports){
 arguments[4][109][0].apply(exports,arguments)
-},{"buffer":95,"buffer-xor":191,"dup":109}],186:[function(require,module,exports){
+},{"./aes":181,"./authCipher":182,"./modes":187,"./modes/cbc":188,"./modes/cfb":189,"./modes/cfb1":190,"./modes/cfb8":191,"./modes/ctr":192,"./modes/ecb":193,"./modes/ofb":194,"./streamCipher":197,"buffer":99,"cipher-base":196,"dup":109,"evp_bytestokey":198,"inherits":297}],186:[function(require,module,exports){
 arguments[4][110][0].apply(exports,arguments)
-},{"buffer":95,"dup":110}],187:[function(require,module,exports){
+},{"buffer":99,"dup":110}],187:[function(require,module,exports){
 arguments[4][111][0].apply(exports,arguments)
-},{"buffer":95,"dup":111}],188:[function(require,module,exports){
+},{"dup":111}],188:[function(require,module,exports){
 arguments[4][112][0].apply(exports,arguments)
-},{"buffer":95,"buffer-xor":191,"dup":112}],189:[function(require,module,exports){
+},{"buffer-xor":195,"dup":112}],189:[function(require,module,exports){
 arguments[4][113][0].apply(exports,arguments)
-},{"dup":113}],190:[function(require,module,exports){
+},{"buffer":99,"buffer-xor":195,"dup":113}],190:[function(require,module,exports){
 arguments[4][114][0].apply(exports,arguments)
-},{"buffer":95,"buffer-xor":191,"dup":114}],191:[function(require,module,exports){
+},{"buffer":99,"dup":114}],191:[function(require,module,exports){
 arguments[4][115][0].apply(exports,arguments)
-},{"buffer":95,"dup":115}],192:[function(require,module,exports){
+},{"buffer":99,"dup":115}],192:[function(require,module,exports){
 arguments[4][116][0].apply(exports,arguments)
-},{"buffer":95,"dup":116,"inherits":293,"stream":312,"string_decoder":313}],193:[function(require,module,exports){
+},{"buffer":99,"buffer-xor":195,"dup":116}],193:[function(require,module,exports){
 arguments[4][117][0].apply(exports,arguments)
-},{"./aes":177,"buffer":95,"cipher-base":192,"dup":117,"inherits":293}],194:[function(require,module,exports){
-arguments[4][128][0].apply(exports,arguments)
-},{"buffer":95,"create-hash/md5":225,"dup":128}],195:[function(require,module,exports){
+},{"dup":117}],194:[function(require,module,exports){
+arguments[4][118][0].apply(exports,arguments)
+},{"buffer":99,"buffer-xor":195,"dup":118}],195:[function(require,module,exports){
+arguments[4][119][0].apply(exports,arguments)
+},{"buffer":99,"dup":119}],196:[function(require,module,exports){
+arguments[4][120][0].apply(exports,arguments)
+},{"buffer":99,"dup":120,"inherits":297,"stream":316,"string_decoder":317}],197:[function(require,module,exports){
+arguments[4][121][0].apply(exports,arguments)
+},{"./aes":181,"buffer":99,"cipher-base":196,"dup":121,"inherits":297}],198:[function(require,module,exports){
+arguments[4][132][0].apply(exports,arguments)
+},{"buffer":99,"create-hash/md5":229,"dup":132}],199:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var createHmac = require('create-hmac')
@@ -79421,7 +81376,7 @@ module.exports.getKey = getKey
 module.exports.makeKey = makeKey
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":131,"bn.js":132,"browserify-rsa":133,"buffer":95,"create-hmac":236,"elliptic":134,"parse-asn1":161}],196:[function(require,module,exports){
+},{"./curves":135,"bn.js":136,"browserify-rsa":137,"buffer":99,"create-hmac":240,"elliptic":138,"parse-asn1":165}],200:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var curves = require('./curves')
@@ -79528,7 +81483,7 @@ function checkValue (b, q) {
 module.exports = verify
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":131,"bn.js":132,"buffer":95,"elliptic":134,"parse-asn1":161}],197:[function(require,module,exports){
+},{"./curves":135,"bn.js":136,"buffer":99,"elliptic":138,"parse-asn1":165}],201:[function(require,module,exports){
 (function (Buffer){
 var elliptic = require('elliptic');
 var BN = require('bn.js');
@@ -79654,57 +81609,57 @@ function formatReturnValue(bn, enc, len) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":198,"buffer":95,"elliptic":199}],198:[function(require,module,exports){
-arguments[4][132][0].apply(exports,arguments)
-},{"dup":132}],199:[function(require,module,exports){
-arguments[4][134][0].apply(exports,arguments)
-},{"../package.json":222,"./elliptic/curve":202,"./elliptic/curves":205,"./elliptic/ec":206,"./elliptic/eddsa":209,"./elliptic/hmac-drbg":212,"./elliptic/utils":214,"brorand":215,"dup":134}],200:[function(require,module,exports){
-arguments[4][135][0].apply(exports,arguments)
-},{"../../elliptic":199,"bn.js":198,"dup":135}],201:[function(require,module,exports){
+},{"bn.js":202,"buffer":99,"elliptic":203}],202:[function(require,module,exports){
 arguments[4][136][0].apply(exports,arguments)
-},{"../../elliptic":199,"../curve":202,"bn.js":198,"dup":136,"inherits":293}],202:[function(require,module,exports){
-arguments[4][137][0].apply(exports,arguments)
-},{"./base":200,"./edwards":201,"./mont":203,"./short":204,"dup":137}],203:[function(require,module,exports){
+},{"dup":136}],203:[function(require,module,exports){
 arguments[4][138][0].apply(exports,arguments)
-},{"../../elliptic":199,"../curve":202,"bn.js":198,"dup":138,"inherits":293}],204:[function(require,module,exports){
+},{"../package.json":226,"./elliptic/curve":206,"./elliptic/curves":209,"./elliptic/ec":210,"./elliptic/eddsa":213,"./elliptic/hmac-drbg":216,"./elliptic/utils":218,"brorand":219,"dup":138}],204:[function(require,module,exports){
 arguments[4][139][0].apply(exports,arguments)
-},{"../../elliptic":199,"../curve":202,"bn.js":198,"dup":139,"inherits":293}],205:[function(require,module,exports){
+},{"../../elliptic":203,"bn.js":202,"dup":139}],205:[function(require,module,exports){
 arguments[4][140][0].apply(exports,arguments)
-},{"../elliptic":199,"./precomputed/secp256k1":213,"dup":140,"hash.js":216}],206:[function(require,module,exports){
+},{"../../elliptic":203,"../curve":206,"bn.js":202,"dup":140,"inherits":297}],206:[function(require,module,exports){
 arguments[4][141][0].apply(exports,arguments)
-},{"../../elliptic":199,"./key":207,"./signature":208,"bn.js":198,"dup":141}],207:[function(require,module,exports){
+},{"./base":204,"./edwards":205,"./mont":207,"./short":208,"dup":141}],207:[function(require,module,exports){
 arguments[4][142][0].apply(exports,arguments)
-},{"bn.js":198,"dup":142}],208:[function(require,module,exports){
+},{"../../elliptic":203,"../curve":206,"bn.js":202,"dup":142,"inherits":297}],208:[function(require,module,exports){
 arguments[4][143][0].apply(exports,arguments)
-},{"../../elliptic":199,"bn.js":198,"dup":143}],209:[function(require,module,exports){
+},{"../../elliptic":203,"../curve":206,"bn.js":202,"dup":143,"inherits":297}],209:[function(require,module,exports){
 arguments[4][144][0].apply(exports,arguments)
-},{"../../elliptic":199,"./key":210,"./signature":211,"dup":144,"hash.js":216}],210:[function(require,module,exports){
+},{"../elliptic":203,"./precomputed/secp256k1":217,"dup":144,"hash.js":220}],210:[function(require,module,exports){
 arguments[4][145][0].apply(exports,arguments)
-},{"../../elliptic":199,"dup":145}],211:[function(require,module,exports){
+},{"../../elliptic":203,"./key":211,"./signature":212,"bn.js":202,"dup":145}],211:[function(require,module,exports){
 arguments[4][146][0].apply(exports,arguments)
-},{"../../elliptic":199,"bn.js":198,"dup":146}],212:[function(require,module,exports){
+},{"bn.js":202,"dup":146}],212:[function(require,module,exports){
 arguments[4][147][0].apply(exports,arguments)
-},{"../elliptic":199,"dup":147,"hash.js":216}],213:[function(require,module,exports){
+},{"../../elliptic":203,"bn.js":202,"dup":147}],213:[function(require,module,exports){
 arguments[4][148][0].apply(exports,arguments)
-},{"dup":148}],214:[function(require,module,exports){
+},{"../../elliptic":203,"./key":214,"./signature":215,"dup":148,"hash.js":220}],214:[function(require,module,exports){
 arguments[4][149][0].apply(exports,arguments)
-},{"bn.js":198,"dup":149}],215:[function(require,module,exports){
+},{"../../elliptic":203,"dup":149}],215:[function(require,module,exports){
 arguments[4][150][0].apply(exports,arguments)
-},{"crypto":94,"dup":150}],216:[function(require,module,exports){
+},{"../../elliptic":203,"bn.js":202,"dup":150}],216:[function(require,module,exports){
 arguments[4][151][0].apply(exports,arguments)
-},{"./hash/common":217,"./hash/hmac":218,"./hash/ripemd":219,"./hash/sha":220,"./hash/utils":221,"dup":151}],217:[function(require,module,exports){
+},{"../elliptic":203,"dup":151,"hash.js":220}],217:[function(require,module,exports){
 arguments[4][152][0].apply(exports,arguments)
-},{"../hash":216,"dup":152}],218:[function(require,module,exports){
+},{"dup":152}],218:[function(require,module,exports){
 arguments[4][153][0].apply(exports,arguments)
-},{"../hash":216,"dup":153}],219:[function(require,module,exports){
+},{"bn.js":202,"dup":153}],219:[function(require,module,exports){
 arguments[4][154][0].apply(exports,arguments)
-},{"../hash":216,"dup":154}],220:[function(require,module,exports){
+},{"crypto":98,"dup":154}],220:[function(require,module,exports){
 arguments[4][155][0].apply(exports,arguments)
-},{"../hash":216,"dup":155}],221:[function(require,module,exports){
+},{"./hash/common":221,"./hash/hmac":222,"./hash/ripemd":223,"./hash/sha":224,"./hash/utils":225,"dup":155}],221:[function(require,module,exports){
 arguments[4][156][0].apply(exports,arguments)
-},{"dup":156,"inherits":293}],222:[function(require,module,exports){
+},{"../hash":220,"dup":156}],222:[function(require,module,exports){
 arguments[4][157][0].apply(exports,arguments)
-},{"dup":157}],223:[function(require,module,exports){
+},{"../hash":220,"dup":157}],223:[function(require,module,exports){
+arguments[4][158][0].apply(exports,arguments)
+},{"../hash":220,"dup":158}],224:[function(require,module,exports){
+arguments[4][159][0].apply(exports,arguments)
+},{"../hash":220,"dup":159}],225:[function(require,module,exports){
+arguments[4][160][0].apply(exports,arguments)
+},{"dup":160,"inherits":297}],226:[function(require,module,exports){
+arguments[4][161][0].apply(exports,arguments)
+},{"dup":161}],227:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var inherits = require('inherits')
@@ -79760,7 +81715,7 @@ module.exports = function createHash (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":225,"buffer":95,"cipher-base":226,"inherits":293,"ripemd160":227,"sha.js":229}],224:[function(require,module,exports){
+},{"./md5":229,"buffer":99,"cipher-base":230,"inherits":297,"ripemd160":231,"sha.js":233}],228:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var intSize = 4;
@@ -79797,7 +81752,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 }
 exports.hash = hash;
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],225:[function(require,module,exports){
+},{"buffer":99}],229:[function(require,module,exports){
 'use strict';
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
@@ -79954,9 +81909,9 @@ function bit_rol(num, cnt)
 module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
-},{"./helpers":224}],226:[function(require,module,exports){
-arguments[4][116][0].apply(exports,arguments)
-},{"buffer":95,"dup":116,"inherits":293,"stream":312,"string_decoder":313}],227:[function(require,module,exports){
+},{"./helpers":228}],230:[function(require,module,exports){
+arguments[4][120][0].apply(exports,arguments)
+},{"buffer":99,"dup":120,"inherits":297,"stream":316,"string_decoder":317}],231:[function(require,module,exports){
 (function (Buffer){
 /*
 CryptoJS v3.1.2
@@ -80170,7 +82125,7 @@ function ripemd160 (message) {
 module.exports = ripemd160
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],228:[function(require,module,exports){
+},{"buffer":99}],232:[function(require,module,exports){
 (function (Buffer){
 // prototype class for hash functions
 function Hash (blockSize, finalSize) {
@@ -80243,7 +82198,7 @@ Hash.prototype._update = function () {
 module.exports = Hash
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95}],229:[function(require,module,exports){
+},{"buffer":99}],233:[function(require,module,exports){
 var exports = module.exports = function SHA (algorithm) {
   algorithm = algorithm.toLowerCase()
 
@@ -80260,7 +82215,7 @@ exports.sha256 = require('./sha256')
 exports.sha384 = require('./sha384')
 exports.sha512 = require('./sha512')
 
-},{"./sha":230,"./sha1":231,"./sha224":232,"./sha256":233,"./sha384":234,"./sha512":235}],230:[function(require,module,exports){
+},{"./sha":234,"./sha1":235,"./sha224":236,"./sha256":237,"./sha384":238,"./sha512":239}],234:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-0, as defined
@@ -80357,7 +82312,7 @@ Sha.prototype._hash = function () {
 module.exports = Sha
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":228,"buffer":95,"inherits":293}],231:[function(require,module,exports){
+},{"./hash":232,"buffer":99,"inherits":297}],235:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
@@ -80459,7 +82414,7 @@ Sha1.prototype._hash = function () {
 module.exports = Sha1
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":228,"buffer":95,"inherits":293}],232:[function(require,module,exports){
+},{"./hash":232,"buffer":99,"inherits":297}],236:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -80515,7 +82470,7 @@ Sha224.prototype._hash = function () {
 module.exports = Sha224
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":228,"./sha256":233,"buffer":95,"inherits":293}],233:[function(require,module,exports){
+},{"./hash":232,"./sha256":237,"buffer":99,"inherits":297}],237:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -80653,7 +82608,7 @@ Sha256.prototype._hash = function () {
 module.exports = Sha256
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":228,"buffer":95,"inherits":293}],234:[function(require,module,exports){
+},{"./hash":232,"buffer":99,"inherits":297}],238:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var SHA512 = require('./sha512')
@@ -80713,7 +82668,7 @@ Sha384.prototype._hash = function () {
 module.exports = Sha384
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":228,"./sha512":235,"buffer":95,"inherits":293}],235:[function(require,module,exports){
+},{"./hash":232,"./sha512":239,"buffer":99,"inherits":297}],239:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var Hash = require('./hash')
@@ -80976,7 +82931,7 @@ Sha512.prototype._hash = function () {
 module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":228,"buffer":95,"inherits":293}],236:[function(require,module,exports){
+},{"./hash":232,"buffer":99,"inherits":297}],240:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var createHash = require('create-hash/browser');
@@ -81048,7 +83003,7 @@ module.exports = function createHmac(alg, key) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"create-hash/browser":223,"inherits":293,"stream":312}],237:[function(require,module,exports){
+},{"buffer":99,"create-hash/browser":227,"inherits":297,"stream":316}],241:[function(require,module,exports){
 (function (Buffer){
 var generatePrime = require('./lib/generatePrime')
 var primes = require('./lib/primes.json')
@@ -81094,7 +83049,7 @@ exports.DiffieHellmanGroup = exports.createDiffieHellmanGroup = exports.getDiffi
 exports.createDiffieHellman = exports.DiffieHellman = createDiffieHellman
 
 }).call(this,require("buffer").Buffer)
-},{"./lib/dh":238,"./lib/generatePrime":239,"./lib/primes.json":240,"buffer":95}],238:[function(require,module,exports){
+},{"./lib/dh":242,"./lib/generatePrime":243,"./lib/primes.json":244,"buffer":99}],242:[function(require,module,exports){
 (function (Buffer){
 var BN = require('bn.js');
 var MillerRabin = require('miller-rabin');
@@ -81262,7 +83217,7 @@ function formatReturnValue(bn, enc) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./generatePrime":239,"bn.js":241,"buffer":95,"miller-rabin":242,"randombytes":291}],239:[function(require,module,exports){
+},{"./generatePrime":243,"bn.js":245,"buffer":99,"miller-rabin":246,"randombytes":295}],243:[function(require,module,exports){
 var randomBytes = require('randombytes');
 module.exports = findPrime;
 findPrime.simpleSieve = simpleSieve;
@@ -81369,7 +83324,7 @@ function findPrime(bits, gen) {
 
 }
 
-},{"bn.js":241,"miller-rabin":242,"randombytes":291}],240:[function(require,module,exports){
+},{"bn.js":245,"miller-rabin":246,"randombytes":295}],244:[function(require,module,exports){
 module.exports={
     "modp1": {
         "gen": "02",
@@ -81404,9 +83359,9 @@ module.exports={
         "prime": "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c93402849236c3fab4d27c7026c1d4dcb2602646dec9751e763dba37bdf8ff9406ad9e530ee5db382f413001aeb06a53ed9027d831179727b0865a8918da3edbebcf9b14ed44ce6cbaced4bb1bdb7f1447e6cc254b332051512bd7af426fb8f401378cd2bf5983ca01c64b92ecf032ea15d1721d03f482d7ce6e74fef6d55e702f46980c82b5a84031900b1c9e59e7c97fbec7e8f323a97a7e36cc88be0f1d45b7ff585ac54bd407b22b4154aacc8f6d7ebf48e1d814cc5ed20f8037e0a79715eef29be32806a1d58bb7c5da76f550aa3d8a1fbff0eb19ccb1a313d55cda56c9ec2ef29632387fe8d76e3c0468043e8f663f4860ee12bf2d5b0b7474d6e694f91e6dbe115974a3926f12fee5e438777cb6a932df8cd8bec4d073b931ba3bc832b68d9dd300741fa7bf8afc47ed2576f6936ba424663aab639c5ae4f5683423b4742bf1c978238f16cbe39d652de3fdb8befc848ad922222e04a4037c0713eb57a81a23f0c73473fc646cea306b4bcbc8862f8385ddfa9d4b7fa2c087e879683303ed5bdd3a062b3cf5b3a278a66d2a13f83f44f82ddf310ee074ab6a364597e899a0255dc164f31cc50846851df9ab48195ded7ea1b1d510bd7ee74d73faf36bc31ecfa268359046f4eb879f924009438b481c6cd7889a002ed5ee382bc9190da6fc026e479558e4475677e9aa9e3050e2765694dfc81f56e880b96e7160c980dd98edd3dfffffffffffffffff"
     }
 }
-},{}],241:[function(require,module,exports){
-arguments[4][132][0].apply(exports,arguments)
-},{"dup":132}],242:[function(require,module,exports){
+},{}],245:[function(require,module,exports){
+arguments[4][136][0].apply(exports,arguments)
+},{"dup":136}],246:[function(require,module,exports){
 var bn = require('bn.js');
 var brorand = require('brorand');
 
@@ -81521,9 +83476,9 @@ MillerRabin.prototype.getDivisor = function getDivisor(n, k) {
   return false;
 };
 
-},{"bn.js":241,"brorand":243}],243:[function(require,module,exports){
-arguments[4][150][0].apply(exports,arguments)
-},{"crypto":94,"dup":150}],244:[function(require,module,exports){
+},{"bn.js":245,"brorand":247}],247:[function(require,module,exports){
+arguments[4][154][0].apply(exports,arguments)
+},{"crypto":98,"dup":154}],248:[function(require,module,exports){
 (function (process,Buffer){
 var createHmac = require('create-hmac')
 var checkParameters = require('./precondition')
@@ -81595,7 +83550,7 @@ exports.pbkdf2Sync = function (password, salt, iterations, keylen, digest) {
 }
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"./precondition":245,"_process":295,"buffer":95,"create-hmac":236}],245:[function(require,module,exports){
+},{"./precondition":249,"_process":299,"buffer":99,"create-hmac":240}],249:[function(require,module,exports){
 var MAX_ALLOC = Math.pow(2, 30) - 1 // default in iojs
 module.exports = function (iterations, keylen) {
   if (typeof iterations !== 'number') {
@@ -81615,7 +83570,7 @@ module.exports = function (iterations, keylen) {
   }
 }
 
-},{}],246:[function(require,module,exports){
+},{}],250:[function(require,module,exports){
 exports.publicEncrypt = require('./publicEncrypt');
 exports.privateDecrypt = require('./privateDecrypt');
 
@@ -81626,7 +83581,7 @@ exports.privateEncrypt = function privateEncrypt(key, buf) {
 exports.publicDecrypt = function publicDecrypt(key, buf) {
   return exports.privateDecrypt(key, buf, true);
 };
-},{"./privateDecrypt":287,"./publicEncrypt":288}],247:[function(require,module,exports){
+},{"./privateDecrypt":291,"./publicEncrypt":292}],251:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash');
 module.exports = function (seed, len) {
@@ -81645,85 +83600,85 @@ function i2ops(c) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"buffer":95,"create-hash":223}],248:[function(require,module,exports){
-arguments[4][132][0].apply(exports,arguments)
-},{"dup":132}],249:[function(require,module,exports){
-arguments[4][133][0].apply(exports,arguments)
-},{"bn.js":248,"buffer":95,"dup":133,"randombytes":291}],250:[function(require,module,exports){
-arguments[4][158][0].apply(exports,arguments)
-},{"dup":158}],251:[function(require,module,exports){
-arguments[4][159][0].apply(exports,arguments)
-},{"asn1.js":254,"dup":159}],252:[function(require,module,exports){
-arguments[4][160][0].apply(exports,arguments)
-},{"browserify-aes":271,"buffer":95,"dup":160,"evp_bytestokey":286}],253:[function(require,module,exports){
-arguments[4][161][0].apply(exports,arguments)
-},{"./aesid.json":250,"./asn1":251,"./fixProc":252,"browserify-aes":271,"buffer":95,"dup":161,"pbkdf2":244}],254:[function(require,module,exports){
+},{"buffer":99,"create-hash":227}],252:[function(require,module,exports){
+arguments[4][136][0].apply(exports,arguments)
+},{"dup":136}],253:[function(require,module,exports){
+arguments[4][137][0].apply(exports,arguments)
+},{"bn.js":252,"buffer":99,"dup":137,"randombytes":295}],254:[function(require,module,exports){
 arguments[4][162][0].apply(exports,arguments)
-},{"./asn1/api":255,"./asn1/base":257,"./asn1/constants":261,"./asn1/decoders":263,"./asn1/encoders":266,"bn.js":248,"dup":162}],255:[function(require,module,exports){
+},{"dup":162}],255:[function(require,module,exports){
 arguments[4][163][0].apply(exports,arguments)
-},{"../asn1":254,"dup":163,"inherits":293,"vm":314}],256:[function(require,module,exports){
+},{"asn1.js":258,"dup":163}],256:[function(require,module,exports){
 arguments[4][164][0].apply(exports,arguments)
-},{"../base":257,"buffer":95,"dup":164,"inherits":293}],257:[function(require,module,exports){
+},{"browserify-aes":275,"buffer":99,"dup":164,"evp_bytestokey":290}],257:[function(require,module,exports){
 arguments[4][165][0].apply(exports,arguments)
-},{"./buffer":256,"./node":258,"./reporter":259,"dup":165}],258:[function(require,module,exports){
+},{"./aesid.json":254,"./asn1":255,"./fixProc":256,"browserify-aes":275,"buffer":99,"dup":165,"pbkdf2":248}],258:[function(require,module,exports){
 arguments[4][166][0].apply(exports,arguments)
-},{"../base":257,"dup":166,"minimalistic-assert":268}],259:[function(require,module,exports){
+},{"./asn1/api":259,"./asn1/base":261,"./asn1/constants":265,"./asn1/decoders":267,"./asn1/encoders":270,"bn.js":252,"dup":166}],259:[function(require,module,exports){
 arguments[4][167][0].apply(exports,arguments)
-},{"dup":167,"inherits":293}],260:[function(require,module,exports){
+},{"../asn1":258,"dup":167,"inherits":297,"vm":318}],260:[function(require,module,exports){
 arguments[4][168][0].apply(exports,arguments)
-},{"../constants":261,"dup":168}],261:[function(require,module,exports){
+},{"../base":261,"buffer":99,"dup":168,"inherits":297}],261:[function(require,module,exports){
 arguments[4][169][0].apply(exports,arguments)
-},{"./der":260,"dup":169}],262:[function(require,module,exports){
+},{"./buffer":260,"./node":262,"./reporter":263,"dup":169}],262:[function(require,module,exports){
 arguments[4][170][0].apply(exports,arguments)
-},{"../../asn1":254,"dup":170,"inherits":293}],263:[function(require,module,exports){
+},{"../base":261,"dup":170,"minimalistic-assert":272}],263:[function(require,module,exports){
 arguments[4][171][0].apply(exports,arguments)
-},{"./der":262,"./pem":264,"dup":171}],264:[function(require,module,exports){
+},{"dup":171,"inherits":297}],264:[function(require,module,exports){
 arguments[4][172][0].apply(exports,arguments)
-},{"./der":262,"buffer":95,"dup":172,"inherits":293}],265:[function(require,module,exports){
+},{"../constants":265,"dup":172}],265:[function(require,module,exports){
 arguments[4][173][0].apply(exports,arguments)
-},{"../../asn1":254,"buffer":95,"dup":173,"inherits":293}],266:[function(require,module,exports){
+},{"./der":264,"dup":173}],266:[function(require,module,exports){
 arguments[4][174][0].apply(exports,arguments)
-},{"./der":265,"./pem":267,"dup":174}],267:[function(require,module,exports){
+},{"../../asn1":258,"dup":174,"inherits":297}],267:[function(require,module,exports){
 arguments[4][175][0].apply(exports,arguments)
-},{"./der":265,"dup":175,"inherits":293}],268:[function(require,module,exports){
-arguments[4][127][0].apply(exports,arguments)
-},{"dup":127}],269:[function(require,module,exports){
-arguments[4][101][0].apply(exports,arguments)
-},{"buffer":95,"dup":101}],270:[function(require,module,exports){
-arguments[4][102][0].apply(exports,arguments)
-},{"./aes":269,"./ghash":274,"buffer":95,"buffer-xor":283,"cipher-base":284,"dup":102,"inherits":293}],271:[function(require,module,exports){
-arguments[4][103][0].apply(exports,arguments)
-},{"./decrypter":272,"./encrypter":273,"./modes":275,"dup":103}],272:[function(require,module,exports){
-arguments[4][104][0].apply(exports,arguments)
-},{"./aes":269,"./authCipher":270,"./modes":275,"./modes/cbc":276,"./modes/cfb":277,"./modes/cfb1":278,"./modes/cfb8":279,"./modes/ctr":280,"./modes/ecb":281,"./modes/ofb":282,"./streamCipher":285,"buffer":95,"cipher-base":284,"dup":104,"evp_bytestokey":286,"inherits":293}],273:[function(require,module,exports){
+},{"./der":266,"./pem":268,"dup":175}],268:[function(require,module,exports){
+arguments[4][176][0].apply(exports,arguments)
+},{"./der":266,"buffer":99,"dup":176,"inherits":297}],269:[function(require,module,exports){
+arguments[4][177][0].apply(exports,arguments)
+},{"../../asn1":258,"buffer":99,"dup":177,"inherits":297}],270:[function(require,module,exports){
+arguments[4][178][0].apply(exports,arguments)
+},{"./der":269,"./pem":271,"dup":178}],271:[function(require,module,exports){
+arguments[4][179][0].apply(exports,arguments)
+},{"./der":269,"dup":179,"inherits":297}],272:[function(require,module,exports){
+arguments[4][131][0].apply(exports,arguments)
+},{"dup":131}],273:[function(require,module,exports){
 arguments[4][105][0].apply(exports,arguments)
-},{"./aes":269,"./authCipher":270,"./modes":275,"./modes/cbc":276,"./modes/cfb":277,"./modes/cfb1":278,"./modes/cfb8":279,"./modes/ctr":280,"./modes/ecb":281,"./modes/ofb":282,"./streamCipher":285,"buffer":95,"cipher-base":284,"dup":105,"evp_bytestokey":286,"inherits":293}],274:[function(require,module,exports){
+},{"buffer":99,"dup":105}],274:[function(require,module,exports){
 arguments[4][106][0].apply(exports,arguments)
-},{"buffer":95,"dup":106}],275:[function(require,module,exports){
+},{"./aes":273,"./ghash":278,"buffer":99,"buffer-xor":287,"cipher-base":288,"dup":106,"inherits":297}],275:[function(require,module,exports){
 arguments[4][107][0].apply(exports,arguments)
-},{"dup":107}],276:[function(require,module,exports){
+},{"./decrypter":276,"./encrypter":277,"./modes":279,"dup":107}],276:[function(require,module,exports){
 arguments[4][108][0].apply(exports,arguments)
-},{"buffer-xor":283,"dup":108}],277:[function(require,module,exports){
+},{"./aes":273,"./authCipher":274,"./modes":279,"./modes/cbc":280,"./modes/cfb":281,"./modes/cfb1":282,"./modes/cfb8":283,"./modes/ctr":284,"./modes/ecb":285,"./modes/ofb":286,"./streamCipher":289,"buffer":99,"cipher-base":288,"dup":108,"evp_bytestokey":290,"inherits":297}],277:[function(require,module,exports){
 arguments[4][109][0].apply(exports,arguments)
-},{"buffer":95,"buffer-xor":283,"dup":109}],278:[function(require,module,exports){
+},{"./aes":273,"./authCipher":274,"./modes":279,"./modes/cbc":280,"./modes/cfb":281,"./modes/cfb1":282,"./modes/cfb8":283,"./modes/ctr":284,"./modes/ecb":285,"./modes/ofb":286,"./streamCipher":289,"buffer":99,"cipher-base":288,"dup":109,"evp_bytestokey":290,"inherits":297}],278:[function(require,module,exports){
 arguments[4][110][0].apply(exports,arguments)
-},{"buffer":95,"dup":110}],279:[function(require,module,exports){
+},{"buffer":99,"dup":110}],279:[function(require,module,exports){
 arguments[4][111][0].apply(exports,arguments)
-},{"buffer":95,"dup":111}],280:[function(require,module,exports){
+},{"dup":111}],280:[function(require,module,exports){
 arguments[4][112][0].apply(exports,arguments)
-},{"buffer":95,"buffer-xor":283,"dup":112}],281:[function(require,module,exports){
+},{"buffer-xor":287,"dup":112}],281:[function(require,module,exports){
 arguments[4][113][0].apply(exports,arguments)
-},{"dup":113}],282:[function(require,module,exports){
+},{"buffer":99,"buffer-xor":287,"dup":113}],282:[function(require,module,exports){
 arguments[4][114][0].apply(exports,arguments)
-},{"buffer":95,"buffer-xor":283,"dup":114}],283:[function(require,module,exports){
+},{"buffer":99,"dup":114}],283:[function(require,module,exports){
 arguments[4][115][0].apply(exports,arguments)
-},{"buffer":95,"dup":115}],284:[function(require,module,exports){
+},{"buffer":99,"dup":115}],284:[function(require,module,exports){
 arguments[4][116][0].apply(exports,arguments)
-},{"buffer":95,"dup":116,"inherits":293,"stream":312,"string_decoder":313}],285:[function(require,module,exports){
+},{"buffer":99,"buffer-xor":287,"dup":116}],285:[function(require,module,exports){
 arguments[4][117][0].apply(exports,arguments)
-},{"./aes":269,"buffer":95,"cipher-base":284,"dup":117,"inherits":293}],286:[function(require,module,exports){
-arguments[4][128][0].apply(exports,arguments)
-},{"buffer":95,"create-hash/md5":225,"dup":128}],287:[function(require,module,exports){
+},{"dup":117}],286:[function(require,module,exports){
+arguments[4][118][0].apply(exports,arguments)
+},{"buffer":99,"buffer-xor":287,"dup":118}],287:[function(require,module,exports){
+arguments[4][119][0].apply(exports,arguments)
+},{"buffer":99,"dup":119}],288:[function(require,module,exports){
+arguments[4][120][0].apply(exports,arguments)
+},{"buffer":99,"dup":120,"inherits":297,"stream":316,"string_decoder":317}],289:[function(require,module,exports){
+arguments[4][121][0].apply(exports,arguments)
+},{"./aes":273,"buffer":99,"cipher-base":288,"dup":121,"inherits":297}],290:[function(require,module,exports){
+arguments[4][132][0].apply(exports,arguments)
+},{"buffer":99,"create-hash/md5":229,"dup":132}],291:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var mgf = require('./mgf');
@@ -81834,7 +83789,7 @@ function compare(a, b){
   return dif;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":247,"./withPublic":289,"./xor":290,"bn.js":248,"browserify-rsa":249,"buffer":95,"create-hash":223,"parse-asn1":253}],288:[function(require,module,exports){
+},{"./mgf":251,"./withPublic":293,"./xor":294,"bn.js":252,"browserify-rsa":253,"buffer":99,"create-hash":227,"parse-asn1":257}],292:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var randomBytes = require('randombytes');
@@ -81932,7 +83887,7 @@ function nonZero(len, crypto) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":247,"./withPublic":289,"./xor":290,"bn.js":248,"browserify-rsa":249,"buffer":95,"create-hash":223,"parse-asn1":253,"randombytes":291}],289:[function(require,module,exports){
+},{"./mgf":251,"./withPublic":293,"./xor":294,"bn.js":252,"browserify-rsa":253,"buffer":99,"create-hash":227,"parse-asn1":257,"randombytes":295}],293:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 function withPublic(paddedMsg, key) {
@@ -81945,7 +83900,7 @@ function withPublic(paddedMsg, key) {
 
 module.exports = withPublic;
 }).call(this,require("buffer").Buffer)
-},{"bn.js":248,"buffer":95}],290:[function(require,module,exports){
+},{"bn.js":252,"buffer":99}],294:[function(require,module,exports){
 module.exports = function xor(a, b) {
   var len = a.length;
   var i = -1;
@@ -81954,7 +83909,7 @@ module.exports = function xor(a, b) {
   }
   return a
 };
-},{}],291:[function(require,module,exports){
+},{}],295:[function(require,module,exports){
 (function (process,global,Buffer){
 'use strict'
 
@@ -81994,7 +83949,7 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"_process":295,"buffer":95}],292:[function(require,module,exports){
+},{"_process":299,"buffer":99}],296:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -82298,7 +84253,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],293:[function(require,module,exports){
+},{}],297:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -82323,7 +84278,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],294:[function(require,module,exports){
+},{}],298:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -82346,7 +84301,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],295:[function(require,module,exports){
+},{}],299:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -82528,10 +84483,10 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],296:[function(require,module,exports){
+},{}],300:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":297}],297:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":301}],301:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -82607,7 +84562,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":299,"./_stream_writable":301,"core-util-is":304,"inherits":293,"process-nextick-args":306}],298:[function(require,module,exports){
+},{"./_stream_readable":303,"./_stream_writable":305,"core-util-is":308,"inherits":297,"process-nextick-args":310}],302:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -82634,7 +84589,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":300,"core-util-is":304,"inherits":293}],299:[function(require,module,exports){
+},{"./_stream_transform":304,"core-util-is":308,"inherits":297}],303:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -83578,7 +85533,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":297,"./internal/streams/BufferList":302,"_process":295,"buffer":95,"buffer-shims":303,"core-util-is":304,"events":292,"inherits":293,"isarray":305,"process-nextick-args":306,"string_decoder/":313,"util":94}],300:[function(require,module,exports){
+},{"./_stream_duplex":301,"./internal/streams/BufferList":306,"_process":299,"buffer":99,"buffer-shims":307,"core-util-is":308,"events":296,"inherits":297,"isarray":309,"process-nextick-args":310,"string_decoder/":317,"util":98}],304:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -83761,7 +85716,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":297,"core-util-is":304,"inherits":293}],301:[function(require,module,exports){
+},{"./_stream_duplex":301,"core-util-is":308,"inherits":297}],305:[function(require,module,exports){
 (function (process){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, encoding, cb), and it'll handle all
@@ -84318,7 +86273,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":297,"_process":295,"buffer":95,"buffer-shims":303,"core-util-is":304,"events":292,"inherits":293,"process-nextick-args":306,"util-deprecate":307}],302:[function(require,module,exports){
+},{"./_stream_duplex":301,"_process":299,"buffer":99,"buffer-shims":307,"core-util-is":308,"events":296,"inherits":297,"process-nextick-args":310,"util-deprecate":311}],306:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('buffer').Buffer;
@@ -84383,7 +86338,7 @@ BufferList.prototype.concat = function (n) {
   }
   return ret;
 };
-},{"buffer":95,"buffer-shims":303}],303:[function(require,module,exports){
+},{"buffer":99,"buffer-shims":307}],307:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -84495,7 +86450,7 @@ exports.allocUnsafeSlow = function allocUnsafeSlow(size) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"buffer":95}],304:[function(require,module,exports){
+},{"buffer":99}],308:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -84606,9 +86561,9 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../../../insert-module-globals/node_modules/is-buffer/index.js")})
-},{"../../../../insert-module-globals/node_modules/is-buffer/index.js":294}],305:[function(require,module,exports){
-arguments[4][98][0].apply(exports,arguments)
-},{"dup":98}],306:[function(require,module,exports){
+},{"../../../../insert-module-globals/node_modules/is-buffer/index.js":298}],309:[function(require,module,exports){
+arguments[4][102][0].apply(exports,arguments)
+},{"dup":102}],310:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -84655,7 +86610,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":295}],307:[function(require,module,exports){
+},{"_process":299}],311:[function(require,module,exports){
 (function (global){
 
 /**
@@ -84726,10 +86681,10 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],308:[function(require,module,exports){
+},{}],312:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":298}],309:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":302}],313:[function(require,module,exports){
 (function (process){
 var Stream = (function (){
   try {
@@ -84749,13 +86704,13 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/_stream_duplex.js":297,"./lib/_stream_passthrough.js":298,"./lib/_stream_readable.js":299,"./lib/_stream_transform.js":300,"./lib/_stream_writable.js":301,"_process":295}],310:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":301,"./lib/_stream_passthrough.js":302,"./lib/_stream_readable.js":303,"./lib/_stream_transform.js":304,"./lib/_stream_writable.js":305,"_process":299}],314:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":300}],311:[function(require,module,exports){
+},{"./lib/_stream_transform.js":304}],315:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":301}],312:[function(require,module,exports){
+},{"./lib/_stream_writable.js":305}],316:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -84884,7 +86839,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":292,"inherits":293,"readable-stream/duplex.js":296,"readable-stream/passthrough.js":308,"readable-stream/readable.js":309,"readable-stream/transform.js":310,"readable-stream/writable.js":311}],313:[function(require,module,exports){
+},{"events":296,"inherits":297,"readable-stream/duplex.js":300,"readable-stream/passthrough.js":312,"readable-stream/readable.js":313,"readable-stream/transform.js":314,"readable-stream/writable.js":315}],317:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -85107,7 +87062,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":95}],314:[function(require,module,exports){
+},{"buffer":99}],318:[function(require,module,exports){
 var indexOf = require('indexof');
 
 var Object_keys = function (obj) {
@@ -85247,7 +87202,7 @@ exports.createContext = Script.createContext = function (context) {
     return copy;
 };
 
-},{"indexof":315}],315:[function(require,module,exports){
+},{"indexof":319}],319:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -85258,7 +87213,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],316:[function(require,module,exports){
+},{}],320:[function(require,module,exports){
 /* MIT license */
 var convert = require('color-convert');
 var string = require('chartjs-color-string');
@@ -85743,7 +87698,7 @@ if (typeof window !== 'undefined') {
 
 module.exports = Color;
 
-},{"chartjs-color-string":317,"color-convert":320}],317:[function(require,module,exports){
+},{"chartjs-color-string":321,"color-convert":324}],321:[function(require,module,exports){
 /* MIT license */
 var colorNames = require('color-name');
 
@@ -85966,7 +87921,7 @@ for (var name in colorNames) {
    reverseNames[colorNames[name]] = name;
 }
 
-},{"color-name":318}],318:[function(require,module,exports){
+},{"color-name":322}],322:[function(require,module,exports){
 module.exports = {
 	"aliceblue": [240, 248, 255],
 	"antiquewhite": [250, 235, 215],
@@ -86117,7 +88072,7 @@ module.exports = {
 	"yellow": [255, 255, 0],
 	"yellowgreen": [154, 205, 50]
 };
-},{}],319:[function(require,module,exports){
+},{}],323:[function(require,module,exports){
 /* MIT license */
 
 module.exports = {
@@ -86817,7 +88772,7 @@ for (var key in cssKeywords) {
   reverseKeywords[JSON.stringify(cssKeywords[key])] = key;
 }
 
-},{}],320:[function(require,module,exports){
+},{}],324:[function(require,module,exports){
 var conversions = require("./conversions");
 
 var convert = function() {
@@ -86910,7 +88865,7 @@ Converter.prototype.getValues = function(space) {
 });
 
 module.exports = convert;
-},{"./conversions":319}],321:[function(require,module,exports){
+},{"./conversions":323}],325:[function(require,module,exports){
 //! moment.js
 //! version : 2.17.1
 //! authors : Tim Wood, Iskren Chernev, Moment.js contributors
@@ -91213,7 +93168,7 @@ return hooks;
 
 })));
 
-},{}],322:[function(require,module,exports){
+},{}],326:[function(require,module,exports){
 /**
  * @namespace Chart
  */
@@ -91263,7 +93218,7 @@ require('./charts/Chart.Scatter')(Chart);
 
 window.Chart = module.exports = Chart;
 
-},{"./charts/Chart.Bar":323,"./charts/Chart.Bubble":324,"./charts/Chart.Doughnut":325,"./charts/Chart.Line":326,"./charts/Chart.PolarArea":327,"./charts/Chart.Radar":328,"./charts/Chart.Scatter":329,"./controllers/controller.bar":330,"./controllers/controller.bubble":331,"./controllers/controller.doughnut":332,"./controllers/controller.line":333,"./controllers/controller.polarArea":334,"./controllers/controller.radar":335,"./core/core.animation":336,"./core/core.controller":337,"./core/core.datasetController":338,"./core/core.element":339,"./core/core.helpers":340,"./core/core.js":341,"./core/core.layoutService":342,"./core/core.legend":343,"./core/core.plugin.js":344,"./core/core.scale":345,"./core/core.scaleService":346,"./core/core.title":347,"./core/core.tooltip":348,"./elements/element.arc":349,"./elements/element.line":350,"./elements/element.point":351,"./elements/element.rectangle":352,"./scales/scale.category":353,"./scales/scale.linear":354,"./scales/scale.linearbase.js":355,"./scales/scale.logarithmic":356,"./scales/scale.radialLinear":357,"./scales/scale.time":358}],323:[function(require,module,exports){
+},{"./charts/Chart.Bar":327,"./charts/Chart.Bubble":328,"./charts/Chart.Doughnut":329,"./charts/Chart.Line":330,"./charts/Chart.PolarArea":331,"./charts/Chart.Radar":332,"./charts/Chart.Scatter":333,"./controllers/controller.bar":334,"./controllers/controller.bubble":335,"./controllers/controller.doughnut":336,"./controllers/controller.line":337,"./controllers/controller.polarArea":338,"./controllers/controller.radar":339,"./core/core.animation":340,"./core/core.controller":341,"./core/core.datasetController":342,"./core/core.element":343,"./core/core.helpers":344,"./core/core.js":345,"./core/core.layoutService":346,"./core/core.legend":347,"./core/core.plugin.js":348,"./core/core.scale":349,"./core/core.scaleService":350,"./core/core.title":351,"./core/core.tooltip":352,"./elements/element.arc":353,"./elements/element.line":354,"./elements/element.point":355,"./elements/element.rectangle":356,"./scales/scale.category":357,"./scales/scale.linear":358,"./scales/scale.linearbase.js":359,"./scales/scale.logarithmic":360,"./scales/scale.radialLinear":361,"./scales/scale.time":362}],327:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91275,7 +93230,7 @@ module.exports = function(Chart) {
 	};
 
 };
-},{}],324:[function(require,module,exports){
+},{}],328:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91286,7 +93241,7 @@ module.exports = function(Chart) {
 	};
 
 };
-},{}],325:[function(require,module,exports){
+},{}],329:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91298,7 +93253,7 @@ module.exports = function(Chart) {
 	};
 
 };
-},{}],326:[function(require,module,exports){
+},{}],330:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91310,7 +93265,7 @@ module.exports = function(Chart) {
 	};
 
 };
-},{}],327:[function(require,module,exports){
+},{}],331:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91322,7 +93277,7 @@ module.exports = function(Chart) {
 	};
 
 };
-},{}],328:[function(require,module,exports){
+},{}],332:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91336,7 +93291,7 @@ module.exports = function(Chart) {
 
 };
 
-},{}],329:[function(require,module,exports){
+},{}],333:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91384,7 +93339,7 @@ module.exports = function(Chart) {
 	};
 
 };
-},{}],330:[function(require,module,exports){
+},{}],334:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -91968,7 +93923,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],331:[function(require,module,exports){
+},{}],335:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -92092,7 +94047,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],332:[function(require,module,exports){
+},{}],336:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -92363,7 +94318,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],333:[function(require,module,exports){
+},{}],337:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -92683,7 +94638,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],334:[function(require,module,exports){
+},{}],338:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -92900,7 +94855,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],335:[function(require,module,exports){
+},{}],339:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -93090,7 +95045,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],336:[function(require,module,exports){
+},{}],340:[function(require,module,exports){
 /*global window: false */
 "use strict";
 
@@ -93222,7 +95177,7 @@ module.exports = function(Chart) {
 		}
 	};
 };
-},{}],337:[function(require,module,exports){
+},{}],341:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -93865,7 +95820,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],338:[function(require,module,exports){
+},{}],342:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -94031,7 +95986,7 @@ module.exports = function(Chart) {
 
 	Chart.DatasetController.extend = helpers.inherits;
 };
-},{}],339:[function(require,module,exports){
+},{}],343:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -94137,7 +96092,7 @@ module.exports = function(Chart) {
 
 };
 
-},{}],340:[function(require,module,exports){
+},{}],344:[function(require,module,exports){
 /*global window: false */
 /*global document: false */
 "use strict";
@@ -95086,7 +97041,7 @@ module.exports = function(Chart) {
 	};
 };
 
-},{"chartjs-color":316}],341:[function(require,module,exports){
+},{"chartjs-color":320}],345:[function(require,module,exports){
 "use strict";
 
 module.exports = function() {
@@ -95197,7 +97152,7 @@ module.exports = function() {
 
 };
 
-},{}],342:[function(require,module,exports){
+},{}],346:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -95522,7 +97477,7 @@ module.exports = function(Chart) {
 	};
 };
 
-},{}],343:[function(require,module,exports){
+},{}],347:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -95963,7 +97918,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],344:[function(require,module,exports){
+},{}],348:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -96094,7 +98049,7 @@ module.exports = function(Chart) {
 	Chart.pluginService = Chart.plugins;
 };
 
-},{}],345:[function(require,module,exports){
+},{}],349:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -96850,7 +98805,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],346:[function(require,module,exports){
+},{}],350:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -96891,7 +98846,7 @@ module.exports = function(Chart) {
 		}
 	};
 };
-},{}],347:[function(require,module,exports){
+},{}],351:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -97099,7 +99054,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],348:[function(require,module,exports){
+},{}],352:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -97813,7 +99768,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],349:[function(require,module,exports){
+},{}],353:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart, moment) {
@@ -97908,7 +99863,7 @@ module.exports = function(Chart, moment) {
   });
 };
 
-},{}],350:[function(require,module,exports){
+},{}],354:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -98074,7 +100029,7 @@ module.exports = function(Chart) {
 		}
 	});
 };
-},{}],351:[function(require,module,exports){
+},{}],355:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -98225,7 +100180,7 @@ module.exports = function(Chart) {
 	});
 };
 
-},{}],352:[function(require,module,exports){
+},{}],356:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -98320,7 +100275,7 @@ module.exports = function(Chart) {
 	});
 
 };
-},{}],353:[function(require,module,exports){
+},{}],357:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -98422,7 +100377,7 @@ module.exports = function(Chart) {
 	Chart.scaleService.registerScaleType("category", DatasetScale, defaultConfig);
 
 };
-},{}],354:[function(require,module,exports){
+},{}],358:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -98623,7 +100578,7 @@ module.exports = function(Chart) {
 	Chart.scaleService.registerScaleType("linear", LinearScale, defaultConfig);
 
 };
-},{}],355:[function(require,module,exports){
+},{}],359:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -98751,7 +100706,7 @@ module.exports = function(Chart) {
 		},
 	});
 };
-},{}],356:[function(require,module,exports){
+},{}],360:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -98988,7 +100943,7 @@ module.exports = function(Chart) {
 	Chart.scaleService.registerScaleType("logarithmic", LogarithmicScale, defaultConfig);
 
 };
-},{}],357:[function(require,module,exports){
+},{}],361:[function(require,module,exports){
 "use strict";
 
 module.exports = function(Chart) {
@@ -99400,7 +101355,7 @@ module.exports = function(Chart) {
 
 };
 
-},{}],358:[function(require,module,exports){
+},{}],362:[function(require,module,exports){
 /*global window: false */
 "use strict";
 
@@ -99791,7 +101746,7 @@ module.exports = function(Chart) {
 
 };
 
-},{"moment":321}],359:[function(require,module,exports){
+},{"moment":325}],363:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.0.0
  * https://jquery.com/
@@ -109830,7 +111785,7 @@ if ( !noGlobal ) {
 return jQuery;
 } ) );
 
-},{}],360:[function(require,module,exports){
+},{}],364:[function(require,module,exports){
 /*!
  * ngToast v2.0.0 (http://tameraydin.github.io/ngToast)
  * Copyright 2016 Tamer Aydin (http://tamerayd.in)
@@ -110116,7 +112071,7 @@ return jQuery;
 
 })(window, window.angular);
 
-},{}],361:[function(require,module,exports){
+},{}],365:[function(require,module,exports){
 (function (root, factory) {
   'use strict';
 
@@ -110339,4 +112294,4 @@ return jQuery;
 
 }));
 
-},{"angular":80}]},{},[38]);
+},{"angular":84}]},{},[42]);

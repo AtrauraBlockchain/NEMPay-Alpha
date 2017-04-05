@@ -1,3 +1,12 @@
+/* Todo: move it to nano.css */
+$red: #d9534f;
+$redLite: lighten( $red, 2% );
+$green: green;
+$greenLite: lighten( $green, 10% );
+$blueLite: rgba(105, 178, 229, 0.6);
+$blueXLite: rgba(105, 178, 229, 0.1);
+$blueDark: darken( $blue, 10% );
+
 .panel-heading {
   background-color: transparent !important;
   border-bottom: $borderUnderline;
@@ -468,6 +477,53 @@ html{
   overflow: scroll !important;
 }
 
+
+/* From nanowallet 1.3 TODO: organize */
+.input-group-btn {
+  min-width: 170px;
+  vertical-align: middle;
+  &.message {
+    vertical-align: top;
+  }
+  &.showHide, &.dLoad {
+    max-width: $pad * 2;
+    min-width: $pad * 2;
+    .btn {
+      border-radius: 0px;
+    }
+  }
+  &.short {
+    min-width: 130px;
+  }
+  &.adding {
+    max-width: $pad * 2;
+    min-width: $pad * 2;
+  }
+  &.addSubtract {
+    max-width: $pad * 4;
+    min-width: $pad * 4;
+  }
+  .btn-warning {
+    max-width: $pad * 2;
+    min-width: $pad * 2;
+    background: $blue;
+    border: 1px solid $blue;
+  }
+  .btn-warning:hover, .btn-warning:active, .btn-warning:focus {
+    background: $blueLite !important;
+    border: 1px solid $blueLite !important;
+    color: white !important;
+  }
+  .btn-danger {
+    max-width: $pad * 2;
+    min-width: $pad * 2;
+  }
+  .btn-danger:hover, .btn-danger:active, .btn-danger:focus {
+    color: white !important;
+    background: $redLite;
+    border: 1px solid $redLite;
+  }
+}
 
 
 

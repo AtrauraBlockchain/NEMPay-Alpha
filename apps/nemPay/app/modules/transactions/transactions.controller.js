@@ -1,5 +1,5 @@
 class TransactionsCtrl {
-    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $ionicLoading, $timeout,$ionicPopover) {
+    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, Alias) {
         'ngInject';
 
         // Alert service
@@ -15,6 +15,8 @@ class TransactionsCtrl {
         // DataBridge service
         this._DataBridge = DataBridge;
         this._NetworkRequests = NetworkRequests;
+        this._Alias = Alias;
+
 
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
@@ -22,24 +24,8 @@ class TransactionsCtrl {
             this._location.path('/');
         }
 
-        if(window.Connection) {
-            if(navigator.connection.type == Connection.NONE) {
-            this._Alert.noInternet();
-            this._location.path('/');
-
-            }
-        }
-
-       /* $ionicLoading.show();
-
-        $timeout(function () {
-            $ionicLoading.hide();
-        }, 1000);*/
-
-
-
         /**
-         * Default Dashboard properties 
+         * Default Dashboard properties
          */
 
         // Harvesting chart data
@@ -105,13 +91,26 @@ class TransactionsCtrl {
         // Get market info
         this._NetworkRequests.getMarketInfo().then((data) => {
             this._DataBridge.marketInfo = data;
-        },
+    },
         (err) => {
             // Alert error
-            this._Alert.errorGetMarketInfo(); 
+            this._Alert.errorGetMarketInfo();
+        });
+        // Gets btc price
+        this._NetworkRequests.getBtcPrice().then((data) => {
+            this._DataBridge.btcPrice = data;
+    },
+        (err) => {
+            this._Alert.errorGetBtcPrice();
         });
     }
 
+    /**
+     * Fix a value to 4 decimals
+     */
+    toFixed4(value) {
+        return value.toFixed(4);
+    }
 }
 
 export default TransactionsCtrl;
