@@ -385,6 +385,7 @@ class TransferTransactionCtrl {
     }
 
     moveToTransferConfirm(){
+        Keyboard.close();
         var alias = '';
         if(this.showAlias){
             alias = this.formData.rawRecipient;
