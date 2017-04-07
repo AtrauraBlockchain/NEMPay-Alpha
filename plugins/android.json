@@ -7,6 +7,9 @@
         "files": {}
     },
     "installed_plugins": {
+        "com.verso.cordova.clipboard": {
+            "PACKAGE_NAME": "com.atraura.nanowalletmobile"
+        },
         "cordova-plugin-console": {
             "PACKAGE_NAME": "com.atraura.nanowalletmobile"
         },
@@ -25,13 +28,10 @@
         "cordova-plugin-whitelist": {
             "PACKAGE_NAME": "com.atraura.nanowalletmobile"
         },
-        "ionic-plugin-keyboard": {
-            "PACKAGE_NAME": "com.atraura.nanowalletmobile"
-        },
-        "com.verso.cordova.clipboard": {
-            "PACKAGE_NAME": "com.atraura.nanowalletmobile"
-        },
         "cordova-plugin-x-socialsharing": {
+            "PACKAGE_NAME": "com.atraura.nanowalletmobile"
+        },
+        "ionic-plugin-keyboard": {
             "PACKAGE_NAME": "com.atraura.nanowalletmobile"
         }
     },

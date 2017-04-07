@@ -80,6 +80,7 @@ class LoadWalletCtrl {
      * @param wallet: Wallet object
      */
     login(wallet) {
+        Keyboard.close();
         if (!wallet) {
             this._Alert.cantLoginWithoutWallet();
             return;
