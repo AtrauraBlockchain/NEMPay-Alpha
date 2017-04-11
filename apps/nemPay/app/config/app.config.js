@@ -1,4 +1,4 @@
-function AppConfig($httpProvider, $stateProvider, $locationProvider, $urlRouterProvider, ngToastProvider, $translateProvider) {
+function AppConfig($httpProvider, $stateProvider, $locationProvider, $urlRouterProvider, ngToastProvider, $translateProvider, $ionicConfigProvider) {
     'ngInject';
 
     /*
@@ -19,6 +19,8 @@ function AppConfig($httpProvider, $stateProvider, $locationProvider, $urlRouterP
     });
 
     $translateProvider.preferredLanguage('en');
+
+    $ionicConfigProvider.tabs.position('bottom');
 
 }
 
