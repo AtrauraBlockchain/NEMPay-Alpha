@@ -1,7 +1,7 @@
 class BalanceCtrl {
-    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $timeout, ionicMaterialInk, ionicMaterialMotion,$ionicLoading) {
+    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $timeout, ionicMaterialInk, ionicMaterialMotion) {
         'ngInject';
-
+        
         // Alert service
         this._Alert = Alert;
         // Filters
@@ -17,7 +17,6 @@ class BalanceCtrl {
 
         this._NetworkRequests = NetworkRequests;
 
-
         this.showNotAssetMessage = false;
 
         // If no wallet show alert and redirect to home
@@ -32,15 +31,6 @@ class BalanceCtrl {
                 this._location.path('/');
             }
         }
-        $ionicLoading.show({
-            template: '<h3 class="text-center">Loading...</h3>',
-            duration: 600
-        }).then(function(){
-            this.showNotAssetMessage = true;
-        });
-
-        //$timeout(wait, 600);
-
     };
 
 }

@@ -1,6 +1,6 @@
-import helpers from '../../../../nanowallet/src/app/utils/helpers';
-import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
-import Network from '../../../../nanowallet/src/app/utils/Network';
+import helpers from '../../utils/helpers';
+import CryptoHelpers from '../../utils/CryptoHelpers';
+import Network from '../..//utils/Network';
 
 class RegisterCtrl {
     constructor(AppConstants, $state, Alert, WalletBuilder, $localStorage, $timeout,$ionicLoading) {

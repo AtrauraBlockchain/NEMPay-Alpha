@@ -1,8 +1,8 @@
-import helpers from '../../../../nanowallet/src/app/utils/helpers';
-import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
-import Network from '../../../../nanowallet/src/app/utils/Network';
-import Address from '../../../../nanowallet/src/app/utils/Address';
-import Keypair from '../../../../nanowallet/src/app/utils/KeyPair';
+import helpers from '../../utils/helpers';
+import CryptoHelpers from '../../utils/CryptoHelpers';
+import Network from '../../utils/Network';
+import Address from '../../utils/Address';
+import Keypair from '../../utils/KeyPair';
 
 class AccountCtrl {
     constructor(AppConstants, $scope, $q, $filter, $localStorage, $location, Alert, NetworkRequests, Wallet, WalletBuilder, Transactions, Connector, DataBridge, $timeout, $cordovaSocialSharing, nemUtils, Alias, AliasAlert) {

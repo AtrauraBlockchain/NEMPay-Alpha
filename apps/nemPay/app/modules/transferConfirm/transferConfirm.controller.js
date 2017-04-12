@@ -1,7 +1,7 @@
-import helpers from '../../../../nanowallet/src/app/utils/helpers';
-import Address from '../../../../nanowallet/src/app/utils/Address';
-import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
-import Network from '../../../../nanowallet/src/app/utils/Network';
+import helpers from '../../utils/helpers';
+import Address from '../../utils/Address';
+import CryptoHelpers from '../../utils/CryptoHelpers';
+import Network from '../../utils/Network';
 
 class TransferConfirmCtrl {
     constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $stateParams, $state, $ionicLoading, $timeout, $scope, $ionicPopover) {

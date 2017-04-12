@@ -1,9 +1,11 @@
-import helpers from '../../../../nanowallet/src/app/utils/helpers';
-import CryptoHelpers from '../../../../nanowallet/src/app/utils/CryptoHelpers';
-import Network from '../../../../nanowallet/src/app/utils/Network';
+
+
+import helpers from '../../utils/helpers';
+import CryptoHelpers from '../../utils/CryptoHelpers';
+import Network from '../../utils/Network';
 
 class LoadWalletCtrl {
-    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $scope) {
+    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $scope, $ionicLoading, $rootScope) {
         'ngInject';
 
         // Local storage
@@ -22,7 +24,11 @@ class LoadWalletCtrl {
         this._Connector = Connector;
         // DataBridge service
         this._DataBridge = DataBridge;
-
+        
+        //Root scope
+        this._rootScope = $rootScope;
+        // ionic loading
+        this._ionicLoading = $ionicLoading;
         // Login properties
         this.selectedWallet = "";
 
@@ -37,6 +43,12 @@ class LoadWalletCtrl {
         if(this._storage.wallets.length > 0){
             this.selectedWallet = this._storage.wallets[0];
         }
+
+        this._rootScope.$on('RECENT_TRANSACTIONS_LOADED', function(event, data) {  
+            $ionicLoading.hide();
+            $location.path('/balance');
+        });
+
     }
 
     /**
@@ -109,15 +121,18 @@ class LoadWalletCtrl {
                 this.okPressed = false;
                 return;
             }
+            this._ionicLoading.show();
+
             // Set the wallet object in Wallet service
-            this._Wallet.setWallet(wallet);
-            // Clean data
-            this.clearSensitiveData();
-            // Connect to node
-            this.connect();
-            // Redirect to dashboard
-            this._location.path('/balance');
-            return;
+            this._Wallet.setWallet(wallet).then((data) => {
+                this.clearSensitiveData();
+                // Connect to node
+                this.connect();
+            },
+            (err) => {
+                this._ionicLoading.hide();
+            });
+
         } else {
             // Open upgrade modal
             $("#upgradeWallet").modal({
@@ -205,10 +220,15 @@ class LoadWalletCtrl {
      * connect() Open connection to default node
      */
     connect() {
-        let connector = this._Connector.create({
-            'uri': this._Wallet.node
-        }, this._Wallet.currentAccount.address);
-        this._DataBridge.openConnection(connector);
+        return new Promise((resolve, reject) => {
+
+            let connector = this._Connector.create({
+                'uri': this._Wallet.node
+            }, this._Wallet.currentAccount.address);
+            this._DataBridge.openConnection(connector);
+            return resolve("Connection Opened");
+
+        });
     }
 
     /**

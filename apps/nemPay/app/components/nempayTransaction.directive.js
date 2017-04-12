@@ -1,8 +1,8 @@
-import helpers from '../../../nanowallet/src/app/utils/helpers';
-import Network from '../../../nanowallet/src/app/utils/Network';
-import CryptoHelpers from '../../../nanowallet/src/app/utils/CryptoHelpers';
-import KeyPair from '../../../nanowallet/src/app/utils/KeyPair';
-import Address from '../../../nanowallet/src/app/utils/Address';
+import helpers from '../utils/helpers';
+import Network from '../utils/Network';
+import CryptoHelpers from '../utils/CryptoHelpers';
+import KeyPair from '../utils/KeyPair';
+import Address from '../utils/Address';
 
 
 let incr = 0;

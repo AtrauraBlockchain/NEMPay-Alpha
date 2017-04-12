@@ -1,6 +1,6 @@
-import Newtork from '../../../nanowallet/src/app/utils/Network';
-import helpers from '../../../nanowallet/src/app/utils/helpers';
-import nodes from '../../../nanowallet/src/app/utils/nodes';
+import Newtork from '../utils/Network';
+import helpers from '../utils/helpers';
+import nodes from '../utils/nodes';
 
 
 class AppHeaderCtrl {
