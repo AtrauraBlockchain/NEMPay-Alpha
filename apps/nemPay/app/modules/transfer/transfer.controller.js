@@ -385,7 +385,7 @@ class TransferTransactionCtrl {
     }
 
     moveToTransferConfirm(){
-        Keyboard.close();
+        if (window.cordova) Keyboard.close();
         var alias = '';
         if(this.showAlias){
             alias = this.formData.rawRecipient;
@@ -397,7 +397,6 @@ class TransferTransactionCtrl {
                 currency: this.selectedMosaic,
                 message: this.formData.message})
     }
-
 }
 
 export default TransferTransactionCtrl;
