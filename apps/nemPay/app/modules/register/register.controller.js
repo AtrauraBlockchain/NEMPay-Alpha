@@ -101,25 +101,31 @@ class RegisterCtrl {
      */
     createWallet() {
         // Check form
+        this.ionicLoading.show();
+
         if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword) {
             this._Alert.missingFormData();
+            this.ionicLoading.hide();
+
             return;
         }
 
         // Check if wallet already loaded
         if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
             this._Alert.walletNameExists();
+            this.ionicLoading.hide();
+
             return;
         }
 
         // Check if passwords match
         if (this.formData.password !== this.formData.confirmPassword) {
             this._Alert.passwordsNotMatching();
+            this.ionicLoading.hide();
             return;
         }
 
         this.okPressed = true;
-        this.ionicLoading.show();
 
         // Create the wallet from form data
         return this._WalletBuilder.createWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
@@ -205,20 +211,28 @@ class RegisterCtrl {
      */
     createPrivateKeyWallet() {
         // Check form
+        this.ionicLoading.show();
+
         if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword || !this.formData.privateKey) {
             this._Alert.missingFormData();
+            this.ionicLoading.hide();
+
             return;
         }
 
         // Check if wallet already loaded
         if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
             this._Alert.walletNameExists();
+            this.ionicLoading.hide();
+
             return;
         }
 
         // Check if passwords match
         if (this.formData.password !== this.formData.confirmPassword) {
             this._Alert.passwordsNotMatching();
+            this.ionicLoading.hide();
+
             return;
         }
 
@@ -228,7 +242,6 @@ class RegisterCtrl {
             this.formData.address = Address.toAddress(kp.publicKey.toString(), this.network);
 
             this.okPressed = true;
-            this.ionicLoading.show();
 
             // Create the wallet from form data
             return this._WalletBuilder.createPrivateKeyWallet(this.formData.walletName, this.formData.password, this.formData.address, this.formData.privateKey, this.network).then((wallet) => {
@@ -243,6 +256,7 @@ class RegisterCtrl {
                         this.download(wallet)
                         console.log(this._storage.wallets);
                         this.okPressed = false;
+                        this.ionicLoading.hide();
                         // Redirect to login
                         this._$state.go("app.loadWallet");
                     }

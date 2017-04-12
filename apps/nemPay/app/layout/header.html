@@ -1,11 +1,19 @@
 <div class="bar bar-header bar-nem" ng-show="$ctrl.route.current.activetab != 'loadWallet' && $ctrl.route.current.activetab != 'balance'">
-    <a ui-sref="app.balance">
+    <a ui-sref="app.balance" ng-show="$ctrl.route.current.activetab != 'register'">
         <div class="buttons buttons-left header-item">
             <button class="button button-icon button-clear ion-navicon">
             </button>
 
         </div>
     </a>
+    <a ui-sref="app.loadWallet" ng-show="$ctrl.route.current.activetab == 'register'">
+        <div class="buttons buttons-left header-item">
+            <button class="button button-icon button-clear ion-navicon">
+            </button>
+
+        </div>
+    </a>
+
     <div class="h1 title title-center light">
         {{$ctrl.route.current.title}}
     </div>
