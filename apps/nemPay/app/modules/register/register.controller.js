@@ -205,7 +205,7 @@ class RegisterCtrl {
      */
     createPrivateKeyWallet() {
         // Check form
-        if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword || !this.formData.address || !this.formData.privateKey) {
+        if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword || !this.formData.privateKey) {
             this._Alert.missingFormData();
             return;
         }
@@ -222,39 +222,40 @@ class RegisterCtrl {
             return;
         }
 
-        // Check if address match private key provided
-        if (!CryptoHelpers.checkAddress(this.formData.privateKey, this.network, this.formData.address.toUpperCase().replace(/-/g, ''))) {
-            this._Alert.invalidKeyForAddress();
-            return;
-        }
+        if (this.formData.privateKey.length === 64 || this.formData.privateKey.length === 66) {
 
-        this.okPressed = true;
-        this.ionicLoading.show();
+            let kp = KeyPair.create(this.formData.privateKey);
+            this.formData.address = Address.toAddress(kp.publicKey.toString(), this.network);
 
-        // Create the wallet from form data
-        return this._WalletBuilder.createPrivateKeyWallet(this.formData.walletName, this.formData.password, this.formData.address, this.formData.privateKey, this.network).then((wallet) => {
-            this._$timeout(() => {
-            if (wallet) {
-                // On success concat new wallet to local storage wallets
-                this._storage.wallets = this._storage.wallets.concat(wallet);
-                this._Alert.createWalletSuccess();
-                // Reset form data
-                this.formData = "";
-                // Trigger download
-                this.download(wallet)
-                console.log(this._storage.wallets);
+            this.okPressed = true;
+            this.ionicLoading.show();
+
+            // Create the wallet from form data
+            return this._WalletBuilder.createPrivateKeyWallet(this.formData.walletName, this.formData.password, this.formData.address, this.formData.privateKey, this.network).then((wallet) => {
+                this._$timeout(() => {
+                    if (wallet) {
+                        // On success concat new wallet to local storage wallets
+                        this._storage.wallets = this._storage.wallets.concat(wallet);
+                        this._Alert.createWalletSuccess();
+                        // Reset form data
+                        this.formData = "";
+                        // Trigger download
+                        this.download(wallet)
+                        console.log(this._storage.wallets);
+                        this.okPressed = false;
+                        // Redirect to login
+                        this._$state.go("app.loadWallet");
+                    }
+                }, 10);
+            }, (err) => {
+                this._Alert.createWalletFailed(err);
                 this.okPressed = false;
-                // Redirect to login
-                this._$state.go("app.loadWallet");
-            }
-        }, 10);
-    },
-        (err) => {
-            this._Alert.createWalletFailed(err);
-            this.okPressed = false;
-            this.ionicLoading.hide();
+                this.ionicLoading.hide();
 
-        });
+            });
+        } else {
+            this._Alert.invalidPrivateKey();
+        }
     }
 
 }
