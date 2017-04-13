@@ -100,9 +100,9 @@ class RegisterCtrl {
      * createWallet() create a new PRNG wallet
      */
     createWallet() {
-        // Check form
-        this.ionicLoading.show();
 
+        this.ionicLoading.show();
+        // Check form
         if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword) {
             this._Alert.missingFormData();
             this.ionicLoading.hide();
@@ -157,26 +157,31 @@ class RegisterCtrl {
      * createBrainWallet() create a new brain wallet
      */
     createBrainWallet() {
+
+        this.ionicLoading.show();
+
         // Check form
         if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword) {
             this._Alert.missingFormData();
+            this.ionicLoading.hide();
             return;
         }
 
         // Check if wallet already loaded
         if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
             this._Alert.walletNameExists();
+            this.ionicLoading.hide();
             return;
         }
 
         // Check if passwords match
         if (this.formData.password !== this.formData.confirmPassword) {
             this._Alert.passwordsNotMatching();
+            this.ionicLoading.hide();
             return;
         }
 
         this.okPressed = true;
-        this.ionicLoading.show();
 
         // Create the wallet from form data
         return this._WalletBuilder.createBrainWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {

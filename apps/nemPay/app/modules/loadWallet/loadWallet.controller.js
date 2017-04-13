@@ -92,7 +92,7 @@ class LoadWalletCtrl {
      * @param wallet: Wallet object
      */
     login(wallet) {
-        if (window.cordova) Keyboard.close();
+        if (window.cordova) cordova.plugins.Keyboard.close();
         if (!wallet) {
             this._Alert.cantLoginWithoutWallet();
             return;
