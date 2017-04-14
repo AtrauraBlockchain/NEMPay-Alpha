@@ -26,5 +26,6 @@ filtersModule.filter('toHostname', Filters.toHostname);
 filtersModule.filter('currencyFormat', Filters.currencyFormat);
 filtersModule.filter('btcFormat', Filters.btcFormat);
 filtersModule.filter('fmtNemPayDate', Filters.fmtNemPayDate);
+filtersModule.filter('fmtAlias', Filters.fmtAlias);
 
 export default filtersModule;

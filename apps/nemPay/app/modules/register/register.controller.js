@@ -1,9 +1,10 @@
 import helpers from '../../utils/helpers';
 import CryptoHelpers from '../../utils/CryptoHelpers';
 import Network from '../..//utils/Network';
+import KeyPair from '../../utils/KeyPair';
 
 class RegisterCtrl {
-    constructor(AppConstants, $state, Alert, WalletBuilder, $localStorage, $timeout,$ionicLoading) {
+    constructor(AppConstants, $state, Alert, WalletBuilder, $localStorage, $timeout, $ionicLoading) {
         'ngInject';
 
         //Local storage
@@ -28,8 +29,9 @@ class RegisterCtrl {
         // Needed to prevent user to click twice on send when already processing
         this.okPressed = false;
 
-        //Ionic Loader
-        this.ionicLoading = $ionicLoading;
+        this._ionicLoading = $ionicLoading;
+
+        this.formData = {};
 
         // Wallet types
         this.walletTypes = [{
@@ -100,180 +102,186 @@ class RegisterCtrl {
      * createWallet() create a new PRNG wallet
      */
     createWallet() {
-
-        this.ionicLoading.show();
-        // Check form
-        if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword) {
-            this._Alert.missingFormData();
-            this.ionicLoading.hide();
-
-            return;
-        }
-
-        // Check if wallet already loaded
-        if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
-            this._Alert.walletNameExists();
-            this.ionicLoading.hide();
-
-            return;
-        }
-
-        // Check if passwords match
-        if (this.formData.password !== this.formData.confirmPassword) {
-            this._Alert.passwordsNotMatching();
-            this.ionicLoading.hide();
-            return;
-        }
-
-        this.okPressed = true;
-
-        // Create the wallet from form data
-        return this._WalletBuilder.createWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
-            this._$timeout(() => {
-            if (wallet) {
-                // On success concat new wallet to local storage wallets
-                this._storage.wallets = this._storage.wallets.concat(wallet);
-                this._Alert.createWalletSuccess();
-                // Reset form data
-                this.formData = "";
-                // Trigger download
-                this.download(wallet);
-                console.log(this._storage.wallets);
-                this.okPressed = false;
-                this.ionicLoading.hide();
-                // Redirect to login
-                this._$state.go("app.loadWallet");
+            // Check form
+            if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword) {
+                this._Alert.missingFormData();
+                return;
             }
-        }, 10);
-    },
-        (err) => {
-            this._Alert.createWalletFailed(err);
-            this.okPressed = false;
-            this.ionicLoading.hide();
-        });
+
+            // Check if wallet already loaded
+            if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
+                this._Alert.walletNameExists();
+                return;
+            }
+
+            // Check if passwords match
+            if (this.formData.password !== this.formData.confirmPassword) {
+                this._Alert.passwordsNotMatching();
+                return;
+            }
+            this._ionicLoading.show({    
+                template: '<span>Creating wallet...</span>',
+            });
+            this.okPressed = true;
+            
+            this._$timeout(() => {
+
+                // Create the wallet from form data
+                return this._WalletBuilder.createWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
+                    this._$timeout(() => {
+                        if (wallet) {
+                            // On success concat new wallet to local storage wallets
+                            this._storage.wallets = this._storage.wallets.concat(wallet);
+                            this._Alert.createWalletSuccess();
+                            // Reset form data
+                            this.formData = "";
+                            // Trigger download
+                            this.download(wallet);
+                            console.log(this._storage.wallets);
+                            this.okPressed = false;
+                            // Redirect to loadWallet
+                            this._ionicLoading.hide();
+                            this._$state.go("app.loadWallet");
+                        }
+                    }, 10);
+                },
+                (err) => {
+                    this._Alert.createWalletFailed(err);
+                    this.okPressed = false;
+                });
+
+            }, 10);
     }
 
     /**
      * createBrainWallet() create a new brain wallet
      */
     createBrainWallet() {
-
-        this.ionicLoading.show();
-
-        // Check form
-        if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword) {
-            this._Alert.missingFormData();
-            this.ionicLoading.hide();
-            return;
-        }
-
-        // Check if wallet already loaded
-        if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
-            this._Alert.walletNameExists();
-            this.ionicLoading.hide();
-            return;
-        }
-
-        // Check if passwords match
-        if (this.formData.password !== this.formData.confirmPassword) {
-            this._Alert.passwordsNotMatching();
-            this.ionicLoading.hide();
-            return;
-        }
-
-        this.okPressed = true;
-
-        // Create the wallet from form data
-        return this._WalletBuilder.createBrainWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
-            this._$timeout(() => {
-            if (wallet) {
-                // On success concat new wallet to local storage wallets
-                this._storage.wallets = this._storage.wallets.concat(wallet);
-                this._Alert.createWalletSuccess();
-                // Reset form data
-                this.formData = "";
-                // Trigger download
-                this.download(wallet)
-                console.log(this._storage.wallets);
-                this.okPressed = false;
-                this.ionicLoading.hide();
-
-                // Redirect to login
-                this._$state.go("app.loadWallet");
+            // Check form
+            if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword) {
+                this._Alert.missingFormData();
+                return;
             }
-        }, 10);
-    },
-        (err) => {
-            this._Alert.createWalletFailed(err);
-            this.okPressed = false;
-            this.ionicLoading.hide();
 
-        });
+            // Check if wallet already loaded
+            if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
+                this._Alert.walletNameExists();
+                return;
+            }
+
+            // Check if passwords match
+            if (this.formData.password !== this.formData.confirmPassword) {
+                this._Alert.passwordsNotMatching();
+                return;
+            }
+            this._ionicLoading.show({    
+                template: '<span>Creating wallet...</span>',
+            });
+
+            this.okPressed = true
+
+            this._$timeout(() => {
+
+                // Create the wallet from form data
+                return this._WalletBuilder.createBrainWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
+                    this._$timeout(() => {
+                        if (wallet) {
+                            // On success concat new wallet to local storage wallets
+                            this._storage.wallets = this._storage.wallets.concat(wallet);
+                            this._Alert.createWalletSuccess();
+                            // Reset form data
+                            this.formData = "";
+                            // Trigger download
+                            this.download(wallet)
+                            console.log(this._storage.wallets);
+                            this.okPressed = false;
+                            this._ionicLoading.hide();
+                            // Redirect to loadWallet
+                            this._$state.go("app.loadWallet");
+                        }
+                    }, 10);
+                },
+                (err) => {
+                    this._Alert.createWalletFailed(err);
+                    this.okPressed = false;
+                });
+            }, 10);
+
     }
 
     /**
      * createPrivateKeyWallet() create a new private key wallet
      */
     createPrivateKeyWallet() {
-        // Check form
-        this.ionicLoading.show();
+            // Check form
+            if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword || !this.formData.privateKey) {
+                this._Alert.missingFormData();
+                return;
+            }
 
-        if (!this.formData || !this.formData.walletName || !this.formData.password || !this.formData.confirmPassword || !this.formData.privateKey) {
-            this._Alert.missingFormData();
-            this.ionicLoading.hide();
+            // Check if wallet already loaded
+            if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
+                this._Alert.walletNameExists();
+                return;
+            }
 
-            return;
-        }
+            // Check if passwords match
+            if (this.formData.password !== this.formData.confirmPassword) {
+                this._Alert.passwordsNotMatching();
+                return;
+            }
 
-        // Check if wallet already loaded
-        if (helpers.haveWallet(this.formData.walletName, this._storage.wallets)) {
-            this._Alert.walletNameExists();
-            this.ionicLoading.hide();
+            if (this.formData.privateKey.length === 64 || this.formData.privateKey.length === 66) {
 
-            return;
-        }
+                let kp = KeyPair.create(this.formData.privateKey);
+                this.formData.address = Address.toAddress(kp.publicKey.toString(), this.network);
+                
 
-        // Check if passwords match
-        if (this.formData.password !== this.formData.confirmPassword) {
-            this._Alert.passwordsNotMatching();
-            this.ionicLoading.hide();
+                this.okPressed = true;
+                this._ionicLoading.show({    
+                    template: '<span>Creating wallet...</span>',
+                });
+            this._$timeout(() => {
 
-            return;
-        }
+                // Create the wallet from form data
+                return this._WalletBuilder.createPrivateKeyWallet(this.formData.walletName, this.formData.password, this.formData.address, this.formData.privateKey, this.network).then((wallet) => {
+                    this._$timeout(() => {
+                        if (wallet) {
+                            // On success concat new wallet to local storage wallets
+                            this._storage.wallets = this._storage.wallets.concat(wallet);
+                            this._Alert.createWalletSuccess();
+                            // Reset form data
+                            this.formData = "";
+                            // Trigger download
+                            this.download(wallet)
+                            console.log(this._storage.wallets);
+                            this.okPressed = false;
+                            this._ionicLoading.hide();
+                            // Redirect to loadWallet
+                            this._$state.go("app.loadWallet");
+                        }
+                    }, 10);
+                },
+                (err) => {
+                    this._Alert.createWalletFailed(err);
+                    this.okPressed = false;
+                });
+            }, 10);
 
-        if (this.formData.privateKey.length === 64 || this.formData.privateKey.length === 66) {
+            } else {
+                this._Alert.invalidPrivateKey();
+            }
+    }
 
-            let kp = KeyPair.create(this.formData.privateKey);
-            this.formData.address = Address.toAddress(kp.publicKey.toString(), this.network);
-
-            this.okPressed = true;
-
-            // Create the wallet from form data
-            return this._WalletBuilder.createPrivateKeyWallet(this.formData.walletName, this.formData.password, this.formData.address, this.formData.privateKey, this.network).then((wallet) => {
-                this._$timeout(() => {
-                    if (wallet) {
-                        // On success concat new wallet to local storage wallets
-                        this._storage.wallets = this._storage.wallets.concat(wallet);
-                        this._Alert.createWalletSuccess();
-                        // Reset form data
-                        this.formData = "";
-                        // Trigger download
-                        this.download(wallet)
-                        console.log(this._storage.wallets);
-                        this.okPressed = false;
-                        this.ionicLoading.hide();
-                        // Redirect to login
-                        this._$state.go("app.loadWallet");
-                    }
-                }, 10);
-            }, (err) => {
-                this._Alert.createWalletFailed(err);
-                this.okPressed = false;
-                this.ionicLoading.hide();
-
-            });
-        } else {
-            this._Alert.invalidPrivateKey();
+    generateAddress() {
+        if(undefined !== this.formData.privateKey && this.formData.privateKey.length) {
+            if (this.formData.privateKey.length === 64 || this.formData.privateKey.length === 66) {
+                let kp = KeyPair.create(this.formData.privateKey);
+                this.formData.address = Address.toAddress(kp.publicKey.toString(), this.network);
+            } else {
+                this.formData.address = "";
+                this._Alert.invalidPrivateKey();
+            }
         }
     }
 

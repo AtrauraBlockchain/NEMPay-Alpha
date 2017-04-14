@@ -31,6 +31,63 @@ let fmtAddress = function() {
 }
 
 /**
+ * fmtAlias() Check's an address alias or returns a fmtAddress
+ *
+ * @param input: A NEM address
+ *
+ * @return either an alias or a formatted NEM address
+ */
+let fmtAlias = ['Alias', function(Alias) {
+    var aliasDict = {};
+    var serviceInvoked = {};
+
+    function formatAddr(address){
+        return address && address.toUpperCase().replace(/-/g, '').match(/.{1,6}/g).join('-');
+    }
+    function parse(address){
+        // If not yet parsed or still parsing
+        if(!(address in aliasDict) || serviceInvoked[address]==true){
+            return formatAddr(address)+"&nbsp;<img height='20px' width='20px' src='https://mir-s3-cdn-cf.behance.net/project_modules/disp/585d0331234507.564a1d239ac5e.gif'/>";
+        }
+        else{
+            return aliasDict[address];
+        }
+    }
+
+    function filterAddress(address) {
+        if(!(address in aliasDict)){
+            if(!(address in serviceInvoked)) {
+                serviceInvoked[address] = true;
+
+                // We don't want the addr to appear blank while it loads, plus we want the loader
+                aliasDict[address] = parse(address);
+                Alias.fetchAddress(address).then((result)=>{
+                    // Loading has finished
+                    serviceInvoked[address] = false;
+
+                if(result){
+                    // Format the alias
+                    aliasDict[address] = "@"+result;
+                }
+                else{
+                    // Format the address (no loader)
+                    aliasDict[address] = formatAddr(address);
+                }
+            });
+
+            }
+            // Default before loading: formated address
+            return parse(address);
+        }
+        // Default: formated address if already fetched
+        else return parse(address);
+    }
+    filterAddress.$stateful = true;
+
+    return filterAddress;
+}]
+
+/**
 * fmtNemDate() Format a timestamp to NEM date
 *
 * @param data: A timestamp
@@ -406,6 +463,7 @@ module.exports = {
     fmtNemDate,
     fmtPubToAddress,
     fmtAddress,
+    fmtAlias,
     toHostname,
     currencyFormat,
     btcFormat,

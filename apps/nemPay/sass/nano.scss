@@ -397,9 +397,14 @@ h2 {
 }
 
 .transaction-row .address {
-  overflow: hidden;
+  max-width: 100%;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.transaction-row .address .text{
+  width: 100%;
+  overflow-x: scroll;
 }
 
 /* Register Page */
