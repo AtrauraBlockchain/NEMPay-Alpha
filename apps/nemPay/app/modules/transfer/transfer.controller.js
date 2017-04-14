@@ -385,7 +385,7 @@ class TransferTransactionCtrl {
     }
 
     moveToTransferConfirm(){
-        if (window.cordova) Keyboard.close();
+        if (window.cordova) cordova.plugins.Keyboard.close();
         var alias = '';
         if(this.showAlias){
             alias = this.formData.rawRecipient;

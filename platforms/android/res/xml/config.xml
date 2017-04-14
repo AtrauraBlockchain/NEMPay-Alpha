@@ -48,6 +48,8 @@
     <splash density="port-mdpi" src="resources/android/splash/drawable-port-mdpi-screen.png" />
     <splash density="port-hdpi" src="resources/android/splash/drawable-port-hdpi-screen.png" />
     <splash density="port-xhdpi" src="resources/android/splash/drawable-port-xhdpi-screen.png" />
+    <splash density="port-xxhdpi" src="resources/android/splash/drawable-port-xxhdpi-screen.png" />
+    <splash density="port-xxxhdpi" src="resources/android/splash/drawable-port-xxxhdpi-screen.png" />
     <preference name="loglevel" value="DEBUG" />
     <preference name="webviewbounce" value="false" />
     <preference name="UIWebViewBounce" value="false" />
