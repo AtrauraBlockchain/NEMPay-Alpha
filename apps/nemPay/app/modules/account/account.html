@@ -28,6 +28,28 @@
                     <!--</br>-->
                     <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-positive button-nem">Share Address</button
                     </br>
+
+                            <div class="panel-heading">
+         
+          <h4>{{ 'GENERAL_PRIVATE_KEY' | translate }}</4>
+            
+            <div><small>To view your private key, insert your password</small></div>
+
+            <div class="input-group">
+              <input  class="item item-input item-floating-label full-width form-control-lg" type="password" ng-model="$ctrl.common.password" placeholder="{{'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-show="!$ctrl.showPrivateKeyField" style="width: 90%; float: left;"/>
+              <input class="item item-input item-floating-label full-width form-control-lg" ng-show="$ctrl.showPrivateKeyField" ng-model="$ctrl.common.privateKey" readOnly style="width: 90%; float: left;"></input>
+              <span class="input-group-btn showHide" style="width: 9%; margin-left:1%; float: left;">
+                <button class="button button-nem button-plus" type="button"  ng-show="!$ctrl.showPrivateKeyField" ng-click="$ctrl.showPrivateKey()" title="{{ 'ACCOUNT_PRIVATE_KEY_SHOW' | translate }}">
+                  <i class="fa fa-plus"></i>
+                </button>
+                <button class="button button-nem button-plus" type="button" ng-show="$ctrl.showPrivateKeyField" ng-click="$ctrl.clearSensitiveData()" title="{{ 'GENERAL_CLEAR_ALL' | translate }}">
+                  <i class="fa fa-minus"></i>
+                </button>
+              </span>
+            </div>
+
+
+
                     <button  ng-click="$ctrl.logout()" class="button button-block button-positive button-nem">Logout</button
                     </br>
                 </div>

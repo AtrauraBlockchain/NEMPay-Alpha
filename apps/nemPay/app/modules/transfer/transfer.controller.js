@@ -397,6 +397,21 @@ class TransferTransactionCtrl {
                 currency: this.selectedMosaic,
                 message: this.formData.message})
     }
+
+    /**
+     * onEnter(keyEvent) On press enter, tries to login
+     */
+    onEnter(keyEvent) {
+        if (keyEvent.which === 13){
+            if(this.okPressed || this.formData.recipient.length !== 40 || this.formData.encryptMessage && this.formData.recipientPubKey.length !== 64 || this.formData.isMosaicTransfer && !this.formData.mosaics.length || this.formData.amount == 0){
+                this._Alert.missingFormData();
+            }
+            else {
+                this.moveToTransferConfirm();
+            }
+        }
+    }
+
 }
 
 export default TransferTransactionCtrl;

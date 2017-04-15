@@ -285,6 +285,24 @@ class RegisterCtrl {
         }
     }
 
+    /**
+     * onEnter(keyEvent) On press enter, tries to login
+     */
+    onEnter(keyEvent) {
+        if (keyEvent.which === 13){
+            if(this._selectedType.type == 1){
+                this.createWallet();
+            }
+            else if(this._selectedType.type == 2){
+                this.createBrainWallet();
+            }
+            else{
+                this.createPrivateKeyWallet();
+            }
+        }
+    }
+
+
 }
 
 export default RegisterCtrl;

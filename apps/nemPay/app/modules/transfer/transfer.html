@@ -8,7 +8,7 @@
                         <div>
                             <label class="item item-input item-floating-label">
                                 <span class="input-label">To</span>
-                                <input type="text" placeholder="{{'FORM_RECIPIENT_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.rawRecipient" ng-model-options="{debounce:3000}" ng-change="$ctrl.processRecipientInput()"/>
+                                <input type="text" placeholder="{{'FORM_RECIPIENT_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.rawRecipient" ng-model-options="{debounce:3000}" ng-change="$ctrl.processRecipientInput()" ng-keypress="$ctrl.onEnter($event)"/>
                             </label>
                             <label class="item item-input item-floating-label" ng-show="$ctrl.showAlias" class="gap">
                                 <input type="text" placeholder="Alias" type="text" ng-model="$ctrl.aliasAddress" readOnly/>
@@ -19,7 +19,7 @@
                             <div style="width: 49%; float: left;margin-right: 1%;">
                                 <label class="item item-input item-floating-label">
                                     <span class="input-label">Amount</span>
-                                    <input type="text" placeholder="Amount" type="number" ng-model="$ctrl.formData.amount" min="0" ng-disabled="$ctrl.formData.isMosaicTransfer">
+                                    <input type="text" placeholder="Amount" type="number" ng-model="$ctrl.formData.amount" min="0" ng-disabled="$ctrl.formData.isMosaicTransfer" ng-keypress="$ctrl.onEnter($event)">
                                 </label>
                             </div>
                             <div style="width: 49%; float: left; margin-left: 1%; margin-top: 30px;">

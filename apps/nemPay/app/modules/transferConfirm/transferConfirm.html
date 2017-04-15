@@ -35,7 +35,7 @@
          
         <!-- Send button disabled if already pressed or no password or no clean recipient address or message is supposed to be encrypted but no recipient public key or is a mosaic transfer and no mosaics in array -->
 
-         <input class="item item-input item-floating-label full-width form-control-lg" type="password" placeholder="{{ 'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-model="$ctrl.common.password" />
+         <input class="item item-input item-floating-label full-width form-control-lg" type="password" placeholder="{{ 'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-model="$ctrl.common.password"  ng-keypress="$ctrl.onEnter($event)"/>
          <div class="gap">
             <a class="button button-block button-nem ink" type="submit" ng-disabled="$ctrl.okPressed || !$ctrl.common.password.length || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length" ng-click="$ctrl.send()">
             <i class="fa fa-send"></i> CONFIRM

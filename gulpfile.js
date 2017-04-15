@@ -19,11 +19,9 @@ var sass          = require('gulp-sass');
 var sh = require('shelljs');
 
 // Where our files are located
-var jsFiles   = "apps/nanowallet/src/app/**/*.js";
-var jsFiles2   = "apps/nemPay/app/**/*.js";
+var jsFiles   = "apps/nemPay/app/**/*.js";
 
-var viewFiles = "apps/nanowallet/src/app/**/*.html";
-var viewFiles2 = "apps/nemPay/app/**/*.html";
+var viewFiles = "apps/nemPay/app/**/*.html";
 
 var specFiles = "tests/specs/*.spec.js"
 var specsArray = glob.sync(specFiles);
@@ -70,7 +68,7 @@ gulp.task('browserifyTests', function() {
 
 /*Just move files to build*/
 gulp.task('html', function() {
-  return gulp.src("apps/nanowallet/start.html")
+  return gulp.src("apps/nemPay/start.html")
       .on('error', interceptErrors)
       .pipe(rename('index.html'))
       .pipe(gulp.dest('./www/'));
@@ -83,7 +81,7 @@ gulp.task('html', function() {
 });*/
 
   gulp.task('js', function() {
-  return gulp.src("apps/nanowallet/vendors/**/*")
+  return gulp.src("apps/nemPay/vendors/**/*")
       .on('error', interceptErrors)
       .pipe(gulp.dest('./www/vendors'));
 });
@@ -95,14 +93,14 @@ gulp.task('html', function() {
   });
 
     gulp.task('images', function() {
-    return gulp.src("apps/nanowallet/images/**/*")
+    return gulp.src("apps/nemPay/images/**/*")
       .on('error', interceptErrors)
       .pipe(gulp.dest('./www/images'));
 });
 
 // Cache template
 gulp.task('views', function() {
-  return gulp.src([viewFiles,viewFiles2])
+  return gulp.src([viewFiles,])
       .pipe(templateCache({
         standalone: true
       }))
@@ -129,7 +127,7 @@ gulp.task('default', ['html','js', 'sass', 'images', 'browserify'], function() {
 
   gulp.watch("www/index.html", ['html']);
   gulp.watch("apps/nempay/sass/**/*.scss", ['sass']);
-  gulp.watch(viewFiles2, ['views']);
-  gulp.watch(jsFiles2, ['browserify']);
+  gulp.watch(viewFiles, ['views']);
+  gulp.watch(jsFiles, ['browserify']);
 
 });

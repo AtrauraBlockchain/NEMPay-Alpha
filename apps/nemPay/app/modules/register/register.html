@@ -52,7 +52,7 @@
 
           <div>
             <button class="button button-block button-positive button-nem ink"
-                    type="submit" ng-click="$ctrl.createWallet()">
+                    type="submit" ng-click="$ctrl.createWallet()"  ng-keypress="$ctrl.onEnter($event)">
               {{'SIGNUP_CREATE_WALLET_BUTTON' | translate}}
             </button>
           </div>
@@ -105,7 +105,7 @@
           <div>
 
             <button class="button button-block button-positive button-nem ink"
-                    type="submit" ng-click="$ctrl.createBrainWallet()">
+                    type="submit" ng-click="$ctrl.createBrainWallet()"  ng-keypress="$ctrl.onEnter($event)">
               {{'SIGNUP_BRAIN_WALLET_BUTTON' | translate}}
             </button>
           </div>
@@ -171,7 +171,7 @@
           <div>
             <button class="button button-block button-positive button-nem"
                     type="submit"
-                    ng-click="$ctrl.createPrivateKeyWallet()">
+                    ng-click="$ctrl.createPrivateKeyWallet()"  ng-keypress="$ctrl.onEnter($event)">
               {{'SIGNUP_PRIVATE_KEY_WALLET_BUTTON' | translate}}
             </button>
           </div>
