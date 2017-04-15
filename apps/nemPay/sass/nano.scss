@@ -3,7 +3,7 @@ $main: #434F66;
 $pad: 20px;
 
 $transactionreceive: #009688;
-$transationsent: #F44336;
+$transationsent: #C0392B;
 
 html {
   position: relative;
@@ -370,13 +370,20 @@ h2 {
 .transactions-page h2 {
   display: inherit;
   font-size: 22px;
+  color: $transactionreceive;
 }
 
-/*
+
+.nempay-transaction{
+  margin-bottom: 10px;
+  border-bottom: 1px solid #d0d0d0;
+  padding-bottom: 10px;
+}
+
+
 .transactions-page .send-card h2 {
   color: $transationsent;
 }
-*/
 
 .transactions-page h2:before {
   content: '+';
@@ -384,6 +391,10 @@ h2 {
 
 .transactions-page .send-card h2:before {
   content: '-';
+}
+
+.transactions-page .transaction-message{
+  text-align: justify;
 }
 
 .transaction-row {

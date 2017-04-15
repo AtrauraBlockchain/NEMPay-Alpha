@@ -49,7 +49,7 @@
             <small class="selectable address" ng-show="tx.recipient === mainAccount && !parent && !parent"><div class="text"><b>From:</b>  <span ng-bind-html='tx.signer | fmtPubToAddress:networkId | fmtAlias'></span></div></small>
          </div>
          <div>
-            <span  ng-show="tx.message.type === 1">{{tx.message | fmtHexMessage}}</span>
+            <span  class="transaction-message" ng-show="tx.message.type === 1">{{tx.message | fmtHexMessage}}</span>
             <span ng-show="tx.message.type === 2" id="line-{{tx.timeStamp}}">
                {{ 'LINE_TX_DETAILS_MESS_ENC' | translate }}
                <div ng-show="!requiresKey">

@@ -5,7 +5,7 @@
             <table class="table">
                 <tbody>
                 <div ng-show="$ctrl.tabConfirmed">
-                    <div ng-repeat="tx in $ctrl._DataBridge.transactions | orderBy:'-transaction.timeStamp'">
+                    <div ng-repeat="tx in $ctrl._DataBridge.transactions | orderBy:'-transaction.timeStamp'" class="nempay-transaction">
                         <!-- Only if is a XEM or Mosaic transacton -->
                         <nempay-transaction ng-if="tx.transaction.type == 257" d="tx" z="$ctrl._Wallet.currentAccount.address" h="$ctrl._DataBridge" tooltip-position="'left'"></nempay-transaction>
                     </div>

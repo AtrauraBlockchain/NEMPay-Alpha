@@ -362,6 +362,7 @@ class TransferTransactionCtrl {
         if (undefined !== this._DataBridge.mosaicOwned[acct]) {
             this.currentAccountMosaicData = this._DataBridge.mosaicOwned[acct];
             this.currentAccountMosaicNames = Object.keys(this._DataBridge.mosaicOwned[acct]).sort();
+            console.log(this._DataBridge.mosaicOwned[acct]);
         } else {
             this.currentAccountMosaicNames = ["nem:xem"];
             this.currentAccountMosaicData = "";

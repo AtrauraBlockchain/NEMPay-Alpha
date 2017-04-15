@@ -284,18 +284,25 @@ h2 {
 
 .transactions-page h2 {
   display: inherit;
-  font-size: 22px; }
+  font-size: 22px;
+  color: #009688; }
 
-/*
+.nempay-transaction {
+  margin-bottom: 10px;
+  border-bottom: 1px solid #d0d0d0;
+  padding-bottom: 10px; }
+
 .transactions-page .send-card h2 {
-  color: $transationsent;
-}
-*/
+  color: #C0392B; }
+
 .transactions-page h2:before {
   content: '+'; }
 
 .transactions-page .send-card h2:before {
   content: '-'; }
+
+.transactions-page .transaction-message {
+  text-align: justify; }
 
 .transaction-row {
   cursor: pointer;
