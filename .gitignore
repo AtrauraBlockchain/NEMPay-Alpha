@@ -47,5 +47,3 @@ jspm_packages
 *.tgz
 
 #Custom
-platforms
-.idea
