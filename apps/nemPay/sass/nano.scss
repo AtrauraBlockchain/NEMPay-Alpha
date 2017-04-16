@@ -338,6 +338,11 @@ h2 {
 
 .page-transfer select {
   font-size: 16px;
+  background: transparent;
+}
+
+.page-transfer textarea{
+  background: transparent;
 }
 
 /* TRANSFER CONFIRM */
@@ -352,6 +357,16 @@ h2 {
   min-height: initial;
 }
 
+.page-account .separator{
+  margin-bottom: 10px;
+  border-bottom: 1px solid #d0d0d0;
+  padding-bottom: 10px;
+}
+
+.page-account .input-group{
+  height: 40px;
+}
+
 #accountInfoQR {
   display: block;
   margin: 0 auto;
@@ -361,6 +376,7 @@ h2 {
   margin: 0 auto;
   display: block;
 }
+
 
 /* TRANSACTIONS */
 .transactions-page {
