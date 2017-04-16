@@ -1,48 +1,29 @@
 # NemPay #
 
-Warning: NemPay Ionic is currently in beta
+**Warning:** NemPay Ionic is currently in beta. We don't recommend to use NemPay in Mainnet enviroment yet.
 
 ### What is NemPay ? ###
-NemPay is an app to transfer assets in an easy way directly from mobile devices.
+NemPay is an app to transfer assets in an easy way directly from mobile devices, using NEM blockchain.
 
-NemPay is available for Android and Ios.
+Currently, the app is available for Android and iOS.
 
-NemPay uses NanoWallet, a boilerplate to start building hybrid applications based on the Nano Wallet Beta 1.2.2:
-https://forum.nem.io/t/nano-wallet-beta-1-2-2-5-000-xem-bug-bounty/2791
-
+NemPay is based on NanoWallet project, and wrapped with Ionic, a boilerplate to start building hybrid applications
 About Ionic Framework:
 https://ionicframework.com/
 
 # Developers #
 ### Build from source ###
-1) Open a console to the path of the NanoWallet folder and install all the needed dependencies
-
+1) Install all the needed dependencies
 <pre>npm install</pre>
+<pre>bower install</pre>
 
-1) Install gulp
-
-<pre>npm install -g gulp-cli</pre>
-
-3) Build:
-
+2) Build:
 <pre>gulp</pre>
 
-4) Run:
+3) Run:
 <pre>ionic serve</pre>
 
-### Edit app ###
-Under the folder <pre>/apps/nempay</pre>, the source code of the application can be found. To compile it, you should run 
-<pre> gulp</pre>
-and it will automatically compile the code into 
-<pre>/www</pre>
-folder
-
-
-### Known issues ###
--
 ### Thanks ###
-Special thanks to 
-
 - <b>QuantumMechanics: https://github.com/QuantumMechanics</b>  for building NanoWallet
 
-- <b>saulgray:  https://github.com/saulgray/NanoWallet  </b> for building an a usable template for NanoWallet, wich is currently being used by this app.
+- <b>saulgray:  https://github.com/saulgray/NanoWallet  </b> for building an a usable template for NanoWallet, which has been helful for begining programming this app.
