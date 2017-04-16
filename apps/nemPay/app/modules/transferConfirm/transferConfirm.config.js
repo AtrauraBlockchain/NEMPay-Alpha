@@ -3,12 +3,20 @@ function TransferConfirmConfig($stateProvider) {
 
     $stateProvider
         .state('app.transferConfirm', {
-            url: '/transfer-confirm/:to?alias?amount?currency?message',
+            url: '/transfer-confirm',
             controller: 'TransferConfirmCtrl',
             controllerAs: '$ctrl',
             templateUrl: 'modules/transferConfirm/transferConfirm.html',
             title: 'Transfer',
-            activetab: 'transferConfirm'
+            activetab: 'transferConfirm',
+            params: {
+                to: '',
+                alias: '',
+                amount: '',
+                divisibility: '',
+                mosaic: '',
+                message: ''
+            }
         });
 
 };

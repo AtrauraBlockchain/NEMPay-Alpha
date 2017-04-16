@@ -4,7 +4,7 @@ import CryptoHelpers from '../../utils/CryptoHelpers';
 import Network from '../../utils/Network';
 
 class TransferConfirmCtrl {
-    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $stateParams, $state, $ionicLoading) {
+    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $state, $ionicLoading) {
         'ngInject';
 
         // Alert service
@@ -22,8 +22,6 @@ class TransferConfirmCtrl {
 
         this._state = $state;
 
-
-
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
             this._Alert.noWalletLoaded();
@@ -35,42 +33,68 @@ class TransferConfirmCtrl {
          * Default transfer transaction properties
          */
         this.formData = {};
-        // Alias or address user type in
-        // Cleaned recipient from @alias or input
-        this.formData.recipient = $stateParams.to;
-        console.log($stateParams.to);
+        this.formData.recipient = this._state.params.to;
         this.formData.recipientPubKey = '';
-        if($stateParams.message){
-            this.formData.message =    $stateParams.message;
+
+        if(this._state.params.message){
+            this.formData.message =    this._state.params.message;
         }
         else this.formData.message = '';
-        this.formData.amount = $stateParams.amount;
+
+        this.selectedMosaic = this._state.params.mosaic;
+
+        this.rawAmount = this._state.params.amount;
+        //if is nem:xem, set amount
+        if(this.selectedMosaic == 'nem:xem'){
+
+            this.formData.amount = this._state.params.amount;
+        }
+        else this.formData.amount = 0;
+
+        var namespace_mosaic = this.selectedMosaic.split(":");
+
+        this.formData.mosaics = [{
+            'mosaicId': {
+                'namespaceId': namespace_mosaic[0],
+                'name': namespace_mosaic[1]
+            },
+            'quantity': this._state.params.amount * Math.pow(10, this._state.params.divisibility),
+            'gid': 'mos_id_0'
+        }];
+
+        console.log(this._state.params.amount * Math.pow(10, this._state.params.divisibility));
+
+        // no mosaics if nem or xem transfered
+        if(this.selectedMosaic == 'nem:xem'){
+            this.formData.mosaics = [];
+        }
+
         this.formData.fee = 0;
         this.formData.encryptMessage = false;
+
         // Multisig data
         this.formData.innerFee = 0;
         this.formData.isMultisig = false;
         this.formData.multisigAccount = this._DataBridge.accountData.meta.cosignatoryOf.length == 0 ? '' : this._DataBridge.accountData.meta.cosignatoryOf[0];
+
         // Mosaics data
         // Counter for mosaic gid
-        this.counter = 1;
-        this.formData.mosaics = null;
         this.mosaicsMetaData = this._DataBridge.mosaicDefinitionMetaDataPair;
-        this.formData.isMosaicTransfer = false;
+
+        if(this.selectedMosaic == 'nem:xem'){
+            this.formData.isMosaicTransfer = false;
+        }
+        else this.formData.isMosaicTransfer = true;
+
+
         this.currentAccountMosaicNames = [];
-        this.selectedMosaic = $stateParams.currency;
-        this.unit = this.selectedMosaic.split(":")[1];
 
         // Mosaics data for current account
         this.currentAccountMosaicData = "";
 
-        // Invoice mode not active by default
-        this.invoice = false;
-        // Plain amount that'll be converted to micro XEM
-        this.rawAmountInvoice = 0;
 
         // Alias address empty by default
-        this.aliasAddress = $stateParams.alias;
+        this.aliasAddress = this._state.params.alias;
 
         // Needed to prevent user to click twice on send when already processing
         this.okPressed = false;
@@ -112,70 +136,25 @@ class TransferConfirmCtrl {
     }
 
 
-
-    _send(entity, common){
-        // Construct transaction byte array, sign and broadcast it to the network
-        return this._Transactions.serializeAndAnnounceTransaction(entity, common).then((result) => {
-                // Check status
-                if (result.status === 200) {
-            // If code >= 2, it's an error
-            if (result.data.code >= 2) {
-                this._Alert.transactionError(result.data.message);
-            } else {
-                this._Alert.transactionSuccess();
-            }
+    /**
+     * checkAccess() Ensure that the user is authentic by checking his password and setting the private key to this.common
+     */
+    checkAccess(){
+        // Decrypt/generate private key and check it. Returned private key is contained into this.common
+        if (!CryptoHelpers.passwordToPrivatekeyClear(this.common, this._Wallet.currentAccount, this._Wallet.algo, false)) {
+            this._Alert.invalidPassword();
+            return false;
+        } else if (!CryptoHelpers.checkAddress(this.common.privateKey, this._Wallet.network, this._Wallet.currentAccount.address)) {
+            this._Alert.invalidPassword();
+            return false;
         }
-    },
-        (err) => {
-            // Enable send button
-            this.okPressed = false;
-            this._Alert.transactionError('Failed ' + err.data.error + " " + err.data.message);
-        });
+        return true;
     }
 
 
     /**
      * _sendMosaic(recipient, namespaceId, mosaics, amount) Sends a minimal transaction containing one or more mosaics
      */
-    _sendMosaic(recipient, namespaceId, mosaics, amount, common, options) {
-
-        var message = ""
-        if(options.message) message = options.message;
-
-        var transferData = {}
-
-        // Check that the recipient is a valid account and process it's public key
-        transferData.recipient = recipient;
-
-        // In case of mosaic transfer amount is used as multiplier, set to 1 as default
-        transferData.amount = 1;
-
-        // transferData.recipientPubKey is set now
-        if(namespaceId == "nem" && mosaics =="xem"){
-            transferData.amount = amount;
-        }
-
-        // Other necessary
-        transferData.message = message;
-        transferData.encryptMessage = false;
-
-
-        // Setup mosaics information
-        transferData.mosaics = [{
-            'mosaicId': {
-                'namespaceId': namespaceId,
-                'name': mosaics
-            },
-            'quantity': amount,
-        }];
-        if(namespaceId == "nem" && mosaics =="xem"){
-            transferData.mosaics = [];
-        }
-
-        // Build the entity to send
-        let entity = this._Transactions.prepareTransfer(common, transferData, this.mosaicsMetaData);
-        return this._send(entity, common);
-    }
 
     /**
      * send() Build and broadcast the transaction to the network
@@ -184,29 +163,35 @@ class TransferConfirmCtrl {
         // Disable send button;
         this.okPressed = true;
 
-        // Decrypt/generate private key and check it. Returned private key is contained into this.common
-        if (!CryptoHelpers.passwordToPrivatekeyClear(this.common, this._Wallet.currentAccount, this._Wallet.algo, true)) {
-            this._Alert.invalidPassword();
-            // Enable send button
-            this.okPressed = false;
-            return;
-        } else if (!CryptoHelpers.checkAddress(this.common.privateKey, this._Wallet.network, this._Wallet.currentAccount.address)) {
-            this._Alert.invalidPassword();
-            // Enable send button
-            this.okPressed = false;
-            return;
+        if(this.checkAccess()) {
+            // Construct transaction byte array, sign and broadcast it to the network
+
+            // Build the entity to send
+            let entity = this._Transactions.prepareTransfer(this.common, this.formData, this.mosaicsMetaData);
+            // Construct transaction byte array, sign and broadcast it to the network
+            return this._Transactions.serializeAndAnnounceTransaction(entity, this.common).then((result) => {
+                    // Check status
+                    if (result.status === 200) {
+                        // If code >= 2, it's an error
+                        if (result.data.code >= 2) {
+                            this._Alert.transactionError(result.data.message);
+                        } else {
+                            this._Alert.transactionSuccess();
+                        }
+                        this.okPressed = false;
+                        this._state.go('app.balance');
+
+                    }
+                },
+                (err) => {
+                    this.okPressed = false;
+                    this._Alert.transactionError('Failed ' + err.data.error + " " + err.data.message);
+                });
         }
+        else{
+            this.okPressed = false;
 
-        // Construct transaction byte array, sign and broadcast it to the network
-        var namespacemosaic = this.selectedMosaic.split(":");
-        this.options = {};
-        this.options.message = this.formData.message;
-        this._sendMosaic(this.formData.recipient, namespacemosaic[0], namespacemosaic[1], this.formData.amount, this.common, this.options).then((data)=>{
-            this._state.go('app.balance');
-        },
-        (err) => {
-
-        });
+        }
     }
 
     /**

@@ -42,6 +42,9 @@ h2 {
   background-color: #434F66;
   color: #fff; }
 
+.button.button-block {
+  width: 100%; }
+
 .alert {
   padding: 15px; }
 

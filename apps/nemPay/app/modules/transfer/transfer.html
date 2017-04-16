@@ -26,7 +26,7 @@
                                 <div>
                                     <label class="item item-input item-select">
                                         <div class="input-label">
-                                            <!--Currency-->
+                                            <!--Mosaic-->
                                         </div>
                                         <select ng-init="$ctrl.selectedMosaic"
                                         ng-options="mos for mos in $ctrl.currentAccountMosaicNames" ng-model="$ctrl.selectedMosaic" ng-change="$ctrl.updateMosaicUnitToTransfer();"
@@ -44,7 +44,7 @@
                         </div>
                         <div class="gap">
 
-                            <a ng-click="$ctrl.moveToTransferConfirm()" class="button button-block button-positive button-nem ink" type="submit" ng-disabled="$ctrl.okPressed || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length || $ctrl.formData.amount == 0">
+                            <a ng-click="$ctrl.moveToTransferConfirm()" class="button button-block button-nem" type="submit" ng-disabled="$ctrl.okPressed || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length || $ctrl.formData.amount == 0">
                                 CONTINUE
                             </a>
                         </div>

@@ -57,17 +57,13 @@ class TransferTransactionCtrl {
         this.formData.message = '';
         this.rawAmount = 0;
         this.formData.amount = 0;
-        this.formData.fee = 0;
         this.formData.encryptMessage = false;
 
         // Multisig data
-        this.formData.innerFee = 0;
         this.formData.isMultisig = false;
         this.formData.multisigAccount = this._DataBridge.accountData.meta.cosignatoryOf.length == 0 ? '' : this._DataBridge.accountData.meta.cosignatoryOf[0];
 
         // Mosaics data
-        // Counter for mosaic gid
-        this.counter = 1;
         this.formData.mosaics = null;
         this.mosaicsMetaData = this._DataBridge.mosaicDefinitionMetaDataPair;
         this.formData.isMosaicTransfer = false;
@@ -76,11 +72,6 @@ class TransferTransactionCtrl {
      
         // Mosaics data for current account
         this.currentAccountMosaicData = "";
-
-        // Invoice mode not active by default
-        this.invoice = false;
-        // Plain amount that'll be converted to micro XEM
-        this.rawAmountInvoice = 0;
 
         // Alias address empty by default
         this.aliasAddress = '';
@@ -95,38 +86,8 @@ class TransferTransactionCtrl {
             'privateKey': '',
         };
 
-        this.contacts = []
-
-        if(undefined !== this._storage.contacts && undefined !== this._storage.contacts[this._Wallet.currentAccount.address] && this._storage.contacts[this._Wallet.currentAccount.address].length) {
-            this.contacts = this._storage.contacts[this._Wallet.currentAccount.address]
-        }
-
-        // Contacts to address book pagination properties
-        this.currentPageAb = 0;
-        this.pageSizeAb = 5;
-        this.numberOfPagesAb = function() {
-            return Math.ceil(this.contacts.length / this.pageSizeAb);
-        }
-
-        // Invoice model for QR
-        this.invoiceData = {
-            "v": this._Wallet.network === Network.data.Testnet.id ? 1 : 2,
-            "type": 2,
-            "data": {
-                "addr": this._Wallet.currentAccount.address,
-                "amount": 0,
-                "msg": "",
-                "name": "NanoWallet XEM invoice"
-            }
-        };
-
         // Init account mosaics
         this.updateCurrentAccountMosaics();
-
-        // Init invoice QR
-        this.updateInvoiceQR();
-
-        this.updateFees();
 
         // NEM ALIAS SYSTEM
         this.alias = "";
@@ -138,60 +99,6 @@ class TransferTransactionCtrl {
 
     }
 
-    /**
-     * generateQRCode() Generate QR using kjua lib
-     */
-    generateQRCode(text) {
-        let qrCode = kjua({
-            size: 256,
-            text: text,
-            fill: '#000',
-            quiet: 0,
-            ratio: 2,
-        });
-        $('#invoiceQR').html(qrCode);
-    }
-
-    /**
-     * updateInvoiceQR() Create the QR according to invoice data
-     */
-    updateInvoiceQR() {
-        // Clean input address
-        this.invoiceData.data.addr = this.invoiceData.data.addr.toUpperCase().replace(/-/g, '');
-        // Convert user input to micro XEM
-        this.invoiceData.data.amount = this.rawAmountInvoice * 1000000;
-        this.invoiceString = JSON.stringify(this.invoiceData);
-        // Generate the QR
-        this.generateQRCode(this.invoiceString);
-    }
-
-    /**
-     * setMosaicTransfer() Set or unset data for mosaic transfer
-     */
-    setMosaicTransfer() {
-        if (this.formData.isMosaicTransfer) {
-            // Set the initial mosaic array
-            this.formData.mosaics = [{
-                'mosaicId': {
-                    'namespaceId': 'nem',
-                    'name': 'xem'
-                },
-                'quantity': 0,
-                'gid': 'mos_id_0'
-            }];
-            // In case of mosaic transfer amount is used as multiplier,
-            // set to 1 as default
-            this.rawAmount = 1;
-            this.formData.amount = 1;
-        } else {
-            // Reset mosaics array
-            this.formData.mosaics = null;
-            // Reset amount
-            this.rawAmount = 0;
-            this.formData.amount = 0;
-        }
-        this.updateFees();
-    }
 
     /**
      * processRecipientInput() Process recipient input and get data from network
@@ -230,25 +137,6 @@ class TransferTransactionCtrl {
             }
         }
 
-    }
-
-    /**
-     * updateFees() Update transaction fee
-     */
-    updateFees() {
-        if(!helpers.isAmountValid(this.rawAmount)) {
-            this._Alert.invalidAmount();
-            return;
-        } else {
-            this.formData.amount = helpers.cleanAmount(this.rawAmount);
-        }
-        let entity = this._Transactions.prepareTransfer(this.common, this.formData, this.mosaicsMetaData);
-        if (this.formData.isMultisig) {
-            this.formData.innerFee = entity.otherTrans.fee;
-        } else {
-            this.formData.innerFee = 0;
-        }
-        this.formData.fee = entity.fee;
     }
 
     /**
@@ -305,46 +193,6 @@ class TransferTransactionCtrl {
     }
 
     /**
-     * attachMosaic() Get selected mosaic and push it in mosaics array
-     */
-    attachMosaic() {
-        // increment counter
-        this.counter++;
-        // Get current account
-        let acct = this._Wallet.currentAccount.address;
-        if (this.formData.isMultisig) {
-            // Use selected multisig
-            acct = this.formData.multisigAccount.address;
-        }
-        // Get the mosaic selected
-        let mosaic = this._DataBridge.mosaicOwned[acct][this.selectedMosaic];
-        // Check if mosaic already present in mosaics array
-        let elem = $.grep(this.formData.mosaics, function(w) {
-            return helpers.mosaicIdToName(mosaic.mosaicId) === helpers.mosaicIdToName(w.mosaicId);
-        });
-        // If not present, update the array
-        if (elem.length === 0) {
-            this.formData.mosaics.push({
-                'mosaicId': mosaic['mosaicId'],
-                'quantity': 0,
-                'gid': 'mos_id_' + this.counter
-            });
-
-            this.updateFees();
-        }
-    }
-
-    /**
-     * removeMosaic() Remove a mosaic from mosaics array
-     *
-     * @param index: Index of mosaic object in the array
-     */
-    removeMosaic(index) {
-        this.formData.mosaics.splice(index, 1);
-        this.updateFees();
-    }
-
-    /**
      * updateCurrentAccountMosaics() Get current account mosaics names
      */
     updateCurrentAccountMosaics() {
@@ -391,10 +239,11 @@ class TransferTransactionCtrl {
             alias = this.formData.rawRecipient;
         }
         this._$state.go('app.transferConfirm',
-            {to: this.formData.recipient,
+                {to: this.formData.recipient,
                 alias: alias,
                 amount: this.formData.amount,
-                currency: this.selectedMosaic,
+                mosaic: this.selectedMosaic,
+                divisibility: this.mosaicsMetaData[this.selectedMosaic].mosaicDefinition.properties[0].value,
                 message: this.formData.message})
     }
 

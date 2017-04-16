@@ -41,7 +41,7 @@ class AppHeaderCtrl {
             '<ion-content>' +
             '<div class="list" ng-click="$ctrl.closePopover()">' +
             '<a ui-sref="app.balance" class="item">Balance</a>' +
-            '<a ui-sref="app.transfer" class="item">Transfer</a>' +
+            '<a ui-sref="app.transfer({selectedMosaic: \'nem:xem\'})" class="item">Transfer</a>' +
             '<a ui-sref="app.transactions" class="item">Transactions</a>' +
             '<a ui-sref="app.account" class="item">Account</a>' +
             '</div>' +
