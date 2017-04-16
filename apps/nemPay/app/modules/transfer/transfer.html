@@ -28,7 +28,9 @@
                                         <div class="input-label">
                                             <!--Currency-->
                                         </div>
-                                        <select selectclick ng-options="mos for mos in $ctrl.currentAccountMosaicNames" ng-model="$ctrl.selectedMosaic" ng-change="$ctrl.updateMosaicUnitToTransfer();"></select>
+                                        <select ng-init="$ctrl.selectedMosaic"
+                                        ng-options="mos for mos in $ctrl.currentAccountMosaicNames" ng-model="$ctrl.selectedMosaic" ng-change="$ctrl.updateMosaicUnitToTransfer();"
+                                         ></select>
                                     </label>
                                 </div>
                             </div>

@@ -6,7 +6,7 @@ import Network from '../../utils/Network';
 
 class TransferTransactionCtrl {
 
-    constructor($state, $localStorage, $location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, nemUtils, Alias) {
+    constructor($state, $localStorage, $location, $scope, Wallet, Alert, Transactions, NetworkRequests, DataBridge, nemUtils, Alias) {
 
         'ngInject';
 
@@ -72,7 +72,8 @@ class TransferTransactionCtrl {
         this.mosaicsMetaData = this._DataBridge.mosaicDefinitionMetaDataPair;
         this.formData.isMosaicTransfer = false;
         this.currentAccountMosaicNames = [];
-        this.selectedMosaic = "nem:xem";
+        this.selectedMosaic = this._$state.params.selectedMosaic;
+     
         // Mosaics data for current account
         this.currentAccountMosaicData = "";
 
@@ -240,7 +241,6 @@ class TransferTransactionCtrl {
             return;
         } else {
             this.formData.amount = helpers.cleanAmount(this.rawAmount);
-            //console.log(this.formData.amount)
         }
         let entity = this._Transactions.prepareTransfer(this.common, this.formData, this.mosaicsMetaData);
         if (this.formData.isMultisig) {
@@ -362,13 +362,12 @@ class TransferTransactionCtrl {
         if (undefined !== this._DataBridge.mosaicOwned[acct]) {
             this.currentAccountMosaicData = this._DataBridge.mosaicOwned[acct];
             this.currentAccountMosaicNames = Object.keys(this._DataBridge.mosaicOwned[acct]).sort();
-            console.log(this._DataBridge.mosaicOwned[acct]);
         } else {
             this.currentAccountMosaicNames = ["nem:xem"];
             this.currentAccountMosaicData = "";
         }
         // Default selected is nem:xem
-        this.selectedMosaic = "nem:xem";
+        this.selectedMosaic = this._$state.params.selectedMosaic;
     }
 
     /**
@@ -411,6 +410,10 @@ class TransferTransactionCtrl {
                 this.moveToTransferConfirm();
             }
         }
+    }
+
+    onInitSelector(){
+        return this._$state.params.selectedMosaic;
     }
 
 }

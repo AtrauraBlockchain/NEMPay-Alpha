@@ -1,5 +1,5 @@
 class BalanceCtrl {
-    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, Transactions, NetworkRequests, $timeout, ionicMaterialInk, ionicMaterialMotion) {
+    constructor(Wallet, Alert, $location, DataBridge, $scope, $filter, $state, Transactions, NetworkRequests) {
         'ngInject';
         
         // Alert service
@@ -8,13 +8,15 @@ class BalanceCtrl {
         this._$filter = $filter;
         // $location to redirect
         this._location = $location;
+
+        this._$state = $state;
+
         // Wallet service
         this._Wallet = Wallet;
         // Transaction service
         this._Transactions = Transactions;
         // DataBridge service
         this._DataBridge = DataBridge;
-
         this._NetworkRequests = NetworkRequests;
 
         this.showNotAssetMessage = false;
@@ -25,13 +27,13 @@ class BalanceCtrl {
             this._location.path('/');
         }
 
-        if(window.Connection) {
-            if(navigator.connection.type == Connection.NONE) {
-                this._Alert.noInternet();
-                this._location.path('/');
-            }
-        }
     };
+
+    moveToTransfer(mos){
+        this._$state.go('app.transfer',
+            {selectedMosaic: mos.mosaicId.namespaceId+':'+mos.mosaicId.name}
+            )
+    }
 
 }
 

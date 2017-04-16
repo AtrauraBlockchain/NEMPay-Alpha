@@ -10,7 +10,8 @@ function TransferConfig($stateProvider) {
             title: 'Transfer',
             activetab: 'transfer',
             params: {
-                address: ''
+                address: '',
+                selectedMosaic: ''
             }
         });
 
