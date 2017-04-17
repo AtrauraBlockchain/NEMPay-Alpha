@@ -24,7 +24,7 @@ class LoadWalletCtrl {
         this._Connector = Connector;
         // DataBridge service
         this._DataBridge = DataBridge;
-        
+
         //Root scope
         this._rootScope = $rootScope;
         // ionic loading
@@ -44,7 +44,7 @@ class LoadWalletCtrl {
             this.selectedWallet = this._storage.wallets[0];
         }
 
-        this._rootScope.$on('RECENT_TRANSACTIONS_LOADED', function(event, data) {  
+        this._rootScope.$on('RECENT_TRANSACTIONS_LOADED', function(event, data) {
             $ionicLoading.hide();
             $location.path('/balance');
         });
@@ -125,13 +125,13 @@ class LoadWalletCtrl {
 
             // Set the wallet object in Wallet service
             this._Wallet.setWallet(wallet).then((data) => {
-                this.clearSensitiveData();
-                // Connect to node
-                this.connect();
-            },
-            (err) => {
-                this._ionicLoading.hide();
-            });
+                    this.clearSensitiveData();
+                    // Connect to node
+                    this.connect();
+                },
+                (err) => {
+                    this._ionicLoading.hide();
+                });
 
         } else {
             // Open upgrade modal
@@ -157,19 +157,19 @@ class LoadWalletCtrl {
             }
             // Generate bip32 data
             CryptoHelpers.generateBIP32Data(this.common.privateKey, this.common.password, 0, this.selectedWallet.accounts[i].network).then((data) => {
-                this._$timeout(() => {
-                    // Add generated child to account
-                    this.selectedWallet.accounts[i].child = data.publicKey;
+                    this._$timeout(() => {
+                        // Add generated child to account
+                        this.selectedWallet.accounts[i].child = data.publicKey;
+                    });
+                },
+                (err) => {
+                    this._$timeout(() => {
+                        this._Alert.bip32GenerationFailed(err);
+                        // Clean data
+                        this.clearSensitiveData();
+                        return;
+                    }, 0)
                 });
-            },
-            (err) => {
-                this._$timeout(() => {
-                    this._Alert.bip32GenerationFailed(err);
-                    // Clean data
-                    this.clearSensitiveData();
-                    return;
-                }, 0)
-            });
             // If last account
             if(i === Object.keys(this.selectedWallet.accounts).length - 1) {
                 this._$timeout(() => {

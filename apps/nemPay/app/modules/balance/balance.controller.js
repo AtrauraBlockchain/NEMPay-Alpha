@@ -29,6 +29,11 @@ class BalanceCtrl {
 
     };
 
+    /**
+     * Moves to transfer screen with a mosaic selected
+     *
+     * @param {object} mos - KMosaic object
+     */
     moveToTransfer(mos){
         this._$state.go('app.transfer',
             {selectedMosaic: mos.mosaicId.namespaceId+':'+mos.mosaicId.name}

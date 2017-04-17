@@ -293,6 +293,12 @@ h2 {
   display: block;
 }
 
+//quick fix for ios
+.page-balance .mosaic-name{
+ text-underline: none !important; 
+ color: #000 !important;
+}
+
 .page-balance .item-avatar {
   padding-left: 60px !important;
 }

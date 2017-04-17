@@ -4,13 +4,13 @@ import Network from '../utils/Network';
 import helpers from '../utils/helpers';
 
 /**
-* fmtPubToAddress() Convert a public key to NEM address
-*
-* @param input: The account public key
-* @param networkId: The current network id
-*
-* @return a clean NEM address
-*/
+ * fmtPubToAddress() Convert a public key to NEM address
+ *
+ * @param input: The account public key
+ * @param networkId: The current network id
+ *
+ * @return a clean NEM address
+ */
 let fmtPubToAddress = function() {
     return function fmtPubToAddress(input, networkId) {
         return input && Address.toAddress(input, networkId);
@@ -18,12 +18,12 @@ let fmtPubToAddress = function() {
 }
 
 /**
-* fmtAddress() Add hyphens to a clean address
-*
-* @param input: A NEM address
-*
-* @return a formatted NEM address
-*/
+ * fmtAddress() Add hyphens to a clean address
+ *
+ * @param input: A NEM address
+ *
+ * @return a formatted NEM address
+ */
 let fmtAddress = function() {
     return function fmtAddress(input) {
         return input && input.toUpperCase().replace(/-/g, '').match(/.{1,6}/g).join('-');
@@ -65,15 +65,15 @@ let fmtAlias = ['Alias', function(Alias) {
                     // Loading has finished
                     serviceInvoked[address] = false;
 
-                if(result){
-                    // Format the alias
-                    aliasDict[address] = "@"+result;
-                }
-                else{
-                    // Format the address (no loader)
-                    aliasDict[address] = formatAddr(address);
-                }
-            });
+                    if(result){
+                        // Format the alias
+                        aliasDict[address] = "@"+result;
+                    }
+                    else{
+                        // Format the address (no loader)
+                        aliasDict[address] = formatAddr(address);
+                    }
+                });
 
             }
             // Default before loading: formated address
@@ -88,12 +88,12 @@ let fmtAlias = ['Alias', function(Alias) {
 }]
 
 /**
-* fmtNemDate() Format a timestamp to NEM date
-*
-* @param data: A timestamp
-*
-* @return a date string
-*/
+ * fmtNemDate() Format a timestamp to NEM date
+ *
+ * @param data: A timestamp
+ *
+ * @return a date string
+ */
 let fmtNemDate = function() {
     let nemesis = Date.UTC(2015, 2, 29, 0, 6, 25);
     return function fmtNemDate(data) {
@@ -166,12 +166,12 @@ let fmtLevyFee = ['fmtSupplyFilter', function(fmtSupplyFilter) {
 }];
 
 /**
-* fmtNemImportanceScore() Format a NEM importance score
-*
-* @param data: The importance score
-*
-* @return a formatted importance score at 10^-4
-*/
+ * fmtNemImportanceScore() Format a NEM importance score
+ *
+ * @param data: The importance score
+ *
+ * @return a formatted importance score at 10^-4
+ */
 let fmtNemImportanceScore = function() {
     return function fmtNemImportanceScore(data) {
         if (data === undefined) return data;
@@ -186,10 +186,10 @@ let fmtNemImportanceScore = function() {
 }
 
 /**
-* fmtNemValue() Format a value to NEM value
-*
-* @return array with values before and after decimal point
-*/
+ * fmtNemValue() Format a value to NEM value
+ *
+ * @return array with values before and after decimal point
+ */
 let fmtNemValue = function() {
     return function fmtNemValue(data) {
         if (data === undefined) return data;
@@ -206,10 +206,10 @@ let fmtNemValue = function() {
 }
 
 /**
-* fmtImportanceTransferMode() Give name of an importance transfer mode
-*
-* @return an importance transfer mode name
-*/
+ * fmtImportanceTransferMode() Give name of an importance transfer mode
+ *
+ * @return an importance transfer mode name
+ */
 let fmtImportanceTransferMode = function() {
     return function fmtImportanceTransferMode(data) {
         if (data === undefined) return data;
@@ -221,12 +221,12 @@ let fmtImportanceTransferMode = function() {
 }
 
 /**
-* fmtHexToUtf8() Convert hex to utf8
-*
-* @param data: Hex data
-*
-* @return result: utf8 string
-*/
+ * fmtHexToUtf8() Convert hex to utf8
+ *
+ * @param data: Hex data
+ *
+ * @return result: utf8 string
+ */
 let fmtHexToUtf8 = function() {
     return function fmtHexToUtf8(data) {
         if (data === undefined) return data;
@@ -260,12 +260,12 @@ let fmtHexMessage = ['fmtHexToUtf8Filter', function(fmtHexToUtf8Filter) {
 }];
 
 /**
-* fmtSplitHex() Split hex string into 64 characters segments
-*
-* @param data: An hex string
-*
-* @return a segmented hex string
-*/
+ * fmtSplitHex() Split hex string into 64 characters segments
+ *
+ * @param data: An hex string
+ *
+ * @return a segmented hex string
+ */
 let fmtSplitHex = function() {
     return function fmtSplitHex(data) {
         if (data === undefined) return data;
@@ -276,12 +276,12 @@ let fmtSplitHex = function() {
 }
 
 /**
-* startFrom() Build array of objects from object of objects
-*
-* @param data: An object of objects
-*
-* @return an array of objects
-*/
+ * startFrom() Build array of objects from object of objects
+ *
+ * @param data: An object of objects
+ *
+ * @return an array of objects
+ */
 let objValues = function() {
     return function objValues(data) {
         if (data === undefined) return data;
@@ -292,13 +292,13 @@ let objValues = function() {
 }
 
 /**
-* startFrom() Helper for confirmed transactions pagination
-*
-* @param input: An array
-* @param start: Index where to start showing the array
-*
-* @return the part of the array
-*/
+ * startFrom() Helper for confirmed transactions pagination
+ *
+ * @param input: An array
+ * @param start: Index where to start showing the array
+ *
+ * @return the part of the array
+ */
 let startFrom = function() {
     return function(input, start) {
         if (!input || !input.length) {
@@ -310,13 +310,13 @@ let startFrom = function() {
 }
 
 /**
-* startFromUnc() Helper for unconfirmed transactions pagination
-*
-* @param input: An array
-* @param start: Index where to start showing the array
-*
-* @return the part of the array
-*/
+ * startFromUnc() Helper for unconfirmed transactions pagination
+ *
+ * @param input: An array
+ * @param start: Index where to start showing the array
+ *
+ * @return the part of the array
+ */
 let startFromUnc = function() {
     return function(input, start) {
         let input2tab = [];
@@ -332,12 +332,12 @@ let startFromUnc = function() {
 }
 
 /**
-* reverse() Reverse order of an array
-*
-* @param items: An array
-*
-* @return the reversed array
-*/
+ * reverse() Reverse order of an array
+ *
+ * @param items: An array
+ *
+ * @return the reversed array
+ */
 let reverse = function() {
     return function(items) {
         if (items === undefined) {
@@ -356,12 +356,12 @@ let htmlSafe = function($sce) {
 }
 
 /**
-* toNetworkName() Get network name from id
-*
-* @param id: The network id
-*
-* @return the network name
-*/
+ * toNetworkName() Get network name from id
+ *
+ * @param id: The network id
+ *
+ * @return the network name
+ */
 let toNetworkName = function() {
     return function(id) {
         if (id === Network.data.Testnet.id) {
@@ -375,12 +375,12 @@ let toNetworkName = function() {
 }
 
 /**
-* toHostname() Parse url to get only ip or domain
-*
-* @param uri: The uri to parse
-*
-* @return uri hostname
-*/
+ * toHostname() Parse url to get only ip or domain
+ *
+ * @param uri: The uri to parse
+ *
+ * @return uri hostname
+ */
 let toHostname = function() {
     return function(uri) {
         let _uriParser = document.createElement('a');
@@ -390,12 +390,12 @@ let toHostname = function() {
 }
 
 /**
-* currencyFormat() Set a value to common currency format
-*
-* @param number: The number to format
-*
-* @return number with following format: 0.00
-*/
+ * currencyFormat() Set a value to common currency format
+ *
+ * @param number: The number to format
+ *
+ * @return number with following format: 0.00
+ */
 let currencyFormat = function() {
     return function(number) {
         if(undefined === number) {
@@ -407,12 +407,12 @@ let currencyFormat = function() {
 }
 
 /**
-* btcFormat() Set a value to btc format
-*
-* @param number: The number to format
-*
-* @return number with following format: 0.00000000 
-*/
+ * btcFormat() Set a value to btc format
+ *
+ * @param number: The number to format
+ *
+ * @return number with following format: 0.00000000
+ */
 let btcFormat = function() {
     return function(number) {
         if(undefined === number) {
@@ -424,12 +424,12 @@ let btcFormat = function() {
 }
 
 /**
-* fmtNemDate() Format a timestamp to NEM date
-*
-* @param data: A timestamp
-*
-* @return a date string
-*/
+ * fmtNemDate() Format a timestamp to NEM date
+ *
+ * @param data: A timestamp
+ *
+ * @return a date string
+ */
 let fmtNemPayDate = function() {
     let nemesis = Date.UTC(2015, 2, 29, 0, 6, 25);
     return function fmtNemPayDate(data) {

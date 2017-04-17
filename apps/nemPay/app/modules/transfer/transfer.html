@@ -28,9 +28,8 @@
                                         <div class="input-label">
                                             <!--Mosaic-->
                                         </div>
-                                        <select ng-init="$ctrl.selectedMosaic"
-                                        ng-options="mos for mos in $ctrl.currentAccountMosaicNames" ng-model="$ctrl.selectedMosaic" ng-change="$ctrl.updateMosaicUnitToTransfer();"
-                                         ></select>
+                                        <select ng-options="mos for mos in $ctrl.currentAccountMosaicNames" ng-model="$ctrl.selectedMosaic" ng-change="$ctrl.updateMosaicUnitToTransfer();"
+                                        ></select>
                                     </label>
                                 </div>
                             </div>

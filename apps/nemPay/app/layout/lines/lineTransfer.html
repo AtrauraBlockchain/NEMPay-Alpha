@@ -12,7 +12,7 @@
                   <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>
                </span>
             </span>
-                <span>
+                <span ng-if="tx.recipient !== mainAccount && !parent">
                   <h2>{{tx.fee/1000000 }}</h2>
                     <span class="text-lowercase mosaic-name">xem</span>
                   <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>

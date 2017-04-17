@@ -58,9 +58,6 @@ class AccountCtrl {
         // Hide private key field by default
         this.showPrivateKeyField = false;
 
-        // Empty default label for added account
-        this.newAccountLabel = "";
-
         // Check number of accounts in wallet to show account selection in view
         this.checkNumberOfAccounts();
 
@@ -163,13 +160,13 @@ class AccountCtrl {
         this.aliasSpinningButton = true;
         this._Alias.fetchAlias(this.alias).then((result)=>{
             this.aliasSpinningButton = false;
-        if(!result){
-            this.disableAliasSave = false;
-        }
-        else{
-            this._AliasAlert.alreadyExistsError(this.alias);
-        }
-    });
+            if(!result){
+                this.disableAliasSave = false;
+            }
+            else{
+                this._AliasAlert.alreadyExistsError(this.alias);
+            }
+        });
     }
 
     /**
@@ -239,15 +236,15 @@ class AccountCtrl {
         // Setup alias system
         this._Alias.reset().then(()=>{
             this.ALIAS_ROOT_INDEX = this._Alias.getRootIndex();
-        this.ALIAS_NAMESPACE_INDEX = this._Alias.getNamespaceIndex();
-        this.showAliasField = false;
-        this.hasAlias = false;
-        this.alias = this._Alias.getAlias();
-        if(this.alias){
-            this.hasAlias = true;
-            this.showAlias = true;
-        }
-    });
+            this.ALIAS_NAMESPACE_INDEX = this._Alias.getNamespaceIndex();
+            this.showAliasField = false;
+            this.hasAlias = false;
+            this.alias = this._Alias.getAlias();
+            if(this.alias){
+                this.hasAlias = true;
+                this.showAlias = true;
+            }
+        });
 
         // Redirect to dashboard
         this._$location.path('/dashboard');
@@ -284,60 +281,6 @@ class AccountCtrl {
     }
 
     /**
-     * Add a new bip32 account into the wallet
-     */
-    addNewAccount() {
-        // Verify password and generate/get the PK into this.common
-        if(!this.checkAccess()){
-            return;
-        }
-        // Current number of accounts in wallet + 1
-        let newAccountIndex = Object.keys(this._Wallet.current.accounts).length;
-        // Derive the account at new index
-        CryptoHelpers.generateBIP32Data(this.common.privateKey, this.common.password, newAccountIndex, this._Wallet.network).then((data) => {
-            let generatedAccount = data.address;
-        let generatedPrivateKey = data.privateKey;
-        // Generate the bip32 seed for the new account
-        CryptoHelpers.generateBIP32Data(generatedPrivateKey, this.common.password, 0, this._Wallet.network).then((data) => {
-            this._$timeout(() => {
-            // Encrypt generated account's private key
-            let encrypted = CryptoHelpers.encodePrivKey(generatedPrivateKey, this.common.password);
-        // Build account object
-        let obj = {
-            "address": generatedAccount,
-            "label": this.newAccountLabel,
-            "child": data.publicKey,
-            "encrypted": encrypted.ciphertext,
-            "iv": encrypted.iv
-        };
-        // Set created object in wallet
-        this._Wallet.current.accounts[newAccountIndex] = obj;
-        // Update to show account selection
-        this.checkNumberOfAccounts();
-        // Show alert
-        this._Alert.generateNewAccountSuccess();
-        // Clean
-        this.clearSensitiveData();
-        // Hide modal
-        $("#addAccountModal").modal('hide');
-    }, 0)
-    },
-        (err) => {
-            this._$timeout(() => {
-                this._Alert.bip32GenerationFailed(err);
-            return;
-        }, 0);
-        });
-    },
-        (err) => {
-            this._$timeout(() => {
-                this._Alert.derivationFromSeedFailed(err);
-            return;
-        }, 0);
-        });
-    }
-
-    /**
      * Reset the common object
      */
     clearSensitiveData() {
@@ -346,7 +289,6 @@ class AccountCtrl {
             'privateKey': ''
         };
         this.showPrivateKeyField = false;
-        this.newAccountLabel = "";
     }
 
     /**** NEM ALIAS SYSTEM ****/
@@ -358,6 +300,33 @@ class AccountCtrl {
         if(this.checkAccess()){
             this.showAliasField = true;
         }
+    }
+
+
+    /**
+     * Deletes current wallet stored and redirect to home logged out
+     */
+    logout() {
+        // Close connector
+        this._DataBridge.connector.close();
+        // Set connection status to false
+        this._DataBridge.connectionStatus = false;
+        // Show success alert
+        this._Alert.successLogout();
+        // Reset data in DataBridge service
+        this._DataBridge.reset();
+        // Reset data in Wallet service
+        this._Wallet.reset();
+        // Redirect to home
+        this._$location.path('/')
+    }
+
+    /**
+     * Shares current address among installed apps available in the phone
+     */
+    shareAnywhere(){
+
+        this._$cordovaSocialSharing.share(this._Wallet.currentAccount.address, "My Wallet address", "", "");
     }
 
     /**
@@ -401,94 +370,69 @@ class AccountCtrl {
         this._NetworkRequests.getNamespacesById(helpers.getHostname(this._Wallet.node), this.alias).then((data) => {
 
             if(data.owner){
-            throw "This alias is already a namespace";
-        }
-    }).catch((err)=>{ // We need to catch this since we are expecting getNamespacesById to fail
+                throw "This alias is already a namespace";
+            }
+        }).catch((err)=>{ // We need to catch this since we are expecting getNamespacesById to fail
 
             if(err == "This alias is already a namespace"){
-            this._AliasAlert.isNamespaceError(this.alias);
-            throw "";
-        }
-    else{
-            console.log("// 1. Check alias not in [RI]");
-            return this._nemUtils.getFirstMessageWithString(this.ALIAS_ROOT_INDEX, this.alias+"=");
-        }
+                this._AliasAlert.isNamespaceError(this.alias);
+                throw "";
+            }
+            else{
+                console.log("// 1. Check alias not in [RI]");
+                return this._nemUtils.getFirstMessageWithString(this.ALIAS_ROOT_INDEX, this.alias+"=");
+            }
 
-    }).then((result)=>{
+        }).then((result)=>{
             if(!result || !result.length > 0){
-            // Alias has not been set yet
-            console.log("// 2. Generate a new and empty HDA pointer for alias [PU]");
-            return this._nemUtils.createNewAccount();
-        }
-    else{
-            throw "Alias already exists";
-        }
+                // Alias has not been set yet
+                console.log("// 2. Generate a new and empty HDA pointer for alias [PU]");
+                return this._nemUtils.createNewAccount();
+            }
+            else{
+                throw "Alias already exists";
+            }
 
-    }).then((data)=>{
+        }).then((data)=>{
             console.log("// 3. Send message to [PU] with alias_owner=[ACCT]");
-        pointerAccount = data;
-        message = "alias_owner="+currentAddress;
-        return this._nemUtils.sendMessage(pointerAccount.address, message, this.common, 22);
+            pointerAccount = data;
+            message = "alias_owner="+currentAddress;
+            return this._nemUtils.sendMessage(pointerAccount.address, message, this.common, 22);
 
-    }).then((data)=>{
+        }).then((data)=>{
             console.log("// 4. Own pointer by [RI]");
-        return this._nemUtils.sendOwnedBy(pointerAccount, this.ALIAS_ROOT_INDEX);
+            return this._nemUtils.sendOwnedBy(pointerAccount, this.ALIAS_ROOT_INDEX);
 
-    }).then((data)=>{
+        }).then((data)=>{
             console.log("// 5. Write to self NEMAS=alias");
-        message = "alias="+this.alias;
-        return this._nemUtils.sendMessage(currentAddress, message, this.common);
+            message = "alias="+this.alias;
+            return this._nemUtils.sendMessage(currentAddress, message, this.common);
 
-    }).then((data)=>{
+        }).then((data)=>{
             console.log("// 6. Send message to [RI] with alias=[PU] including 450xem");
-        message = this.alias+"="+pointerAccount.address;
-        return this._nemUtils.sendMessage(this.ALIAS_ROOT_INDEX, message, this.common, 450);
+            message = this.alias+"="+pointerAccount.address;
+            return this._nemUtils.sendMessage(this.ALIAS_ROOT_INDEX, message, this.common, 450);
 
-    }).then((data)=>{
+        }).then((data)=>{
             // The alias has been successfully created and linked to the current account
             this._AliasAlert.setAliasSuccess(this.alias, currentAddress, pointerAccount.address);
-        this._nemUtils.enableSuccessAlerts();
-        this.aliasSpinningButton = false;
-        this.disableAliasSave = true;
-        this.clearSensitiveData();
+            this._nemUtils.enableSuccessAlerts();
+            this.aliasSpinningButton = false;
+            this.disableAliasSave = true;
+            this.clearSensitiveData();
 
-    }).catch((err)=>{
+        }).catch((err)=>{
             if(err == "Alias already exists"){
-            this._AliasAlert.alreadyExistsError(this.alias);
-        }else if(err != ""){
-            this._AliasAlert.unexpectedError(err);
-        }
-        this._nemUtils.enableSuccessAlerts();
-        this.aliasSpinningButton = false;
-        this.clearSensitiveData();
-        this.disableAliasSave = false;
-    });
+                this._AliasAlert.alreadyExistsError(this.alias);
+            }else if(err != ""){
+                this._AliasAlert.unexpectedError(err);
+            }
+            this._nemUtils.enableSuccessAlerts();
+            this.aliasSpinningButton = false;
+            this.clearSensitiveData();
+            this.disableAliasSave = false;
+        });
     }
-
-    /**
-     * logout() Delete current wallet stored in Wallet service and redirect to home logged out
-     */
-    logout() {
-        // Close connector
-        this._DataBridge.connector.close();
-        // Set connection status to false
-        this._DataBridge.connectionStatus = false;
-        // Show success alert
-        this._Alert.successLogout();
-        // Reset data in DataBridge service
-        this._DataBridge.reset();
-        // Reset data in Wallet service
-        this._Wallet.reset();
-        // Redirect to home
-        this._$location.path('/')
-    }
-
-
-    shareAnywhere(){
-
-        this._$cordovaSocialSharing.share(this._Wallet.currentAccount.address, "My Wallet address", "", "");
-    }
-
 }
 
 export default AccountCtrl;

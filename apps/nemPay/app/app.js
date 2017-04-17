@@ -13,8 +13,6 @@ import 'angular-sanitize';
 import 'ng-toast';
 import 'ngstorage';
 import 'angular-translate';
-import 'angular-chart.js';
-
 // Testing
 import 'angular-mocks';
 
@@ -43,7 +41,7 @@ const requires = [
     'ui.router',
     'templates',
     'app.layout',
-    'ionic-material', 
+    'ionic-material',
     'ionMdInput',
     'app.components',
     'app.filters',
@@ -53,7 +51,6 @@ const requires = [
     'ngSanitize',
     'ngToast',
     'ngStorage',
-    'chart.js',
     'pascalprecht.translate',
     'app.lang',
 

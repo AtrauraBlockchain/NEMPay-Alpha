@@ -223,6 +223,10 @@ h2 {
   margin: 0 auto;
   display: block; }
 
+.page-balance .mosaic-name {
+  text-underline: none !important;
+  color: #000 !important; }
+
 .page-balance .item-avatar {
   padding-left: 60px !important; }
 

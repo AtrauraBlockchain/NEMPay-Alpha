@@ -90,19 +90,19 @@ class TransactionsCtrl {
     refreshMarketInfo() {
         // Get market info
         this._NetworkRequests.getMarketInfo().then((data) => {
-            this._DataBridge.marketInfo = data;
-    },
-        (err) => {
-            // Alert error
-            this._Alert.errorGetMarketInfo();
-        });
+                this._DataBridge.marketInfo = data;
+            },
+            (err) => {
+                // Alert error
+                this._Alert.errorGetMarketInfo();
+            });
         // Gets btc price
         this._NetworkRequests.getBtcPrice().then((data) => {
-            this._DataBridge.btcPrice = data;
-    },
-        (err) => {
-            this._Alert.errorGetBtcPrice();
-        });
+                this._DataBridge.btcPrice = data;
+            },
+            (err) => {
+                this._Alert.errorGetBtcPrice();
+            });
     }
 
     /**

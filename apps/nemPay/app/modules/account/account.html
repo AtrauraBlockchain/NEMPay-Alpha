@@ -2,21 +2,20 @@
    <div class="page-account">
       <div class="container">
          <div class="content double-padding">
-            <div class="account-page">
-               <div id="accountInfoQR"></div>
-               <div class="address separator">
-                  <h4>{{ 'GENERAL_ADDRESS' | translate }}</h4>
-                  <p><span show-account-data="address" ng-class="selectable"></span></p>
-                  <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-nem">
+            <div id="accountInfoQR"></div>
+            <div class="address separator">
+               <h4>{{ 'GENERAL_ADDRESS' | translate }}</h4>
+               <p><span show-account-data="address" ng-class="selectable"></span></p>
+               <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-nem">
                   Share Address</button>
-               </div>
-               <div class="private-key separator">
-                  <h4>{{ 'GENERAL_PRIVATE_KEY' | translate }}</h4>
-                  <div><small>To view your private key, insert your password</small></div>
-                  <div class="input-group">
-                     <input  class="item item-input item-floating-label full-width form-control-lg" type="password" ng-model="$ctrl.common.password" placeholder="{{'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-show="!$ctrl.showPrivateKeyField" style="width: 80%; float: left;"/>
-                     <input class="item item-input item-floating-label full-width form-control-lg" ng-show="$ctrl.showPrivateKeyField" ng-model="$ctrl.common.privateKey" readOnly style="width: 80%; float: left;"></input>
-                     <span class="input-group-btn showHide" style="width: 19%; margin-left:1%; float: left;">
+            </div>
+            <div class="private-key separator">
+               <h4>{{ 'GENERAL_PRIVATE_KEY' | translate }}</h4>
+               <div><small>To view your private key, insert your password</small></div>
+               <div class="input-group">
+                  <input  class="item item-input item-floating-label full-width form-control-lg" type="password" ng-model="$ctrl.common.password" placeholder="{{'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-show="!$ctrl.showPrivateKeyField" style="width: 80%; float: left;"/>
+                  <input class="item item-input item-floating-label full-width form-control-lg" ng-show="$ctrl.showPrivateKeyField" ng-model="$ctrl.common.privateKey" readOnly style="width: 80%; float: left;"></input>
+                  <span class="input-group-btn showHide" style="width: 19%; margin-left:1%; float: left;">
                      <button class="button button-nem button-plus" type="button"  ng-show="!$ctrl.showPrivateKeyField" ng-click="$ctrl.showPrivateKey()" title="{{ 'ACCOUNT_PRIVATE_KEY_SHOW' | translate }}">
                      <i class="fa fa-plus"></i>
                      </button>
@@ -24,10 +23,9 @@
                      <i class="fa fa-minus"></i>
                      </button>
                      </span>
-                  </div>
                </div>
-               <button  ng-click="$ctrl.logout()" class="button button-block button-nem">Logout</button
             </div>
+            <button  ng-click="$ctrl.logout()" class="button button-block button-nem">Logout</button
          </div>
       </div>
    </div>

@@ -5,7 +5,7 @@
             <div class="item item-avatar item-icon-right" ng-repeat="mos in $ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]" ng-click='$ctrl.moveToTransfer(mos)'>
                <img ng-src="images/assets/xem.png"/>
 
-               <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[0]}}<span class="text-muted">.{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1]}}</span> <span class="mosaic-name">{{mos.mosaicId.name}}</span></h2>
+               <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[0]}}<span class="text-muted"><span ng-if="(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1] && (mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1] != '000000'">.</span><span ng-if="(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1] != '000000'">{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1]}}</span></span> <span class="mosaic-name">{{mos.mosaicId.name}}</span></h2>
                <p><b>{{mos.mosaicId.namespaceId}}</b>:{{mos.mosaicId.name}}</p>
             </div>
          </div>

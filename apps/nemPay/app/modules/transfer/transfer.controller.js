@@ -69,7 +69,7 @@ class TransferTransactionCtrl {
         this.formData.isMosaicTransfer = false;
         this.currentAccountMosaicNames = [];
         this.selectedMosaic = this._$state.params.selectedMosaic;
-     
+
         // Mosaics data for current account
         this.currentAccountMosaicData = "";
 
@@ -146,18 +146,18 @@ class TransferTransactionCtrl {
      */
     getRecipientData(address) {
         return this._NetworkRequests.getAccountData(helpers.getHostname(this._Wallet.node), address).then((data) => {
-            // Store recipient public key (needed to encrypt messages)
-            this.formData.recipientPubKey = data.account.publicKey;
-        //console.log(this.formData.recipientPubKey)
-        // Set the address to send to
-        this.formData.recipient = address;
-    },
-        (err) => {
-            this._Alert.getAccountDataError(err.data.message);
-            // Reset recipient data
-            this.resetRecipientData();
-            return;
-        });
+                // Store recipient public key (needed to encrypt messages)
+                this.formData.recipientPubKey = data.account.publicKey;
+                //console.log(this.formData.recipientPubKey)
+                // Set the address to send to
+                this.formData.recipient = address;
+            },
+            (err) => {
+                this._Alert.getAccountDataError(err.data.message);
+                // Reset recipient data
+                this.resetRecipientData();
+                return;
+            });
     }
 
 
@@ -239,7 +239,7 @@ class TransferTransactionCtrl {
             alias = this.formData.rawRecipient;
         }
         this._$state.go('app.transferConfirm',
-                {to: this.formData.recipient,
+            {to: this.formData.recipient,
                 alias: alias,
                 amount: this.formData.amount,
                 mosaic: this.selectedMosaic,

@@ -1,5 +1,5 @@
 <ion-content class="has-header">
-  
+
   <div class="register-page">
 
     <div class="content double-padding">
@@ -19,8 +19,8 @@
           <label class="item item-input item-select">
             <span class="input-label">{{'SIGNUP_NETWORK_SELECT' | translate}}</span>
             <select  selectclick ng-model="$ctrl.network"
-                    ng-change="$ctrl.changeNetwork($ctrl.network)"
-                    ng-options="network.id as (network.id | toNetworkName) for network in $ctrl.networks">
+                     ng-change="$ctrl.changeNetwork($ctrl.network)"
+                     ng-options="network.id as (network.id | toNetworkName) for network in $ctrl.networks">
               <option value="" disabled selected>{{'SIGNUP_NETWORK_SELECT' | translate}}</option>
             </select>
           </label>
