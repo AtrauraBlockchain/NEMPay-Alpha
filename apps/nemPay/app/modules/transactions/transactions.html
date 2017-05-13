@@ -1,7 +1,18 @@
 <ion-content class="has-header">
     <div class="transactions-page">
         <div class="content double-padding">
-
+            <div class="panel-heading">
+                <ul class="nav nav-tabs">
+                    <li ng-class="$ctrl.tabConfirmed ? 'active' : ''">
+                        <a ng-click="$ctrl.tabConfirmed = true;$ctrl.currentPageUnc = 0">{{ 'DASHBOARD_CONFIRMED' | translate }}</a>
+                    </li>
+                    <li ng-class="$ctrl.tabConfirmed ? '' : 'active'">
+                        <a ng-click="$ctrl.tabConfirmed = false;$ctrl.currentPage = 0">{{ 'DASHBOARD_UNCONFIRMED' | translate }}
+                            <span class="badge">{{$ctrl._DataBridge.unconfirmed.length}}</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <table class="table">
                 <tbody>
                 <div ng-show="$ctrl.tabConfirmed">
@@ -10,14 +21,22 @@
                         <nempay-transaction d="tx" z="$ctrl._Wallet.currentAccount.address" h="$ctrl._DataBridge" tooltip-position="'left'"></nempay-transaction>
                     </div>
                 </div>
+                <div ng-show="!$ctrl.tabConfirmed">
+                    <div ng-repeat="tx in $ctrl._DataBridge.unconfirmed | orderBy:'-transaction.timeStamp'" class="nempay-transaction" ng-if="tx.transaction.type == 257">
+                        <!-- Only if is a XEM or Mosaic transacton -->
+                        <nempay-transaction d="tx" z="$ctrl._Wallet.currentAccount.address" h="$ctrl._DataBridge" tooltip-position="'left'"></nempay-transaction>
+                    </div>
+                </div>
                 </tbody>
             </table>
 
-            <div class="panel-body" ng-show="$ctrl._DataBridge.transactions.length == 0 && $ctrl.tabConfirmed">
+            <div class="panel-body nothing" ng-show="$ctrl._DataBridge.transactions.length == 0 && $ctrl.tabConfirmed">
+                <p>{{ 'GENERAL_NO_RESULTS' | translate }}</p>
+            </div>
+            <div class="panel-body nothing" ng-show="$ctrl._DataBridge.unconfirmed.length == 0 && !$ctrl.tabConfirmed">
                 <p>{{ 'GENERAL_NO_RESULTS' | translate }}</p>
             </div>
 
         </div>
-    </div>
     </div>
 </ion-content>
