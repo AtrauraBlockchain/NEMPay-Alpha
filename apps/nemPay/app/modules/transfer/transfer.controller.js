@@ -108,7 +108,7 @@ class TransferTransactionCtrl {
      */
     processRecipientInput() {
         // Check if value is an alias
-        let isAlias = (this.formData.rawRecipient.lastIndexOf("@", 0) === 0);
+        let isAlias = false; //(this.formData.rawRecipient.lastIndexOf("@", 0) === 0); TODO: enable alias
         // Reset recipient data
         this.resetRecipientData();
 
