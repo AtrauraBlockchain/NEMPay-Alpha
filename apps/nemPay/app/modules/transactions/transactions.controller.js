@@ -35,7 +35,8 @@ class TransactionsCtrl {
         this.chartEmpty = true;
 
         // Default tab on confirmed transactions
-        this.tabConfirmed = true;
+        this.transactionTab = 0;
+
 
         /**
          * Watch harvested blocks in Databridge service for the chart
@@ -110,6 +111,10 @@ class TransactionsCtrl {
      */
     toFixed4(value) {
         return value.toFixed(4);
+    }
+
+    changeTransactionsTab(value) {
+        this.transactionTab = value;
     }
 }
 
