@@ -13,10 +13,6 @@
                    <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>
                </span>
             </span>
-                <span ng-if="tx.recipient !== mainAccount && !parent && tx.amount != 0">
-                  <h2>{{tx.amount/1000000 }}</h2>
-                    <span class="text-lowercase mosaic-name">xem</span>
-               </span>
              <span class="pull-right" ng-show="tx.mosaics.length">
                   {{tx.timeStamp | fmtNemPayDate}}
                   <span ng-repeat="sig in parent.signatures">
@@ -27,24 +23,8 @@
             </div>
             <div ng-class="{'send-card': tx.recipient !== mainAccount && !parent}" class="transition-card">
             <span ng-hide="tx.mosaics.length">
-               <span ng-show="!parent">
-                  <span ng-show="tx.recipient !== mainAccount">
-                     <h2>{{(tx.amount)/1000000}}</h2>
-                  </span>
-                  <span ng-show="tx.recipient === mainAccount">
-                     <h2>{{(tx.amount)/1000000}}</h2>
-                  </span>
+                  <h2>{{(tx.amount) /1000000}}</h2>
                   <span class="text-lowercase mosaic-name"> xem</span>
-               </span>
-               <span ng-show="parent">
-                  <span ng-show="parent.otherTrans.recipient !== mainAccount">
-                     <h2>{{(tx.amount)/1000000}}</h2>
-                  </span>
-                  <span ng-show="parent.otherTrans.recipient === mainAccount">
-                     <h2>{{(tx.amount) /1000000}}</h2>
-                  </span>
-                  <span class="text-lowercase mosaic-name"> xem</span>
-               </span>
                <span class="pull-right">
                   {{tx.timeStamp | fmtNemPayDate}}
                   <span ng-repeat="sig in parent.signatures">
@@ -58,10 +38,12 @@
                     <div class="text">
                         <span>{{ 'GENERAL_FEE' | translate }}: </span>
                         <span ng-show="!parent">
-                            {{(tx.fee)/1000000}}
+                            <span ng-show="tx.mosaics.length">{{(tx.fee + tx.amount)/1000000}}</span>
+                            <span ng-hide="tx.mosaics.length">{{(tx.fee)/1000000}}</span>
                         </span>
                         <span ng-show="parent">
-                            {{(tx.fee+parent.fee)/1000000}}
+                            <span ng-show="tx.mosaics.length">{{(tx.fee + tx.amount + parent.fee)/1000000}}</span>
+                            <span ng-hide="tx.mosaics.length">{{(tx.fee + parent.fee)/1000000}}</span>
                         </span>
                         <span class="text-lowercase mosaic-name"> xem</span>
 

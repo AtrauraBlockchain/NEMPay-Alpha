@@ -126,6 +126,7 @@ class TransferConfirmCtrl {
             this.formData.innerFee = 0;
         }
         this.formData.fee = entity.fee;
+        if (this.selectedMosaic != 'nem:xem') this.formData.fee = this.formData.fee + 1000000;
     }
 
     /**
