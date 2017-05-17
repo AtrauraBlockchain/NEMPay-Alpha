@@ -4,8 +4,8 @@
   <description>
         An Ionic Framework and Cordova project.
     </description>
-  <author email="david@atraura.com" href="http://atraura.com/">
-      David García
+  <author email="info@atraura.com" href="http://atraura.com/">
+      Atraura Blockchain
     </author>
   <content src="index.html"/>
   <access origin="*"/>
