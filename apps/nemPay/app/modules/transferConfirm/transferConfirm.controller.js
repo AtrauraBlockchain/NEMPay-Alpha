@@ -4,7 +4,7 @@ import CryptoHelpers from '../../utils/CryptoHelpers';
 import Network from '../../utils/Network';
 
 class TransferConfirmCtrl {
-    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $state, $ionicLoading) {
+    constructor($location, Wallet, Alert, Transactions, NetworkRequests, DataBridge, $state, $ionicLoading, $timeout) {
         'ngInject';
 
         // Alert service
@@ -21,6 +21,10 @@ class TransferConfirmCtrl {
         this._DataBridge = DataBridge;
 
         this._state = $state;
+
+        this._$ionicLoading = $ionicLoading;
+
+        this._$timeout = $timeout;
 
         // If no wallet show alert and redirect to home
         if (!this._Wallet.current) {
@@ -162,14 +166,21 @@ class TransferConfirmCtrl {
     send() {
         // Disable send button;
         this.okPressed = true;
+        this._$ionicLoading.show( {
+            template: '<span>Sending assets...</span>',
+            }
+        );
+        this._$timeout(() => {
 
-        if(this.checkAccess()) {
+            if(this.checkAccess()) {
             // Construct transaction byte array, sign and broadcast it to the network
 
             // Build the entity to send
             let entity = this._Transactions.prepareTransfer(this.common, this.formData, this.mosaicsMetaData);
             // Construct transaction byte array, sign and broadcast it to the network
-            return this._Transactions.serializeAndAnnounceTransaction(entity, this.common).then((result) => {
+
+                return this._Transactions.serializeAndAnnounceTransaction(entity, this.common).then((result) => {
+
                     // Check status
                     if (result.status === 200) {
                         // If code >= 2, it's an error
@@ -179,19 +190,22 @@ class TransferConfirmCtrl {
                             this._Alert.transactionSuccess();
                         }
                         this.okPressed = false;
+                        this._$ionicLoading.hide();
                         this._state.go('app.balance');
 
                     }
                 },
                 (err) => {
                     this.okPressed = false;
+                    this._$ionicLoading.hide();
                     this._Alert.transactionError('Failed ' + err.data.error + " " + err.data.message);
                 });
         }
         else{
             this.okPressed = false;
-
+            this._$ionicLoading.hide();
         }
+        }, 10);
     }
 
     /**
