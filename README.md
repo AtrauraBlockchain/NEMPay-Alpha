@@ -7,7 +7,8 @@ NemPay is an app to transfer assets in an easy way directly from mobile devices,
 
 Currently, the app is available for Android and iOS.
 
-NemPay is based on NanoWallet project, and wrapped with Ionic, a boilerplate to start building hybrid applications
+NemPay is based on NanoWallet project, and wrapped with Ionic, a boilerplate to start building hybrid applications.
+
 About Ionic Framework:
 https://ionicframework.com/
 
@@ -22,6 +23,11 @@ https://ionicframework.com/
 
 3) Run:
 <pre>ionic serve</pre>
+
+
+# Known issues #
+### Multisig behaviour is not implemented yet ###
+
 
 ### Thanks ###
 - <b>QuantumMechanics: https://github.com/QuantumMechanics</b>  for building NanoWallet

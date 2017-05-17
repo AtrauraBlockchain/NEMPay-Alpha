@@ -1,8 +1,8 @@
 {
-  "name": "nanowallet-ionic",
+  "name": "nempay",
   "version": "1.1.1",
-  "description": "lite wallet for NEM adapted to Ionic",
-  "author": "https://github.com/dgarcia360",
+  "description": "Transfer assets in an easy way directly from mobile devices, using NEM blockchain",
+  "author": "https://github.com/AtrauraBlockchain/",
   "license": "MIT",
   "dependencies": {
     "angular": "1.5.3",
@@ -44,15 +44,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dgarcia360/NanoWallet-Ionic.git"
+    "url": "https://github.com/AtrauraBlockchain/NEMPay.git"
   },
   "keywords": [
     "nem"
   ],
   "bugs": {
-    "url": "https://github.com/dgarcia360/NanoWallet-Ionic-/issues"
+    "url": "https://github.com/AtrauraBlockchain/NEMPay/issues"
   },
-  "homepage": "https://github.com/dgarcia360/NanoWallet-Ionic#readme",
+  "homepage": "https://github.com/AtrauraBlockchain/NEMPay#readme",
 
 
   "devDependencies": {

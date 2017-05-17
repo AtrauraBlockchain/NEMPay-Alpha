@@ -8,7 +8,7 @@
       <div class="list">
          <label class="item item-input item-md-label" type="text">
             <select selectclick ng-model="$ctrl.selectedWallet" ng-options="wallet.name group by (wallet.accounts[0].network | toNetworkName) for wallet in $ctrl._storage.wallets">
-               <option value="" disabled selected>Select a wallet</option>
+               <option value="" disabled selected>{{ 'LOGIN_SELECT_WALLET_YOURS' | translate }}</option>
             </select>
          </label>
 
@@ -27,7 +27,7 @@
 
       <div class="small-padding">
          <a  ui-sref="app.register" class="button button-block button-light button-outline-light border-radius-none" style="display: block;">
-            SIGN UP
+            {{ 'SIGNUP_SIGNUP' | translate }}
          </a>
       </div>
 
