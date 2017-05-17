@@ -7,17 +7,16 @@
 
          <span ng-show="tx.mosaics.length">
             <span ng-repeat="mos in tx.mosaics">
+
                <span>
                   <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2>
-                  <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>
+                   <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>
                </span>
             </span>
-                <span ng-if="tx.recipient !== mainAccount && !parent">
-                  <h2>{{tx.fee/1000000 }}</h2>
+                <span ng-if="tx.recipient !== mainAccount && !parent && tx.amount != 0">
+                  <h2>{{tx.amount/1000000 }}</h2>
                     <span class="text-lowercase mosaic-name">xem</span>
-                  <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>
                </span>
-
              <span class="pull-right" ng-show="tx.mosaics.length">
                   {{tx.timeStamp | fmtNemPayDate}}
                   <span ng-repeat="sig in parent.signatures">
@@ -30,7 +29,7 @@
             <span ng-hide="tx.mosaics.length">
                <span ng-show="!parent">
                   <span ng-show="tx.recipient !== mainAccount">
-                     <h2>{{(tx.amount+tx.fee)/1000000}}</h2>
+                     <h2>{{(tx.amount)/1000000}}</h2>
                   </span>
                   <span ng-show="tx.recipient === mainAccount">
                      <h2>{{(tx.amount)/1000000}}</h2>
@@ -39,7 +38,7 @@
                </span>
                <span ng-show="parent">
                   <span ng-show="parent.otherTrans.recipient !== mainAccount">
-                     <h2> {{(tx.amount+tx.fee+parent.fee)/1000000}}</h2>
+                     <h2>{{(tx.amount)/1000000}}</h2>
                   </span>
                   <span ng-show="parent.otherTrans.recipient === mainAccount">
                      <h2>{{(tx.amount) /1000000}}</h2>
@@ -49,16 +48,41 @@
                <span class="pull-right">
                   {{tx.timeStamp | fmtNemPayDate}}
                   <span ng-repeat="sig in parent.signatures">
-                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>
+                     <span>{{sig.timeStamp |  fmtNemPayDate}}klf</span>
                   </span>
                </span>
             </span>
             </div>
+            <div ng-show="(tx.recipient !== mainAccount && !parent) || (parent.otherTrans.recipient !== mainAccount && parent)">
+                <small class="address">
+                    <div class="text">
+                        <span>{{ 'GENERAL_FEE' | translate }}: </span>
+                        <span ng-show="!parent">
+                            {{(tx.fee)/1000000}}
+                        </span>
+                        <span ng-show="parent">
+                            {{(tx.fee+parent.fee)/1000000}}
+                        </span>
+                        <span class="text-lowercase mosaic-name"> xem</span>
+
+                        <span ng-show="tx.mosaics.length">
+                            <span ng-repeat="mos in tx.mosaics">
+                                <tag-levy mos="mos" tx="tx" mosaics="mosaicDefinitionMetaDataPair">
+                                    <div ng-show="levy.type">
+                                        <span>{{ 'FORM_SIDE_BTN_LEVY_FEE' | translate }}: </span>
+                                        {{mos | fmtLevyFee:tx.amount:levy:mosaics}} <span class="text-lowercase mosaic-name"> {{levy.mosaicId.name}}</span>
+                                    </div>
+                                </tag-levy>
+                            </span>
+                        </span>
+                    </div>
+                </small>
+            </div>
             <div>
                 <small class="address" ng-show="tx.recipient !== mainAccount && !parent"> <div class="text"><b>To:</b> <span
                         ng-bind-html='tx.recipient'></span></div></small>
-                <small class="selectable address" ng-show="tx.recipient === mainAccount && !parent && !parent"><div
-                        class="text"><b>From:</b>  <span
+                <small class="selectable address" ng-show="tx.recipient === mainAccount && !parent"><div
+                        class="text"><b>{{ 'LINE_TX_DETAILS_FROM' | translate }}:</b>  <span
                         ng-bind-html='tx.signer | fmtPubToAddress:networkId'></span></div></small>
             </div>
             <div>

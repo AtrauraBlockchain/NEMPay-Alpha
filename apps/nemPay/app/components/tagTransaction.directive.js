@@ -20,7 +20,10 @@ function TagTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions, $
         },
         template: '<ng-include src="templateUri"/>',
         link: (scope) => {
+            console.log(scope.d);
             if (scope.d.transaction.type == 4100) {
+                console.log("HEavy transaction");
+                console.log(scope.d.transaction);
                 scope.tx = scope.d.transaction.otherTrans;
                 scope.meta = scope.d.meta;
                 scope.parent = scope.d.transaction;
@@ -30,6 +33,7 @@ function TagTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions, $
                 scope.confirmed = !(scope.meta.height === Number.MAX_SAFE_INTEGER);
                 scope.needsSignature = scope.parent && !scope.confirmed && scope.h.accountData && helpers.needsSignature(scope.d, scope.h.accountData);
             } else {
+                console.log("Not that heavy man");
                 scope.tx = scope.d.transaction;
                 scope.meta = scope.d.meta;
                 scope.parent = undefined;
@@ -118,7 +122,7 @@ function TagTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions, $
                         return;
                     });
             };
-
+            console.log("hello");
             /**
              * cosign() Cosign a multisig transaction
              *

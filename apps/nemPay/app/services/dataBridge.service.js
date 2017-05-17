@@ -283,6 +283,7 @@ class DataBridge {
             connector.on('recenttransactions', (d) => {
                 d.data.reverse();
                 this._$timeout(() => {
+                    console.log(d);
                     this.transactions = d.data;
 
                  });

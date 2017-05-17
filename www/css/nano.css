@@ -21,7 +21,8 @@ h2 {
   border-radius: 0px; }
 
 .popover {
-  height: 210px; }
+  height: 210px;
+  transition: transform .1s ease-in-out,opacity .1s ease-in-out !important; }
 
 .nem-color {
   color: #434F66; }

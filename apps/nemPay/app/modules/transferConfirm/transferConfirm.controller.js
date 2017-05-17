@@ -113,6 +113,7 @@ class TransferConfirmCtrl {
      */
     updateFees() {
         let entity = this._Transactions.prepareTransfer(this.common, this.formData, this.mosaicsMetaData);
+        console.log(entity);
         if (this.formData.isMultisig) {
             this.formData.innerFee = entity.otherTrans.fee;
         } else {
