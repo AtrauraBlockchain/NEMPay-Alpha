@@ -35,6 +35,7 @@ h2 {
 
 .popover {
   height: 210px;
+  transition: transform .1s ease-in-out,opacity .1s ease-in-out !important;
 }
 
 .nem-color {
