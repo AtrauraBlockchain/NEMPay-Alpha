@@ -7,7 +7,7 @@
                         <!--  recipient address -->
                         <div>
                             <label class="item item-input item-floating-label">
-                                <span class="input-label">To</span>
+                                <span class="input-label">{{ 'TRANSFER_TO' | translate }}</span>
                                 <input type="text" placeholder="{{'FORM_INVOICE_RECIPIENT_PLACEHOLDER' | translate}}" ng-model="$ctrl.formData.rawRecipient" ng-model-options="{debounce:3000}" ng-change="$ctrl.processRecipientInput()" ng-keypress="$ctrl.onEnter($event)"/>
                             </label>
                             <label class="item item-input item-floating-label" ng-show="$ctrl.showAlias" class="gap">
@@ -18,8 +18,8 @@
                         <div class="gap">
                             <div style="width: 49%; float: left;margin-right: 1%;">
                                 <label class="item item-input item-floating-label">
-                                    <span class="input-label">Amount</span>
-                                    <input type="text" placeholder="Amount" type="number" ng-model="$ctrl.formData.amount" min="0" ng-disabled="$ctrl.formData.isMosaicTransfer" ng-keypress="$ctrl.onEnter($event)">
+                                    <span class="input-label">{{ 'TRANSFER_AMOUNT' | translate }}</span>
+                                    <input type="text" placeholder="{{ 'TRANSFER_AMOUNT' | translate }}" type="number" ng-model="$ctrl.formData.amount" min="0" ng-disabled="$ctrl.formData.isMosaicTransfer" ng-keypress="$ctrl.onEnter($event)">
                                 </label>
                             </div>
                             <div style="width: 49%; float: left; margin-left: 1%; margin-top: 30px;">
@@ -37,14 +37,13 @@
                         </div>
                         <div class="gap">
                             <label class="item item-input item-floating-label">
-                                <span class="input-label">Message</span>
+                                <span class="input-label">{{ 'FORM_MESSAGE_PLACEHOLDER' | translate }}</span>
                                 <textarea rows="5" type="text" ng-model="$ctrl.formData.message" placeholder="{{'FORM_MESSAGE_PLACEHOLDER' | translate}}"></textarea>
                             </label>
                         </div>
                         <div class="gap">
-
                             <a ng-click="$ctrl.moveToTransferConfirm()" class="button button-block button-nem" type="submit" ng-disabled="$ctrl.okPressed || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64 || $ctrl.formData.isMosaicTransfer && !$ctrl.formData.mosaics.length || $ctrl.formData.amount == 0">
-                                CONTINUE
+                                {{ 'TRANSFER_CONTINUE' | translate }}
                             </a>
                         </div>
                     </div>

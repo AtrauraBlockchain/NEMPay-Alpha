@@ -2,7 +2,7 @@
    <div class="page-transfer-confirm">
       <div class="container">
          <div class="content double-padding">
-            <h2 class="text-center">Confirm Transaction</h2>
+            <h2 class="text-center">{{ 'TRANSFER_CONFIRM_TRANSACTION' | translate }}</h2>
 
             <h4 ng-show="$ctrl.aliasAddress" class="nem-color">To</h4>
             <p><span ng-hide="!$ctrl.aliasAddress">{{$ctrl.aliasAddress}}</span></p>
@@ -10,9 +10,9 @@
                {{$ctrl.formData.recipient}}
             </p>
 
-            <h4 class="nem-color">Amount</h4>
+            <h4 class="nem-color">{{ 'TRANSFER_AMOUNT' | translate }}</h4>
             <p>{{$ctrl.rawAmount}} {{$ctrl.selectedMosaic}}</p>
-            <h4 class="nem-color">Fee</h4>
+            <h4 class="nem-color">{{ 'GENERAL_FEE' | translate }}</h4>
             <p class="text-muted">
             <span class="margin-right-10">
                <!-- Multisig fee  -->
@@ -23,7 +23,7 @@
             </span>
             </p>
             <div ng-show="$ctrl.formData.message">
-               <h4 class="nem-color">Message</h4>
+               <h4 class="nem-color">{{ 'FORM_MESSAGE_PLACEHOLDER' | translate }}</h4>
                <p class="text-muted">
                   {{$ctrl.formData.message}}
                </p>
@@ -31,14 +31,14 @@
             <!-- Password Field -->
 
 
-            <h5 class="nem-color text-center">Enter your password to confirm transaction </h5>
+            <h5 class="nem-color text-center">{{ 'TRANSFER_ENTER_YOUR_PASSWORD_TO_CONFIRM' | translate }}</h5>
 
             <!-- Send button disabled if already pressed or no password or no clean recipient address or message is supposed to be encrypted but no recipient public key or is a mosaic transfer and no mosaics in array -->
 
             <input class="item item-input item-floating-label full-width form-control-lg" type="password" placeholder="{{ 'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-model="$ctrl.common.password"  ng-keypress="$ctrl.onEnter($event)"/>
             <div class="gap">
                <a class="button button-block button-nem" type="submit" ng-disabled="$ctrl.okPressed || !$ctrl.common.password.length || $ctrl.formData.recipient.length !== 40 || $ctrl.formData.encryptMessage && $ctrl.formData.recipientPubKey.length !== 64" ng-click="$ctrl.send()">
-                  <i class="fa fa-send"></i> CONFIRM
+                  <i class="fa fa-send"></i> {{ 'TRANSFER_CONFIRM' | translate }}
                </a>
             </div>
          </div>

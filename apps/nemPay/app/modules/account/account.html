@@ -7,11 +7,12 @@
                <h4>{{ 'GENERAL_ADDRESS' | translate }}</h4>
                <p><span show-account-data="address" ng-class="selectable"></span></p>
                <button  ng-click="$ctrl.shareAnywhere()" class="button button-block button-nem">
-                  Share Address</button>
+                  {{ 'ACCOUNT_SHARE_ADDRESS' | translate }}</button>
             </div>
             <div class="private-key separator">
                <h4>{{ 'GENERAL_PRIVATE_KEY' | translate }}</h4>
-               <div><small>To view your private key, insert your password</small></div>
+               <div><small>
+                  {{ 'ACCOUNT_VIEW_PRIVATE_KEY_TEXT' | translate }}</small></div>
                <div class="input-group">
                   <input  class="item item-input item-floating-label full-width form-control-lg" type="password" ng-model="$ctrl.common.password" placeholder="{{'FORM_PASSWORD_FIELD_PLACEHOLDER' | translate }}" ng-show="!$ctrl.showPrivateKeyField" style="width: 80%; float: left;"/>
                   <input class="item item-input item-floating-label full-width form-control-lg" ng-show="$ctrl.showPrivateKeyField" ng-model="$ctrl.common.privateKey" readOnly style="width: 80%; float: left;"></input>
@@ -25,7 +26,7 @@
                      </span>
                </div>
             </div>
-            <button  ng-click="$ctrl.logout()" class="button button-block button-nem">Logout</button
+            <button ng-click="$ctrl.logout()" class="button button-block button-nem">{{ 'LOGOUT' | translate }}</button>
          </div>
       </div>
    </div>
