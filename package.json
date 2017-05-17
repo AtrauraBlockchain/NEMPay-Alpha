@@ -36,7 +36,7 @@
     "ngstorage": "0.3.10",
     "vinyl-source-stream": "^1.1.0"
   },
-   "directories": {
+  "directories": {
     "test": "tests"
   },
   "scripts": {

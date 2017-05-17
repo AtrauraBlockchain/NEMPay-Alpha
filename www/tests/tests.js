@@ -1,6 +1,8764 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+'use strict';
 
-},{}],2:[function(require,module,exports){
+var _convert = require('./convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _Network = require('./Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/** @module utils/Address */
+
+var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+/**
+* Encode a string to base32
+*
+* @param {string} s - A string
+*
+* @return {string} - The encoded string
+*/
+var b32encode = function b32encode(s) {
+    var parts = [];
+    var quanta = Math.floor(s.length / 5);
+    var leftover = s.length % 5;
+
+    if (leftover != 0) {
+        for (var i = 0; i < 5 - leftover; i++) {
+            s += '\x00';
+        }
+        quanta += 1;
+    }
+
+    for (var _i = 0; _i < quanta; _i++) {
+        parts.push(alphabet.charAt(s.charCodeAt(_i * 5) >> 3));
+        parts.push(alphabet.charAt((s.charCodeAt(_i * 5) & 0x07) << 2 | s.charCodeAt(_i * 5 + 1) >> 6));
+        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 1) & 0x3F) >> 1));
+        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 1) & 0x01) << 4 | s.charCodeAt(_i * 5 + 2) >> 4));
+        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 2) & 0x0F) << 1 | s.charCodeAt(_i * 5 + 3) >> 7));
+        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 3) & 0x7F) >> 2));
+        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 3) & 0x03) << 3 | s.charCodeAt(_i * 5 + 4) >> 5));
+        parts.push(alphabet.charAt(s.charCodeAt(_i * 5 + 4) & 0x1F));
+    }
+
+    var replace = 0;
+    if (leftover == 1) replace = 6;else if (leftover == 2) replace = 4;else if (leftover == 3) replace = 3;else if (leftover == 4) replace = 1;
+
+    for (var _i2 = 0; _i2 < replace; _i2++) {
+        parts.pop();
+    }for (var _i3 = 0; _i3 < replace; _i3++) {
+        parts.push("=");
+    }return parts.join("");
+};
+
+/**
+* Decode a base32 string.
+* This is made specifically for our use, deals only with proper strings
+*
+* @param {string} s - A base32 string
+*
+* @return {Uint8Array} - The decoded string
+*/
+var b32decode = function b32decode(s) {
+    var r = new ArrayBuffer(s.length * 5 / 8);
+    var b = new Uint8Array(r);
+    for (var j = 0; j < s.length / 8; j++) {
+        var v = [0, 0, 0, 0, 0, 0, 0, 0];
+        for (var _i4 = 0; _i4 < 8; ++_i4) {
+            v[_i4] = alphabet.indexOf(s[j * 8 + _i4]);
+        }
+        var i = 0;
+        b[j * 5 + 0] = v[i + 0] << 3 | v[i + 1] >> 2;
+        b[j * 5 + 1] = (v[i + 1] & 0x3) << 6 | v[i + 2] << 1 | v[i + 3] >> 4;
+        b[j * 5 + 2] = (v[i + 3] & 0xf) << 4 | v[i + 4] >> 1;
+        b[j * 5 + 3] = (v[i + 4] & 0x1) << 7 | v[i + 5] << 2 | v[i + 6] >> 3;
+        b[j * 5 + 4] = (v[i + 6] & 0x7) << 5 | v[i + 7];
+    }
+    return b;
+};
+
+/**
+* Convert a public key to a NEM address
+*
+* @param {string} publicKey - A public key
+* @param {number} networkId - A network id
+*
+* @return {string} - The NEM address
+*/
+var toAddress = function toAddress(publicKey, networkId) {
+    var binPubKey = CryptoJS.enc.Hex.parse(publicKey);
+    var hash = CryptoJS.SHA3(binPubKey, {
+        outputLength: 256
+    });
+    var hash2 = CryptoJS.RIPEMD160(hash);
+    // 98 is for testnet
+    var networkPrefix = _Network2.default.id2Prefix(networkId);
+    var versionPrefixedRipemd160Hash = networkPrefix + CryptoJS.enc.Hex.stringify(hash2);
+    var tempHash = CryptoJS.SHA3(CryptoJS.enc.Hex.parse(versionPrefixedRipemd160Hash), {
+        outputLength: 256
+    });
+    var stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0, 8);
+    var concatStepThreeAndStepSix = _convert2.default.hex2a(versionPrefixedRipemd160Hash + stepThreeChecksum);
+    var ret = b32encode(concatStepThreeAndStepSix);
+    return ret;
+};
+
+/**
+* Check if an address is from a specified network
+*
+* @param {string} _address - An address
+* @param {number} networkId - A network id
+*
+* @return {boolean} - True if address is from network, false otherwise
+*/
+var isFromNetwork = function isFromNetwork(_address, networkId) {
+    var address = _address.toString().toUpperCase().replace(/-/g, '');
+    var a = address[0];
+    return _Network2.default.id2Char(networkId) === a;
+};
+
+/**
+* Check if an address is valid
+*
+* @param {string} _address - An address
+*
+* @return {boolean} - True if address is valid, false otherwise
+*/
+var isValid = function isValid(_address) {
+    var address = _address.toString().toUpperCase().replace(/-/g, '');
+    if (!address || address.length !== 40) {
+        return false;
+    }
+    var decoded = _convert2.default.ua2hex(b32decode(address));
+    var versionPrefixedRipemd160Hash = CryptoJS.enc.Hex.parse(decoded.slice(0, 42));
+    var tempHash = CryptoJS.SHA3(versionPrefixedRipemd160Hash, {
+        outputLength: 256
+    });
+    var stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0, 8);
+
+    return stepThreeChecksum === decoded.slice(42);
+};
+
+module.exports = {
+    b32encode: b32encode,
+    b32decode: b32decode,
+    toAddress: toAddress,
+    isFromNetwork: isFromNetwork,
+    isValid: isValid
+};
+
+},{"./Network":4,"./convert":7}],2:[function(require,module,exports){
+'use strict';
+
+var _KeyPair = require('./KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+var _convert = require('./convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _Address = require('./Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _bip = require('./bip32');
+
+var _bip2 = _interopRequireDefault(_bip);
+
+var _naclFast = require('./nacl-fast');
+
+var _naclFast2 = _interopRequireDefault(_naclFast);
+
+var _Network = require('./Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * Encrypt a private key for mobile apps
+ *
+ * @param {string} password - A wallet password
+ * @param {string} privateKey - An account private key
+ *
+ * @return {object} - The encrypted data
+ */
+/** @module utils/CryptoHelpers */
+
+var AES_PBKF2_encryption = function AES_PBKF2_encryption(password, privateKey) {
+    var salt = CryptoJS.lib.WordArray.random(256 / 8);
+    var key = CryptoJS.PBKDF2(password, salt, {
+        keySize: 256 / 32,
+        iterations: 2000
+    });
+    var iv = new Uint8Array(16);
+    window.crypto.getRandomValues(iv);
+    var encIv = {
+        iv: _convert2.default.ua2words(iv, 16)
+    };
+    var encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(privateKey), key, encIv);
+    return {
+        encrypted: _convert2.default.ua2hex(iv) + encrypted.ciphertext,
+        salt: salt.toString()
+    };
+};
+
+/**
+ * Derive a private key from a password using count iterations of SHA3-256
+ *
+ * @param {string} password - A wallet password
+ * @param {number} count - A number of iterations
+ *
+ * @return {object} - The derived private key
+ */
+var derivePassSha = function derivePassSha(password, count) {
+    var data = password;
+    console.time('sha3^n generation time');
+    for (var i = 0; i < count; ++i) {
+        data = CryptoJS.SHA3(data, {
+            outputLength: 256
+        });
+    }
+    console.timeEnd('sha3^n generation time');
+    return {
+        'priv': CryptoJS.enc.Hex.stringify(data)
+    };
+};
+
+/**
+ * Reveal the private key of an account or derive it from the wallet password
+ *
+ * @param {object} commonData- An object containing password and privateKey field
+ * @param {object} walletAccount - A wallet account object
+ * @param {string} algo - A wallet algorithm
+ * @param {boolean} doClear - True to clean password after operation, false otherwise
+ *
+ * @return {object|boolean} - The account private key or false
+ */
+var passwordToPrivatekeyClear = function passwordToPrivatekeyClear(commonData, walletAccount, algo, doClear) {
+    if (commonData.password) {
+        var r = undefined;
+        if (algo === "pass:6k") {
+            // Brain wallets
+            if (!walletAccount.encrypted && !walletAccount.iv) {
+                // Base account private key is generated simply using a passphrase so it has no encrypted and iv
+                r = derivePassSha(commonData.password, 6000);
+            } else if (!walletAccount.encrypted || !walletAccount.iv) {
+                // Else if one is missing there is a problem
+                alert("Account might be compromised, missing encrypted or iv");
+                return false;
+            } else {
+                // Else child accounts have encrypted and iv so we decrypt
+                var pass = derivePassSha(commonData.password, 20);
+                var obj = {
+                    ciphertext: CryptoJS.enc.Hex.parse(walletAccount.encrypted),
+                    iv: _convert2.default.hex2ua(walletAccount.iv),
+                    key: _convert2.default.hex2ua(pass.priv)
+                };
+                var d = decrypt(obj);
+                r = {
+                    'priv': d
+                };
+            }
+        } else if (algo === "pass:bip32") {
+            // Wallets from PRNG
+            var _pass = derivePassSha(commonData.password, 20);
+            var _obj = {
+                ciphertext: CryptoJS.enc.Hex.parse(walletAccount.encrypted),
+                iv: _convert2.default.hex2ua(walletAccount.iv),
+                key: _convert2.default.hex2ua(_pass.priv)
+            };
+            var _d = decrypt(_obj);
+            r = {
+                'priv': _d
+            };
+        } else if (algo === "pass:enc") {
+            // Private Key wallets
+            var _pass2 = derivePassSha(commonData.password, 20);
+            var _obj2 = {
+                ciphertext: CryptoJS.enc.Hex.parse(walletAccount.encrypted),
+                iv: _convert2.default.hex2ua(walletAccount.iv),
+                key: _convert2.default.hex2ua(_pass2.priv)
+            };
+            var _d2 = decrypt(_obj2);
+            r = {
+                'priv': _d2
+            };
+        } else {
+            alert("Unknown wallet encryption method");
+            return false;
+        }
+        if (doClear) {
+            delete commonData.password;
+        }
+        commonData.privateKey = r.priv;
+        return true;
+    } else {
+        return false;
+    }
+};
+
+/**
+ * Check if a private key correspond to an account address
+ *
+ * @param {string} priv - An account private key
+ * @param {number} network - A network id
+ * @param {string} _expectedAddress - The expected NEM address
+ *
+ * @return {boolean} - True if valid, false otherwise
+ */
+var checkAddress = function checkAddress(priv, network, _expectedAddress) {
+    if (priv.length === 64 || priv.length === 66) {
+        var expectedAddress = _expectedAddress.toUpperCase().replace(/-/g, '');
+        var kp = _KeyPair2.default.create(priv);
+        var address = _Address2.default.toAddress(kp.publicKey.toString(), network);
+        return address === expectedAddress;
+    } else {
+        return false;
+    }
+};
+
+function hashfunc(dest, data, dataLength) {
+    var convertedData = _convert2.default.ua2words(data, dataLength);
+    var hash = CryptoJS.SHA3(convertedData, {
+        outputLength: 512
+    });
+    _convert2.default.words2ua(dest, hash);
+}
+
+function key_derive(shared, salt, sk, pk) {
+    _naclFast2.default.lowlevel.crypto_shared_key_hash(shared, pk, sk, hashfunc);
+    for (var i = 0; i < salt.length; i++) {
+        shared[i] ^= salt[i];
+    }
+    var hash = CryptoJS.SHA3(_convert2.default.ua2words(shared, 32), {
+        outputLength: 256
+    });
+    return hash;
+}
+
+/**
+ * Generate a random key
+ *
+ * @return {Uint8Array} - A random key
+ */
+var randomKey = function randomKey() {
+    var rkey = new Uint8Array(32);
+    window.crypto.getRandomValues(rkey);
+    return rkey;
+};
+
+/**
+ * encrypt() Encrypt hex data using a key
+ *
+ * @param {string} data - An hex string
+ * @param {Uint8Array} key - An Uint8Array key
+ *
+ * @return {object} - The encrypted data
+ */
+var encrypt = function encrypt(data, key) {
+    var iv = new Uint8Array(16);
+    window.crypto.getRandomValues(iv);
+
+    var encKey = _convert2.default.ua2words(key, 32);
+    var encIv = {
+        iv: _convert2.default.ua2words(iv, 16)
+    };
+    var encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(data), encKey, encIv);
+    return {
+        ciphertext: encrypted.ciphertext,
+        iv: iv,
+        key: key
+    };
+};
+
+/**
+ * Decrypt data
+ *
+ * @param {object} data - An encrypted data object
+ *
+ * @return {string} - The decrypted hex string
+ */
+var decrypt = function decrypt(data) {
+    var encKey = _convert2.default.ua2words(data.key, 32);
+    var encIv = {
+        iv: _convert2.default.ua2words(data.iv, 16)
+    };
+    return CryptoJS.enc.Hex.stringify(CryptoJS.AES.decrypt(data, encKey, encIv));
+};
+
+/**
+ * Encode a private key using a password
+ *
+ * @param {string} privateKey - An hex private key
+ * @param {string} password - A password
+ *
+ * @return {object} - The encoded data
+ */
+var encodePrivKey = function encodePrivKey(privateKey, password) {
+    if (!password) {
+        throw new Error("No password provided");
+    } else if (!privateKey) {
+        throw new Error("No private key provided");
+    } else {
+        var pass = derivePassSha(password, 20);
+        var r = encrypt(privateKey, _convert2.default.hex2ua(pass.priv));
+        var ret = {
+            ciphertext: CryptoJS.enc.Hex.stringify(r.ciphertext),
+            iv: _convert2.default.ua2hex(r.iv)
+        };
+        return ret;
+    }
+};
+
+/***
+ * Encode a message, separated from encode() to help testing
+ *
+ * @param {string} senderPriv - A sender private key
+ * @param {string} recipientPub - A recipient public key
+ * @param {string} msg - A text message
+ * @param {Uint8Array} iv - An initialization vector
+ * @param {Uint8Array} salt - A salt
+ *
+ * @return {string} - The encoded message
+ */
+var _encode = function _encode(senderPriv, recipientPub, msg, iv, salt) {
+    var sk = _convert2.default.hex2ua_reversed(senderPriv);
+    var pk = _convert2.default.hex2ua(recipientPub);
+
+    var shared = new Uint8Array(32);
+    var r = key_derive(shared, salt, sk, pk);
+
+    var encKey = r;
+    var encIv = {
+        iv: _convert2.default.ua2words(iv, 16)
+    };
+    var encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(_convert2.default.utf8ToHex(msg)), encKey, encIv);
+    var result = _convert2.default.ua2hex(salt) + _convert2.default.ua2hex(iv) + CryptoJS.enc.Hex.stringify(encrypted.ciphertext);
+    return result;
+};
+
+/**
+ * Encode a message
+ *
+ * @param {string} senderPriv - A sender private key
+ * @param {string} recipientPub - A recipient public key
+ * @param {string} msg - A text message
+ *
+ * @return {string} - The encoded message
+ */
+var encode = function encode(senderPriv, recipientPub, msg) {
+    if (!recipientPub) {
+        throw new Error("No recipient public key");
+    } else if (!msg) {
+        throw new Error("No message to encode");
+    } else if (!senderPriv) {
+        throw new Error("No sender private key");
+    } else {
+        var iv = new Uint8Array(16);
+        window.crypto.getRandomValues(iv);
+        //console.log("IV:", convert.ua2hex(iv));
+
+        var salt = new Uint8Array(32);
+        window.crypto.getRandomValues(salt);
+
+        var encoded = _encode(senderPriv, recipientPub, msg, iv, salt);
+
+        return encoded;
+    }
+};
+
+/**
+ * Decode an encrypted message payload
+ *
+ * @param {string} recipientPrivate - A recipient private key
+ * @param {string} senderPublic - A sender public key
+ * @param {string} _payload - An encrypted message payload
+ *
+ * @return {string} - The decoded payload as hex
+ */
+var decode = function decode(recipientPrivate, senderPublic, _payload) {
+    if (!senderPublic) {
+        throw new Error("No sender public key");
+    } else if (!_payload) {
+        throw new Error("No payload to decode");
+    } else if (!recipientPrivate) {
+        throw new Error("No recipient private key");
+    } else {
+        var binPayload = _convert2.default.hex2ua(_payload);
+        var salt = new Uint8Array(binPayload.buffer, 0, 32);
+        var iv = new Uint8Array(binPayload.buffer, 32, 16);
+        var payload = new Uint8Array(binPayload.buffer, 48);
+
+        var sk = _convert2.default.hex2ua_reversed(recipientPrivate);
+        var pk = _convert2.default.hex2ua(senderPublic);
+        var shared = new Uint8Array(32);
+        var r = key_derive(shared, salt, sk, pk);
+
+        var encKey = r;
+        var encIv = {
+            iv: _convert2.default.ua2words(iv, 16)
+        };
+
+        var encrypted = {
+            'ciphertext': _convert2.default.ua2words(payload, payload.length)
+        };
+        var plain = CryptoJS.AES.decrypt(encrypted, encKey, encIv);
+        var hexplain = CryptoJS.enc.Hex.stringify(plain);
+        return hexplain;
+    }
+};
+
+/**
+ * Generate bip32 data
+ *
+ * @param {string} r - A private key
+ * @param {string} password - A wallet password
+ * @param {number} index - A derivation index
+ * @param {number} network - A network id
+ *
+ * @return {object|promise} - The bip32 data or promise error
+ */
+var generateBIP32Data = function generateBIP32Data(r, password, index, network) {
+    return new Promise(function (resolve, reject) {
+
+        if (!r) {
+            return reject("No private key");
+        }
+        if (!password) {
+            return reject("No password");
+        }
+        if (!network) {
+            return reject("No network");
+        }
+
+        // 25000 rounds of SHA3
+        var pk_SHA3_25000 = void 0;
+        for (var i = 0; i < 25000; ++i) {
+            pk_SHA3_25000 = CryptoJS.SHA3(r, {
+                outputLength: 256
+            });
+        }
+        var hmac = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA3, password);
+        hmac.update(pk_SHA3_25000);
+        var hash = hmac.finalize();
+
+        // Split into equal parts of 32 bytes
+        var il = Crypto.util.hexToBytes(hash.toString().slice(0, 64));
+        var ir = Crypto.util.hexToBytes(hash.toString().slice(64, 128));
+
+        /*console.log("Private: " + r.toString());
+        console.log("Hash: " + hash.toString());
+        console.log("il: " + il.toString());
+        console.log("ir: " + ir.toString());*/
+
+        // Create BIP32 object
+        var gen_bip32 = new _bip2.default.BIP32();
+        try {
+            // Set BIP32 object properties
+            gen_bip32.eckey = new Bitcoin.ECKey(il);
+            gen_bip32.eckey.pub = gen_bip32.eckey.getPubPoint();
+            gen_bip32.eckey.setCompressed(true);
+            gen_bip32.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(gen_bip32.eckey.pub.getEncoded(true));
+            gen_bip32.has_private_key = true;
+
+            gen_bip32.chain_code = ir;
+            gen_bip32.child_index = 0;
+            gen_bip32.parent_fingerprint = Bitcoin.Util.hexToBytes("00000000");
+            // BIP32 version by wallet network
+            if (network === _Network2.default.data.Mainnet.id) {
+                gen_bip32.version = 0x68000000;
+            } else if (network === _Network2.default.data.Mijin.id) {
+                gen_bip32.version = 0x60000000;
+            } else {
+                gen_bip32.version = 0x98000000;
+            }
+            gen_bip32.depth = 99;
+
+            gen_bip32.build_extended_public_key();
+            gen_bip32.build_extended_private_key();
+        } catch (err) {
+            return reject(err);
+        }
+
+        //console.log('BIP32 Extended Key: ' + gen_bip32.extended_private_key_string("base58"));
+
+        updateDerivationPath(gen_bip32, index, network, resolve, reject);
+    });
+};
+
+function updateDerivationPath(bip32_source_key, index, network, resolve, reject) {
+    var bip32_derivation_path = "m/i"; //Simple
+
+    //k set to 0, only using the i'th KeyPair
+    updateResult(bip32_source_key, bip32_derivation_path, 0, index, network, resolve, reject);
+}
+
+function updateResult(bip32_source_key, bip32_derivation_path, k_index, i_index, network, resolve, reject) {
+    var p = '' + bip32_derivation_path;
+    var k = parseInt(k_index);
+    var i = parseInt(i_index);
+
+    p = p.replace('i', i).replace('k', k);
+
+    var result = void 0;
+    try {
+        if (bip32_source_key == null) {
+            // if this is the case then there's an error state set on the source key
+            return reject("Error state set on the source key");
+        }
+        //console.log("Deriving: " + p);
+        result = bip32_source_key.derive(p);
+    } catch (err) {
+        return reject(err);
+    }
+
+    if (result.has_private_key) {
+        //console.log('Derived private key: ' + result.extended_private_key_string("base58"));
+        //console.log('Derived private key HEX: ' + Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()));
+        var privkeyBytes = result.eckey.priv.toByteArrayUnsigned();
+        while (privkeyBytes.length < 32) {
+            privkeyBytes.unshift(0);
+        };
+    } else {
+        return reject("No private key available");
+    }
+
+    var account = _KeyPair2.default.create(Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()));
+    var address = _Address2.default.toAddress(account.publicKey.toString(), network);
+    console.log('BIP32 account generated: ' + address);
+
+    return resolve({
+        seed: bip32_source_key.extended_private_key_string("base58"),
+        address: address,
+        privateKey: Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()),
+        publicKey: account.publicKey.toString()
+    });
+}
+
+/**
+ * Derive a bip32 account from seed
+ *
+ * @param {string} bip32Key - A bip32 seed
+ * @param {number} index - A derivation index
+ * @param {number} network - A network id
+ *
+ * @return {object|promise} - The bip32 data or promise error
+ */
+var BIP32derivation = function BIP32derivation(bip32Key, index, network) {
+    return new Promise(function (resolve, reject) {
+
+        if (!bip32Key) {
+            return reject("No seed to derivate account from");
+        }
+
+        var bip32_source_key = void 0;
+        try {
+            // Create bip32 object from seed
+            var source_key_str = bip32Key;
+            if (source_key_str.length == 0) return;
+            bip32_source_key = new _bip2.default.BIP32(source_key_str);
+        } catch (err) {
+            bip32_source_key = null;
+            return reject(err);
+        }
+
+        updateDerivationPath(bip32_source_key, index, network, resolve, reject);
+    });
+};
+
+module.exports = {
+    AES_PBKF2_encryption: AES_PBKF2_encryption,
+    derivePassSha: derivePassSha,
+    passwordToPrivatekeyClear: passwordToPrivatekeyClear,
+    checkAddress: checkAddress,
+    randomKey: randomKey,
+    decrypt: decrypt,
+    encrypt: encrypt,
+    encodePrivKey: encodePrivKey,
+    _encode: _encode,
+    encode: encode,
+    decode: decode,
+    generateBIP32Data: generateBIP32Data,
+    BIP32derivation: BIP32derivation
+};
+
+},{"./Address":1,"./KeyPair":3,"./Network":4,"./bip32":6,"./convert":7,"./nacl-fast":9}],3:[function(require,module,exports){
+'use strict';
+
+var _naclFast = require('./nacl-fast');
+
+var _naclFast2 = _interopRequireDefault(_naclFast);
+
+var _convert = require('./convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/***
+* Create a BinaryKey object
+*
+* @param {Uint8Array} keyData - A key data
+*/
+/** @module utils/KeyPair */
+
+var BinaryKey = function BinaryKey(keyData) {
+    this.data = keyData;
+    this.toString = function () {
+        return _convert2.default.ua2hex(this.data);
+    };
+};
+
+var hashfunc = function hashfunc(dest, data, dataLength) {
+    var convertedData = _convert2.default.ua2words(data, dataLength);
+    var hash = CryptoJS.SHA3(convertedData, {
+        outputLength: 512
+    });
+    _convert2.default.words2ua(dest, hash);
+};
+
+/***
+* Create an hasher object
+*/
+var hashobj = function hashobj() {
+    this.sha3 = CryptoJS.algo.SHA3.create({
+        outputLength: 512
+    });
+    this.reset = function () {
+        this.sha3 = CryptoJS.algo.SHA3.create({
+            outputLength: 512
+        });
+    };
+
+    this.update = function (data) {
+        if (data instanceof BinaryKey) {
+            var converted = _convert2.default.ua2words(data.data, data.data.length);
+            var result = CryptoJS.enc.Hex.stringify(converted);
+            this.sha3.update(converted);
+        } else if (data instanceof Uint8Array) {
+            var _converted = _convert2.default.ua2words(data, data.length);
+            this.sha3.update(_converted);
+        } else if (typeof data === "string") {
+            var _converted2 = CryptoJS.enc.Hex.parse(data);
+            this.sha3.update(_converted2);
+        } else {
+            throw new Error("unhandled argument");
+        }
+    };
+
+    this.finalize = function (result) {
+        var hash = this.sha3.finalize();
+        _convert2.default.words2ua(result, hash);
+    };
+};
+
+/***
+* Create a KeyPair Object 
+*
+* @param {string} privkey - An hex private key
+*/
+var KeyPair = function KeyPair(privkey) {
+    var _this = this;
+
+    this.publicKey = new BinaryKey(new Uint8Array(_naclFast2.default.lowlevel.crypto_sign_PUBLICKEYBYTES));
+    this.secretKey = _convert2.default.hex2ua_reversed(privkey);
+    _naclFast2.default.lowlevel.crypto_sign_keypair_hash(this.publicKey.data, this.secretKey, hashfunc);
+
+    // Signature
+    this.sign = function (data) {
+        var sig = new Uint8Array(64);
+        var hasher = new hashobj();
+        var r = _naclFast2.default.lowlevel.crypto_sign_hash(sig, _this, data, hasher);
+        if (!r) {
+            alert("Couldn't sign the tx, generated invalid signature");
+            throw new Error("Couldn't sign the tx, generated invalid signature");
+        }
+        return new BinaryKey(sig);
+    };
+};
+
+/**
+* Create a NEM KeyPair
+*
+* @param {string} hexdata - An hex private key
+*
+* @return {object} - The NEM KeyPair object
+*/
+var create = function create(hexdata) {
+    var r = new KeyPair(hexdata);
+    return r;
+};
+
+module.exports = {
+    create: create
+};
+
+},{"./convert":7,"./nacl-fast":9}],4:[function(require,module,exports){
+"use strict";
+
+/** @module utils/Network */
+
+/**
+* Networks info data
+*
+* @type {object}
+*/
+var data = {
+    "Mainnet": {
+        "id": 104,
+        "prefix": "68",
+        "char": "N"
+    },
+    "Testnet": {
+        "id": -104,
+        "prefix": "98",
+        "char": "T"
+    },
+    "Mijin": {
+        "id": 96,
+        "prefix": "60",
+        "char": "M"
+    }
+};
+
+/**
+ * Gets a network prefix from network id
+ *
+ * @param {number} id - A network id
+ *
+ * @return {string} - The network prefix
+ */
+var id2Prefix = function id2Prefix(id) {
+    if (id === 104) {
+        return "68";
+    } else if (id === -104) {
+        return "98";
+    } else {
+        return "60";
+    }
+};
+
+/**
+ * Gets the starting char of the addresses of a network id
+ *
+ * @param {number} id - A network id
+ *
+ * @return {string} - The starting char of addresses
+ */
+var id2Char = function id2Char(id) {
+    if (id === 104) {
+        return "N";
+    } else if (id === -104) {
+        return "T";
+    } else {
+        return "M";
+    }
+};
+
+/**
+ * Gets the network id from the starting char of an address
+ *
+ * @param {string} startChar - A starting char from an address
+ *
+ * @return {number} - The network id
+ */
+var char2Id = function char2Id(startChar) {
+    if (startChar === "N") {
+        return 104;
+    } else if (startChar === "T") {
+        return -104;
+    } else {
+        return 96;
+    }
+};
+
+module.exports = {
+    data: data,
+    id2Prefix: id2Prefix,
+    id2Char: id2Char,
+    char2Id: char2Id
+};
+
+},{}],5:[function(require,module,exports){
+"use strict";
+
+/** @module utils/TransactionTypes */
+
+/**
+ * The transfer transaction type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var Transfer = 0x101; // 257
+
+/**
+ * The importance transfer type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var ImportanceTransfer = 0x801; // 2049
+
+/**
+ * The aggregate modification transaction type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var MultisigModification = 0x1001; // 4097
+
+/**
+ * The multisignature signature transaction type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var MultisigSignature = 0x1002; // 4098
+
+/**
+ * The multisignature transaction type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var MultisigTransaction = 0x1004; // 4100
+
+/**
+ * The provision namespace transaction type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var ProvisionNamespace = 0x2001; // 8193
+
+/**
+ * The mosaic definition transaction type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var MosaicDefinition = 0x4001; // 16385
+
+/**
+ * The mosaic supply change transaction type
+ *
+ * @type {string}
+ *
+ * @default
+ */
+var MosaicSupply = 0x4002; // 16386
+
+module.exports = {
+  Transfer: Transfer,
+  ImportanceTransfer: ImportanceTransfer,
+  MultisigModification: MultisigModification,
+  MultisigSignature: MultisigSignature,
+  MultisigTransaction: MultisigTransaction,
+  ProvisionNamespace: ProvisionNamespace,
+  MosaicDefinition: MosaicDefinition,
+  MosaicSupply: MosaicSupply
+};
+
+},{}],6:[function(require,module,exports){
+'use strict';
+
+var _KeyPair = require('./KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+var _Address = require('./Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var NEM_MAINNET_PUBLIC = 0x68000000;
+var NEM_MAINNET_PRIVATE = 0x68000000;
+var NEM_TESTNET_PUBLIC = 0x98000000;
+var NEM_TESTNET_PRIVATE = 0x98000000;
+var NEM_MIJIN_PUBLIC = 0x60000000;
+var NEM_MIJIN_PRIVATE = 0x60000000;
+
+var BIP32 = function BIP32(bytes) {
+    // decode base58
+    if (typeof bytes === "string") {
+        var decoded = Bitcoin.Base58.decode(bytes);
+        if (decoded.length != 82) throw new Error("Not enough data");
+        var checksum = decoded.slice(78, 82);
+        bytes = decoded.slice(0, 78);
+
+        var hash = Crypto.SHA256(Crypto.SHA256(bytes, {
+            asBytes: true
+        }), {
+            asBytes: true
+        });
+
+        if (hash[0] != checksum[0] || hash[1] != checksum[1] || hash[2] != checksum[2] || hash[3] != checksum[3]) {
+            throw new Error("Invalid checksum");
+        }
+    }
+
+    if (bytes !== undefined) this.init_from_bytes(bytes);
+};
+
+BIP32.prototype.init_from_bytes = function (bytes) {
+    // Both pub and private extended keys are 78 bytes
+    if (bytes.length != 78) throw new Error("not enough data");
+
+    this.version = u32(bytes.slice(0, 4));
+    this.depth = u8(bytes.slice(4, 5));
+    this.parent_fingerprint = bytes.slice(5, 9);
+    this.child_index = u32(bytes.slice(9, 13));
+    this.chain_code = bytes.slice(13, 45);
+
+    var key_bytes = bytes.slice(45, 78);
+
+    var is_private = this.version == NEM_MAINNET_PRIVATE || this.version == NEM_TESTNET_PRIVATE || this.version == NEM_MIJIN_PRIVATE;
+
+    var is_public = this.version == NEM_MAINNET_PUBLIC || this.version == NEM_TESTNET_PUBLIC || this.version == NEM_MIJIN_PUBLIC;
+
+    if (is_private && key_bytes[0] == 0) {
+        this.eckey = new Bitcoin.ECKey(key_bytes.slice(1, 33));
+        this.eckey.setCompressed(true);
+
+        var ecparams = getSECCurveByName("secp256k1");
+        var pt = ecparams.getG().multiply(this.eckey.priv);
+        this.eckey.pub = pt;
+        this.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(this.eckey.pub.getEncoded(true));
+        this.has_private_key = true;
+    } else if (is_public && (key_bytes[0] == 0x02 || key_bytes[0] == 0x03)) {
+        this.eckey = new Bitcoin.ECKey();
+        this.eckey.pub = decompress_pubkey(key_bytes);
+        this.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(this.eckey.pub.getEncoded(true));
+        this.eckey.setCompressed(true);
+        this.has_private_key = false;
+    } else {
+        throw new Error("Invalid key");
+    }
+
+    this.build_extended_public_key();
+    this.build_extended_private_key();
+};
+
+BIP32.prototype.build_extended_public_key = function () {
+    this.extended_public_key = [];
+
+    var v = null;
+    switch (this.version) {
+        case NEM_MAINNET_PUBLIC:
+        case NEM_MAINNET_PRIVATE:
+            v = NEM_MAINNET_PUBLIC;
+            break;
+        case NEM_TESTNET_PUBLIC:
+        case NEM_TESTNET_PRIVATE:
+            v = NEM_TESTNET_PUBLIC;
+            break;
+        case NEM_MIJIN_PUBLIC:
+        case NEM_MIJIN_PRIVATE:
+            v = NEM_MIJIN_PUBLIC;
+            break;
+        default:
+            throw new Error("Unknown version");
+    }
+
+    // Version
+    this.extended_public_key.push(v >> 24);
+    this.extended_public_key.push(v >> 16 & 0xff);
+    this.extended_public_key.push(v >> 8 & 0xff);
+    this.extended_public_key.push(v & 0xff);
+
+    // Depth
+    this.extended_public_key.push(this.depth);
+
+    // Parent fingerprint
+    this.extended_public_key = this.extended_public_key.concat(this.parent_fingerprint);
+
+    // Child index
+    this.extended_public_key.push(this.child_index >>> 24);
+    this.extended_public_key.push(this.child_index >>> 16 & 0xff);
+    this.extended_public_key.push(this.child_index >>> 8 & 0xff);
+    this.extended_public_key.push(this.child_index & 0xff);
+
+    // Chain code
+    this.extended_public_key = this.extended_public_key.concat(this.chain_code);
+
+    // Public key
+    this.extended_public_key = this.extended_public_key.concat(this.eckey.pub.getEncoded(true));
+};
+
+BIP32.prototype.extended_public_key_string = function (format) {
+    if (format === undefined || format === "base58") {
+        var hash = Crypto.SHA256(Crypto.SHA256(this.extended_public_key, {
+            asBytes: true
+        }), {
+            asBytes: true
+        });
+        var checksum = hash.slice(0, 4);
+        var data = this.extended_public_key.concat(checksum);
+        return Bitcoin.Base58.encode(data);
+    } else if (format === "hex") {
+        return Crypto.util.bytesToHex(this.extended_public_key);
+    } else {
+        throw new Error("bad format");
+    }
+};
+
+BIP32.prototype.build_extended_private_key = function () {
+    if (!this.has_private_key) return;
+    this.extended_private_key = [];
+
+    var v = this.version;
+
+    // Version
+    this.extended_private_key.push(v >> 24);
+    this.extended_private_key.push(v >> 16 & 0xff);
+    this.extended_private_key.push(v >> 8 & 0xff);
+    this.extended_private_key.push(v & 0xff);
+
+    // Depth
+    this.extended_private_key.push(this.depth);
+
+    // Parent fingerprint
+    this.extended_private_key = this.extended_private_key.concat(this.parent_fingerprint);
+
+    // Child index
+    this.extended_private_key.push(this.child_index >>> 24);
+    this.extended_private_key.push(this.child_index >>> 16 & 0xff);
+    this.extended_private_key.push(this.child_index >>> 8 & 0xff);
+    this.extended_private_key.push(this.child_index & 0xff);
+
+    // Chain code
+    this.extended_private_key = this.extended_private_key.concat(this.chain_code);
+
+    // Private key
+    this.extended_private_key.push(0);
+    var k = this.eckey.priv.toByteArrayUnsigned();
+    while (k.length < 32) {
+        k.unshift(0);
+    }
+    this.extended_private_key = this.extended_private_key.concat(k);
+};
+
+BIP32.prototype.extended_private_key_string = function (format) {
+    if (format === undefined || format === "base58") {
+        var hash = Crypto.SHA256(Crypto.SHA256(this.extended_private_key, {
+            asBytes: true
+        }), {
+            asBytes: true
+        });
+        var checksum = hash.slice(0, 4);
+        var data = this.extended_private_key.concat(checksum);
+        return Bitcoin.Base58.encode(data);
+    } else if (format === "hex") {
+        return Crypto.util.bytesToHex(this.extended_private_key);
+    } else {
+        throw new Error("bad format");
+    }
+};
+
+BIP32.prototype.derive = function (path) {
+    var e = path.split('/');
+
+    // Special cases:
+    if (path == 'm' || path == 'M' || path == 'm\'' || path == 'M\'') return this;
+
+    var bip32 = this;
+    for (var i in e) {
+        var c = e[i];
+
+        if (i == 0) {
+            if (c != 'm') throw new Error("invalid path");
+            continue;
+        }
+
+        var use_private = c.length > 1 && c[c.length - 1] == '\'';
+        var child_index = parseInt(use_private ? c.slice(0, c.length - 1) : c) & 0x7fffffff;
+
+        if (use_private) child_index += 0x80000000;
+
+        bip32 = bip32.derive_child(child_index);
+    }
+
+    return bip32;
+};
+
+BIP32.prototype.derive_child = function (i) {
+    var ib = [];
+    ib.push(i >> 24 & 0xff);
+    ib.push(i >> 16 & 0xff);
+    ib.push(i >> 8 & 0xff);
+    ib.push(i & 0xff);
+
+    var use_private = (i & 0x80000000) != 0;
+    var ecparams = getSECCurveByName("secp256k1");
+
+    var is_private = this.version == NEM_MAINNET_PRIVATE || this.version == NEM_TESTNET_PRIVATE || this.version == NEM_MIJIN_PRIVATE;
+
+    if (use_private && (!this.has_private_key || !is_private)) throw new Error("Cannot do private key derivation without private key");
+
+    var ret = null;
+    if (this.has_private_key) {
+        var data = null;
+
+        if (use_private) {
+            var k = this.eckey.priv.toByteArrayUnsigned();
+            while (k.length < 32) {
+                k.unshift(0);
+            }
+            data = [0].concat(k).concat(ib);
+        } else {
+            data = this.eckey.pub.getEncoded(true).concat(ib);
+        }
+
+        var j = new jsSHA(Crypto.util.bytesToHex(data), 'HEX');
+        var hash = j.getHMAC(Crypto.util.bytesToHex(this.chain_code), "HEX", "SHA-256", "HEX");
+        var il = new BigInteger(hash.slice(0, 64), 16);
+        var ir = Crypto.util.bytesToHex(hash.slice(64, 128));
+
+        // ki = IL + kpar (mod n).
+        var curve = ecparams.getCurve();
+        var k = il.add(this.eckey.priv).mod(ecparams.getN());
+
+        ret = new BIP32();
+        ret.chain_code = ir;
+
+        ret.eckey = new Bitcoin.ECKey(k.toByteArrayUnsigned());
+        ret.eckey.pub = ret.eckey.getPubPoint();
+        ret.has_private_key = true;
+    } else {
+        var data = this.eckey.pub.getEncoded(true).concat(ib);
+        var j = new jsSHA(Crypto.util.bytesToHex(data), 'HEX');
+        var hash = j.getHMAC(Crypto.util.bytesToHex(this.chain_code), "HEX", "SHA-256", "HEX");
+        var il = new BigInteger(hash.slice(0, 64), 16);
+        var ir = Crypto.util.bytesToHex(hash.slice(64, 128));
+
+        // Ki = (IL + kpar)*G = IL*G + Kpar
+        var k = ecparams.getG().multiply(il).add(this.eckey.pub);
+
+        ret = new BIP32();
+        ret.chain_code = ir;
+
+        ret.eckey = new Bitcoin.ECKey();
+        ret.eckey.pub = k;
+        ret.has_private_key = false;
+    }
+
+    ret.child_index = i;
+    ret.parent_fingerprint = this.eckey.pubKeyHash.slice(0, 4);
+    ret.version = this.version;
+    ret.depth = this.depth + 1;
+
+    ret.eckey.setCompressed(true);
+    ret.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(ret.eckey.pub.getEncoded(true));
+
+    ret.build_extended_public_key();
+    ret.build_extended_private_key();
+
+    return ret;
+};
+
+function uint(f, size) {
+    if (f.length < size) throw new Error("not enough data");
+    var n = 0;
+    for (var i = 0; i < size; i++) {
+        n *= 256;
+        n += f[i];
+    }
+    return n;
+}
+
+function u8(f) {
+    return uint(f, 1);
+}
+
+function u16(f) {
+    return uint(f, 2);
+}
+
+function u32(f) {
+    return uint(f, 4);
+}
+
+function u64(f) {
+    return uint(f, 8);
+}
+
+function decompress_pubkey(key_bytes) {
+    var y_bit = u8(key_bytes.slice(0, 1)) & 0x01;
+    var ecparams = getSECCurveByName("secp256k1");
+
+    // build X
+    var x = BigInteger.ZERO.clone();
+    x.fromString(Crypto.util.bytesToHex(key_bytes.slice(1, 33)), 16);
+
+    // get curve
+    var curve = ecparams.getCurve();
+    var a = curve.getA().toBigInteger();
+    var b = curve.getB().toBigInteger();
+    var p = curve.getQ();
+
+    // compute y^2 = x^3 + a*x + b
+    var tmp = x.multiply(x).multiply(x).add(a.multiply(x)).add(b).mod(p);
+
+    // compute modular square root of y (mod p)
+    var y = tmp.modSqrt(p);
+
+    // flip sign if we need to
+    if ((y[0] & 0x01) != y_bit) {
+        y = y.multiply(new BigInteger("-1")).mod(p);
+    }
+
+    return new ECPointFp(curve, curve.fromBigInteger(x), curve.fromBigInteger(y));
+}
+
+module.exports = {
+    BIP32: BIP32
+};
+
+},{"./Address":1,"./KeyPair":3}],7:[function(require,module,exports){
+'use strict';
+
+/** @module utils/convert */
+
+var _hexEncodeArray = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
+
+/**
+ * Reversed convertion of hex to Uint8Array
+ *
+ * @param {string} hexx - An hex string
+ *
+ * @return {Uint8Array}
+ */
+var hex2ua_reversed = function hex2ua_reversed(hexx) {
+    var hex = hexx.toString(); //force conversion
+    var ua = new Uint8Array(hex.length / 2);
+    for (var i = 0; i < hex.length; i += 2) {
+        ua[ua.length - 1 - i / 2] = parseInt(hex.substr(i, 2), 16);
+    }
+    return ua;
+};
+
+/**
+ * Convert hex to Uint8Array
+ *
+ * @param {string} hexx - An hex string
+ *
+ * @return {Uint8Array}
+ */
+var hex2ua = function hex2ua(hexx) {
+    var hex = hexx.toString(); //force conversion
+    var ua = new Uint8Array(hex.length / 2);
+    for (var i = 0; i < hex.length; i += 2) {
+        ua[i / 2] = parseInt(hex.substr(i, 2), 16);
+    }
+    return ua;
+};
+
+/**
+ * Convert an Uint8Array to hex
+ *
+ * @param {Uint8Array} ua - An Uint8Array
+ *
+ * @return {string}
+ */
+var ua2hex = function ua2hex(ua) {
+    var s = '';
+    for (var i = 0; i < ua.length; i++) {
+        var code = ua[i];
+        s += _hexEncodeArray[code >>> 4];
+        s += _hexEncodeArray[code & 0x0F];
+    }
+    return s;
+};
+
+/**
+ * Convert hex to string
+ *
+ * @param {string} hexx - An hex string
+ *
+ * @return {string}
+ */
+var hex2a = function hex2a(hexx) {
+    var hex = hexx.toString();
+    var str = '';
+    for (var i = 0; i < hex.length; i += 2) {
+        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    }return str;
+};
+
+/**
+ * Convert UTF-8 to hex
+ *
+ * @param {string} str - An UTF-8 string
+ *
+ * @return {string}
+ */
+var utf8ToHex = function utf8ToHex(str) {
+    var rawString = rstr2utf8(str);
+    var hex = "";
+    for (var i = 0; i < rawString.length; i++) {
+        hex += strlpad(rawString.charCodeAt(i).toString(16), "0", 2);
+    }
+    return hex;
+};
+
+// Padding helper for above function
+var strlpad = function strlpad(str, pad, len) {
+    while (str.length < len) {
+        str = pad + str;
+    }
+    return str;
+};
+
+/**
+ * Convert an Uint8Array to WordArray
+ *
+ * @param {Uint8Array} ua - An Uint8Array
+ * @param {number} uaLength - The Uint8Array length
+ *
+ * @return {WordArray}
+ */
+var ua2words = function ua2words(ua, uaLength) {
+    var temp = [];
+    for (var i = 0; i < uaLength; i += 4) {
+        var x = ua[i] * 0x1000000 + (ua[i + 1] || 0) * 0x10000 + (ua[i + 2] || 0) * 0x100 + (ua[i + 3] || 0);
+        temp.push(x > 0x7fffffff ? x - 0x100000000 : x);
+    }
+    return CryptoJS.lib.WordArray.create(temp, uaLength);
+};
+
+/**
+ * Convert a wordArray to Uint8Array
+ *
+ * @param {Uint8Array} destUa - A destination Uint8Array
+ * @param {WordArray} cryptowords - A wordArray
+ *
+ * @return {Uint8Array}
+ */
+var words2ua = function words2ua(destUa, cryptowords) {
+    for (var i = 0; i < destUa.length; i += 4) {
+        var v = cryptowords.words[i / 4];
+        if (v < 0) v += 0x100000000;
+        destUa[i] = v >>> 24;
+        destUa[i + 1] = v >>> 16 & 0xff;
+        destUa[i + 2] = v >>> 8 & 0xff;
+        destUa[i + 3] = v & 0xff;
+    }
+    return destUa;
+};
+
+/**
+ * Converts a raw javascript string into a string of single byte characters using utf8 encoding.
+ * This makes it easier to perform other encoding operations on the string.
+ *
+ * @param {string} input - A raw string
+ *
+ * @return {string} - UTF-8 string
+ */
+var rstr2utf8 = function rstr2utf8(input) {
+    var output = "";
+
+    for (var n = 0; n < input.length; n++) {
+        var c = input.charCodeAt(n);
+
+        if (c < 128) {
+            output += String.fromCharCode(c);
+        } else if (c > 127 && c < 2048) {
+            output += String.fromCharCode(c >> 6 | 192);
+            output += String.fromCharCode(c & 63 | 128);
+        } else {
+            output += String.fromCharCode(c >> 12 | 224);
+            output += String.fromCharCode(c >> 6 & 63 | 128);
+            output += String.fromCharCode(c & 63 | 128);
+        }
+    }
+
+    return output;
+};
+
+// Does the reverse of rstr2utf8.
+var utf82rstr = function utf82rstr(input) {
+    var output = "",
+        i = 0,
+        c = 0,
+        c1 = 0,
+        c2 = 0,
+        c3 = 0;
+
+    while (i < input.length) {
+        c = input.charCodeAt(i);
+
+        if (c < 128) {
+            output += String.fromCharCode(c);
+            i++;
+        } else if (c > 191 && c < 224) {
+            c2 = input.charCodeAt(i + 1);
+            output += String.fromCharCode((c & 31) << 6 | c2 & 63);
+            i += 2;
+        } else {
+            c2 = input.charCodeAt(i + 1);
+            c3 = input.charCodeAt(i + 2);
+            output += String.fromCharCode((c & 15) << 12 | (c2 & 63) << 6 | c3 & 63);
+            i += 3;
+        }
+    }
+
+    return output;
+};
+
+module.exports = {
+    hex2ua_reversed: hex2ua_reversed,
+    hex2ua: hex2ua,
+    ua2hex: ua2hex,
+    hex2a: hex2a,
+    utf8ToHex: utf8ToHex,
+    ua2words: ua2words,
+    words2ua: words2ua,
+    rstr2utf8: rstr2utf8,
+    utf82rstr: utf82rstr
+};
+
+},{}],8:[function(require,module,exports){
+'use strict';
+
+var _convert = require('./convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _CryptoHelpers = require('./CryptoHelpers');
+
+var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
+
+var _TransactionTypes = require('./TransactionTypes');
+
+var _TransactionTypes2 = _interopRequireDefault(_TransactionTypes);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * Check if wallet already present in an array
+ *
+ * @param {string} walletName - A wallet name
+ * @param {array} array - A wallets array
+ *
+ * @return {boolean} - True if present, false otherwise
+ */
+var haveWallet = function haveWallet(walletName, array) {
+    var i = null;
+    for (i = 0; array.length > i; i++) {
+        if (array[i].name === walletName) {
+            return true;
+        }
+    }
+    return false;
+};
+
+/**
+ * Check if a multisig transaction needs signature
+ *
+ * @param {object} multisigTransaction - A multisig transaction
+ * @param {object} data - An account data
+ *
+ * @return {boolean} - True if it needs signature, false otherwise
+ */
+/** @module utils/helpers */
+
+var needsSignature = function needsSignature(multisigTransaction, data) {
+    if (multisigTransaction.transaction.signer === data.account.publicKey) {
+        return false;
+    }
+    if (multisigTransaction.transaction.otherTrans.signer === data.account.publicKey) {
+        return false;
+    }
+    // Check if we're already on list of signatures
+    for (var i = 0; i < multisigTransaction.transaction.signatures.length; i++) {
+        if (multisigTransaction.transaction.signatures[i].signer === data.account.publicKey) {
+            return false;
+        }
+    }
+
+    if (!data.meta.cosignatoryOf.length) {
+        return false;
+    } else {
+        for (var k = 0; k < data.meta.cosignatoryOf.length; k++) {
+            if (data.meta.cosignatoryOf[k].publicKey === multisigTransaction.transaction.otherTrans.signer) {
+                return true;
+            } else if (k === data.meta.cosignatoryOf.length - 1) {
+                return false;
+            }
+        }
+    }
+    return true;
+};
+
+/**
+ * Return the name of a transaction type id
+ *
+ * @param {number} id - A transaction type id
+ *
+ * @return {string} - The transaction type name
+ */
+var txTypeToName = function txTypeToName(id) {
+    switch (id) {
+        case _TransactionTypes2.default.Transfer:
+            return 'Transfer';
+        case _TransactionTypes2.default.ImportanceTransfer:
+            return 'ImportanceTransfer';
+        case _TransactionTypes2.default.MultisigModification:
+            return 'MultisigModification';
+        case _TransactionTypes2.default.ProvisionNamespace:
+            return 'ProvisionNamespace';
+        case _TransactionTypes2.default.MosaicDefinition:
+            return 'MosaicDefinition';
+        case _TransactionTypes2.default.MosaicSupply:
+            return 'MosaicSupply';
+        default:
+            return 'Unknown_' + id;
+    }
+};
+
+/**
+ * Check if a transaction is already present in an array of transactions
+ *
+ * @param {string} hash - A transaction hash
+ * @param {array} array - An array of transactions
+ *
+ * @return {boolean} - True if present, false otherwise
+ */
+var haveTx = function haveTx(hash, array) {
+    var i = null;
+    for (i = 0; array.length > i; i++) {
+        if (array[i].meta.hash.data === hash) {
+            return true;
+        }
+    }
+    return false;
+};
+
+/**
+ * Gets the index of a transaction in an array of transactions.
+ * It must be present in the array.
+ *
+ * @param {string} hash - A transaction hash
+ * @param {array} array - An array of transactions
+ *
+ * @return {number} - The index of the transaction
+ */
+var getTransactionIndex = function getTransactionIndex(hash, array) {
+    var i = null;
+    for (i = 0; array.length > i; i++) {
+        if (array[i].meta.hash.data === hash) {
+            return i;
+        }
+    }
+    return 0;
+};
+
+/**
+ * Return mosaic name from mosaicId object
+ *
+ * @param {object} mosaicId - A mosaicId object
+ *
+ * @return {string} - The mosaic name
+ */
+var mosaicIdToName = function mosaicIdToName(mosaicId) {
+    if (!mosaicId) return mosaicId;
+    return mosaicId.namespaceId + ":" + mosaicId.name;
+};
+
+/**
+ * Parse uri to get hostname
+ *
+ * @param {string} uri - An uri string
+ *
+ * @return {string} - The uri hostname
+ */
+var getHostname = function getHostname(uri) {
+    var _uriParser = document.createElement('a');
+    _uriParser.href = uri;
+    return _uriParser.hostname;
+};
+
+/**
+ * Check if a cosignatory is already present in modifications array
+ *
+ * @param {string} address - A cosignatory address
+ * @param {string} pubKey - A cosignatory public key
+ * @param {array} array - A modifications array
+ *
+ * @return {boolean} - True if present, false otherwise
+ */
+var haveCosig = function haveCosig(address, pubKey, array) {
+    var i = null;
+    for (i = 0; array.length > i; i++) {
+        if (array[i].address === address || array[i].pubKey === pubKey) {
+            return true;
+        }
+    }
+    return false;
+};
+
+/**
+ * Remove extension of a file name
+ *
+ * @param {string} filename - A file name with extension
+ *
+ * @return {string} - The file name without extension
+ */
+var getFileName = function getFileName(filename) {
+    return filename.replace(/\.[^/.]+$/, "");
+};
+
+/**
+ * Gets extension of a file name
+ *
+ * @param {string} filename - A file name with extension
+ *
+ * @return {string} - The file name extension
+ */
+var getExtension = function getExtension(filename) {
+    return filename.split('.').pop();
+};
+
+/***
+ * NEM epoch time
+ *
+ * @type {number}
+ */
+var NEM_EPOCH = Date.UTC(2015, 2, 29, 0, 6, 25, 0);
+
+/**
+ * Create a time stamp for a NEM transaction
+ *
+ * @return {number} - The NEM transaction time stamp in milliseconds
+ */
+var createNEMTimeStamp = function createNEMTimeStamp() {
+    return Math.floor(Date.now() / 1000 - NEM_EPOCH / 1000);
+};
+
+/**
+ * Fix a private key
+ *
+ * @param {string} privatekey - An hex private key
+ *
+ * @return {string} - The fixed hex private key
+ */
+var fixPrivateKey = function fixPrivateKey(privatekey) {
+    return ("0000000000000000000000000000000000000000000000000000000000000000" + privatekey.replace(/^00/, '')).slice(-64);
+};
+
+/**
+ * Calculate minimum fees from an amount of XEM
+ *
+ * @param {number} numNem - An amount of XEM
+ *
+ * @return {number} - The minimum fee
+ */
+var calcMinFee = function calcMinFee(numNem) {
+    var fee = Math.floor(Math.max(1, numNem / 10000));
+    return fee > 25 ? 25 : fee;
+};
+
+/**
+ * Calculate mosaic quantity equivalent in XEM
+ *
+ * @param {number} multiplier - A mosaic multiplier
+ * @param {number} q - A mosaic quantity
+ * @param {number} sup - A mosaic supply
+ * @param {number} divisibility - A mosaic divisibility
+ *
+ * @return {number} - The XEM equivalent of a mosaic quantity
+ */
+var calcXemEquivalent = function calcXemEquivalent(multiplier, q, sup, divisibility) {
+    if (sup === 0) {
+        return 0;
+    }
+    // TODO: can this go out of JS (2^54) bounds? (possible BUG)
+    return 8999999999 * q * multiplier / sup / Math.pow(10, divisibility + 6);
+};
+
+/**
+ * Build a message object
+ *
+ * @param {object} common - An object containing wallet private key
+ * @param {object} tx - A transaction object containing the message
+ *
+ * @return {object} - The message object
+ */
+var prepareMessage = function prepareMessage(common, tx) {
+    if (tx.encryptMessage && common.privateKey) {
+        return {
+            'type': 2,
+            'payload': _CryptoHelpers2.default.encode(common.privateKey, tx.recipientPubKey, tx.message.toString())
+        };
+    } else {
+        return {
+            'type': 1,
+            'payload': _convert2.default.utf8ToHex(tx.message.toString())
+        };
+    }
+};
+
+/**
+ * Check and format an url
+ *
+ * @param {string} node - A custom node from user input
+ * @param {number} defaultWebsocketPort - A default websocket port
+ *
+ * @return {string|number} - The formatted node as string or 1
+ */
+var checkAndFormatUrl = function checkAndFormatUrl(node, defaultWebsocketPort) {
+    // Detect if custom node doesn't begin with "http://"
+    var pattern = /^((http):\/\/)/;
+    if (!pattern.test(node)) {
+        node = "http://" + node;
+        var _uriParser = document.createElement('a');
+        _uriParser.href = node;
+        // If no port we add it
+        if (!_uriParser.port) {
+            node = node + ":" + defaultWebsocketPort;
+        } else if (_uriParser.port !== defaultWebsocketPort) {
+            // Port is not default websocket port
+            return 1;
+        }
+    } else {
+        // Start with "http://""
+        var _uriParser2 = document.createElement('a');
+        _uriParser2.href = node;
+        // If no port we add it
+        if (!_uriParser2.port) {
+            node = node + ":" + defaultWebsocketPort;
+        } else if (_uriParser2.port !== defaultWebsocketPort) {
+            // Port is not default websocket port
+            return 1;
+        }
+    }
+    return node;
+};
+
+/**
+ * Create a time stamp
+ *
+ * @return {object} - A date object
+ */
+var createTimeStamp = function createTimeStamp() {
+    return new Date();
+};
+
+/**
+ * Date object to YYYY-MM-DD format
+ *
+ * @param {object} date - A date object
+ *
+ * @return {string} - The short date
+ */
+var getTimestampShort = function getTimestampShort(date) {
+    var dd = date.getDate();
+    var mm = date.getMonth() + 1; //January is 0!
+    var yyyy = date.getFullYear();
+
+    if (dd < 10) {
+        dd = '0' + dd;
+    }
+
+    if (mm < 10) {
+        mm = '0' + mm;
+    }
+
+    return yyyy + '-' + mm + '-' + dd;
+};
+
+/**
+ * Date object to date string
+ *
+ * @param {object} date - A date object
+ *
+ * @return {string} - The date string
+ */
+var convertDateToString = function convertDateToString(date) {
+    return date.toDateString();
+};
+
+/**
+ * Check if an input amount is valid
+ *
+ * @param {string} n - The number as a string
+ *
+ * @return {boolean} - True if valid, false otherwise
+ */
+var isAmountValid = function isAmountValid(n) {
+    // Force n as a string and replace decimal comma by a dot if any
+    var nn = Number(n.toString().replace(/,/g, '.'));
+    return !Number.isNaN(nn) && Number.isFinite(nn) && nn >= 0;
+};
+
+/**
+ * Clean an input amount and return it as number
+ *
+ * @param {string} n - The number as a string
+ *
+ * @return {number} - The clean amount
+ */
+var cleanAmount = function cleanAmount(n) {
+    return Number(n.toString().replace(/,/g, '.'));
+};
+
+/**
+ * Return contact label for an address
+ *
+ * @param {array} array - An array of contacts
+ * @param {string} address - The address to look for
+ *
+ * @return {string|boolean} - The account label or false
+ */
+var getContact = function getContact(array, address) {
+    if (undefined === address || !array.length) return false;
+    var _address = address.toUpperCase().replace(/-/g, '');
+    for (var i = 0; i < array.length; i++) {
+        if (array[i].address === _address || array[i].address === address) {
+            return array[i].label;
+        }
+    }
+    return false;
+};
+
+module.exports = {
+    haveWallet: haveWallet,
+    needsSignature: needsSignature,
+    txTypeToName: txTypeToName,
+    haveTx: haveTx,
+    getTransactionIndex: getTransactionIndex,
+    mosaicIdToName: mosaicIdToName,
+    getHostname: getHostname,
+    haveCosig: haveCosig,
+    getFileName: getFileName,
+    getExtension: getExtension,
+    createNEMTimeStamp: createNEMTimeStamp,
+    fixPrivateKey: fixPrivateKey,
+    calcMinFee: calcMinFee,
+    calcXemEquivalent: calcXemEquivalent,
+    prepareMessage: prepareMessage,
+    checkAndFormatUrl: checkAndFormatUrl,
+    createTimeStamp: createTimeStamp,
+    getTimestampShort: getTimestampShort,
+    convertDateToString: convertDateToString,
+    isAmountValid: isAmountValid,
+    cleanAmount: cleanAmount,
+    getContact: getContact
+};
+
+},{"./CryptoHelpers":2,"./TransactionTypes":5,"./convert":7}],9:[function(require,module,exports){
+'use strict';
+
+(function (nacl) {
+  'use strict';
+
+  // polyfill for TypedArray.prototype.slice()
+
+  Uint8Array.prototype.slice = function (start, end) {
+    var len = this.length;
+    var relativeStart = start;
+    var k = relativeStart < 0 ? max(len + relativeStart, 0) : Math.min(relativeStart, len);
+    var relativeEnd = end === undefined ? len : end;
+    var final = relativeEnd < 0 ? max(len + relativeEnd, 0) : Math.min(relativeEnd, len);
+    var count = final - k;
+    var c = this.constructor;
+    var a = new c(count);
+    var n = 0;
+    while (k < final) {
+      a[n] = JSON.parse(JSON.stringify(this[k]));
+      k++;
+      n++;
+    }
+    return a;
+  };
+
+  Float64Array.prototype.slice = function (start, end) {
+    var len = this.length;
+    var relativeStart = start;
+    var k = relativeStart < 0 ? max(len + relativeStart, 0) : Math.min(relativeStart, len);
+    var relativeEnd = end === undefined ? len : end;
+    var final = relativeEnd < 0 ? max(len + relativeEnd, 0) : Math.min(relativeEnd, len);
+    var count = final - k;
+    var c = this.constructor;
+    var a = new c(count);
+    var n = 0;
+    while (k < final) {
+      a[n] = JSON.parse(JSON.stringify(this[k]));
+      k++;
+      n++;
+    }
+    return a;
+  };
+
+  // Ported in 2014 by Dmitry Chestnykh and Devi Mandiri.
+  // Public domain.
+  //
+  // Implementation derived from TweetNaCl version 20140427.
+  // See for details: http://tweetnacl.cr.yp.to/
+
+  var gf = function gf(init) {
+    var i,
+        r = new Float64Array(16);
+    if (init) for (i = 0; i < init.length; i++) {
+      r[i] = init[i];
+    }return r;
+  };
+
+  //  Pluggable, initialized in high-level API below.
+  var randombytes = function randombytes() /* x, n */{
+    throw new Error('no PRNG');
+  };
+
+  var _0 = new Uint8Array(16);
+  var _9 = new Uint8Array(32);_9[0] = 9;
+
+  var gf0 = gf(),
+      gf1 = gf([1]),
+      _121665 = gf([0xdb41, 1]),
+      D = gf([0x78a3, 0x1359, 0x4dca, 0x75eb, 0xd8ab, 0x4141, 0x0a4d, 0x0070, 0xe898, 0x7779, 0x4079, 0x8cc7, 0xfe73, 0x2b6f, 0x6cee, 0x5203]),
+      D2 = gf([0xf159, 0x26b2, 0x9b94, 0xebd6, 0xb156, 0x8283, 0x149a, 0x00e0, 0xd130, 0xeef3, 0x80f2, 0x198e, 0xfce7, 0x56df, 0xd9dc, 0x2406]),
+      X = gf([0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169]),
+      Y = gf([0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666]),
+      I = gf([0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83]);
+
+  function vn(x, xi, y, yi, n) {
+    var i,
+        d = 0;
+    for (i = 0; i < n; i++) {
+      d |= x[xi + i] ^ y[yi + i];
+    }return (1 & d - 1 >>> 8) - 1;
+  }
+
+  function crypto_verify_32(x, xi, y, yi) {
+    return vn(x, xi, y, yi, 32);
+  }
+
+  function set25519(r, a) {
+    var i;
+    for (i = 0; i < 16; i++) {
+      r[i] = a[i] | 0;
+    }
+  }
+
+  function car25519(o) {
+    var i,
+        v,
+        c = 1;
+    for (i = 0; i < 16; i++) {
+      v = o[i] + c + 65535;
+      c = Math.floor(v / 65536);
+      o[i] = v - c * 65536;
+    }
+    o[0] += c - 1 + 37 * (c - 1);
+  }
+
+  function sel25519(p, q, b) {
+    var t,
+        c = ~(b - 1);
+    for (var i = 0; i < 16; i++) {
+      t = c & (p[i] ^ q[i]);
+      p[i] ^= t;
+      q[i] ^= t;
+    }
+  }
+
+  function pack25519(o, n) {
+    var i, j, b;
+    var m = gf(),
+        t = gf();
+    for (i = 0; i < 16; i++) {
+      t[i] = n[i];
+    }car25519(t);
+    car25519(t);
+    car25519(t);
+    for (j = 0; j < 2; j++) {
+      m[0] = t[0] - 0xffed;
+      for (i = 1; i < 15; i++) {
+        m[i] = t[i] - 0xffff - (m[i - 1] >> 16 & 1);
+        m[i - 1] &= 0xffff;
+      }
+      m[15] = t[15] - 0x7fff - (m[14] >> 16 & 1);
+      b = m[15] >> 16 & 1;
+      m[14] &= 0xffff;
+      sel25519(t, m, 1 - b);
+    }
+    for (i = 0; i < 16; i++) {
+      o[2 * i] = t[i] & 0xff;
+      o[2 * i + 1] = t[i] >> 8;
+    }
+  }
+
+  function neq25519(a, b) {
+    var c = new Uint8Array(32),
+        d = new Uint8Array(32);
+    pack25519(c, a);
+    pack25519(d, b);
+    return crypto_verify_32(c, 0, d, 0);
+  }
+
+  function par25519(a) {
+    var d = new Uint8Array(32);
+    pack25519(d, a);
+    return d[0] & 1;
+  }
+
+  function unpack25519(o, n) {
+    var i;
+    for (i = 0; i < 16; i++) {
+      o[i] = n[2 * i] + (n[2 * i + 1] << 8);
+    }o[15] &= 0x7fff;
+  }
+
+  function A(o, a, b) {
+    for (var i = 0; i < 16; i++) {
+      o[i] = a[i] + b[i];
+    }
+  }
+
+  function Z(o, a, b) {
+    for (var i = 0; i < 16; i++) {
+      o[i] = a[i] - b[i];
+    }
+  }
+
+  function M(o, a, b) {
+    var v,
+        c,
+        t0 = 0,
+        t1 = 0,
+        t2 = 0,
+        t3 = 0,
+        t4 = 0,
+        t5 = 0,
+        t6 = 0,
+        t7 = 0,
+        t8 = 0,
+        t9 = 0,
+        t10 = 0,
+        t11 = 0,
+        t12 = 0,
+        t13 = 0,
+        t14 = 0,
+        t15 = 0,
+        t16 = 0,
+        t17 = 0,
+        t18 = 0,
+        t19 = 0,
+        t20 = 0,
+        t21 = 0,
+        t22 = 0,
+        t23 = 0,
+        t24 = 0,
+        t25 = 0,
+        t26 = 0,
+        t27 = 0,
+        t28 = 0,
+        t29 = 0,
+        t30 = 0,
+        b0 = b[0],
+        b1 = b[1],
+        b2 = b[2],
+        b3 = b[3],
+        b4 = b[4],
+        b5 = b[5],
+        b6 = b[6],
+        b7 = b[7],
+        b8 = b[8],
+        b9 = b[9],
+        b10 = b[10],
+        b11 = b[11],
+        b12 = b[12],
+        b13 = b[13],
+        b14 = b[14],
+        b15 = b[15];
+
+    v = a[0];
+    t0 += v * b0;
+    t1 += v * b1;
+    t2 += v * b2;
+    t3 += v * b3;
+    t4 += v * b4;
+    t5 += v * b5;
+    t6 += v * b6;
+    t7 += v * b7;
+    t8 += v * b8;
+    t9 += v * b9;
+    t10 += v * b10;
+    t11 += v * b11;
+    t12 += v * b12;
+    t13 += v * b13;
+    t14 += v * b14;
+    t15 += v * b15;
+    v = a[1];
+    t1 += v * b0;
+    t2 += v * b1;
+    t3 += v * b2;
+    t4 += v * b3;
+    t5 += v * b4;
+    t6 += v * b5;
+    t7 += v * b6;
+    t8 += v * b7;
+    t9 += v * b8;
+    t10 += v * b9;
+    t11 += v * b10;
+    t12 += v * b11;
+    t13 += v * b12;
+    t14 += v * b13;
+    t15 += v * b14;
+    t16 += v * b15;
+    v = a[2];
+    t2 += v * b0;
+    t3 += v * b1;
+    t4 += v * b2;
+    t5 += v * b3;
+    t6 += v * b4;
+    t7 += v * b5;
+    t8 += v * b6;
+    t9 += v * b7;
+    t10 += v * b8;
+    t11 += v * b9;
+    t12 += v * b10;
+    t13 += v * b11;
+    t14 += v * b12;
+    t15 += v * b13;
+    t16 += v * b14;
+    t17 += v * b15;
+    v = a[3];
+    t3 += v * b0;
+    t4 += v * b1;
+    t5 += v * b2;
+    t6 += v * b3;
+    t7 += v * b4;
+    t8 += v * b5;
+    t9 += v * b6;
+    t10 += v * b7;
+    t11 += v * b8;
+    t12 += v * b9;
+    t13 += v * b10;
+    t14 += v * b11;
+    t15 += v * b12;
+    t16 += v * b13;
+    t17 += v * b14;
+    t18 += v * b15;
+    v = a[4];
+    t4 += v * b0;
+    t5 += v * b1;
+    t6 += v * b2;
+    t7 += v * b3;
+    t8 += v * b4;
+    t9 += v * b5;
+    t10 += v * b6;
+    t11 += v * b7;
+    t12 += v * b8;
+    t13 += v * b9;
+    t14 += v * b10;
+    t15 += v * b11;
+    t16 += v * b12;
+    t17 += v * b13;
+    t18 += v * b14;
+    t19 += v * b15;
+    v = a[5];
+    t5 += v * b0;
+    t6 += v * b1;
+    t7 += v * b2;
+    t8 += v * b3;
+    t9 += v * b4;
+    t10 += v * b5;
+    t11 += v * b6;
+    t12 += v * b7;
+    t13 += v * b8;
+    t14 += v * b9;
+    t15 += v * b10;
+    t16 += v * b11;
+    t17 += v * b12;
+    t18 += v * b13;
+    t19 += v * b14;
+    t20 += v * b15;
+    v = a[6];
+    t6 += v * b0;
+    t7 += v * b1;
+    t8 += v * b2;
+    t9 += v * b3;
+    t10 += v * b4;
+    t11 += v * b5;
+    t12 += v * b6;
+    t13 += v * b7;
+    t14 += v * b8;
+    t15 += v * b9;
+    t16 += v * b10;
+    t17 += v * b11;
+    t18 += v * b12;
+    t19 += v * b13;
+    t20 += v * b14;
+    t21 += v * b15;
+    v = a[7];
+    t7 += v * b0;
+    t8 += v * b1;
+    t9 += v * b2;
+    t10 += v * b3;
+    t11 += v * b4;
+    t12 += v * b5;
+    t13 += v * b6;
+    t14 += v * b7;
+    t15 += v * b8;
+    t16 += v * b9;
+    t17 += v * b10;
+    t18 += v * b11;
+    t19 += v * b12;
+    t20 += v * b13;
+    t21 += v * b14;
+    t22 += v * b15;
+    v = a[8];
+    t8 += v * b0;
+    t9 += v * b1;
+    t10 += v * b2;
+    t11 += v * b3;
+    t12 += v * b4;
+    t13 += v * b5;
+    t14 += v * b6;
+    t15 += v * b7;
+    t16 += v * b8;
+    t17 += v * b9;
+    t18 += v * b10;
+    t19 += v * b11;
+    t20 += v * b12;
+    t21 += v * b13;
+    t22 += v * b14;
+    t23 += v * b15;
+    v = a[9];
+    t9 += v * b0;
+    t10 += v * b1;
+    t11 += v * b2;
+    t12 += v * b3;
+    t13 += v * b4;
+    t14 += v * b5;
+    t15 += v * b6;
+    t16 += v * b7;
+    t17 += v * b8;
+    t18 += v * b9;
+    t19 += v * b10;
+    t20 += v * b11;
+    t21 += v * b12;
+    t22 += v * b13;
+    t23 += v * b14;
+    t24 += v * b15;
+    v = a[10];
+    t10 += v * b0;
+    t11 += v * b1;
+    t12 += v * b2;
+    t13 += v * b3;
+    t14 += v * b4;
+    t15 += v * b5;
+    t16 += v * b6;
+    t17 += v * b7;
+    t18 += v * b8;
+    t19 += v * b9;
+    t20 += v * b10;
+    t21 += v * b11;
+    t22 += v * b12;
+    t23 += v * b13;
+    t24 += v * b14;
+    t25 += v * b15;
+    v = a[11];
+    t11 += v * b0;
+    t12 += v * b1;
+    t13 += v * b2;
+    t14 += v * b3;
+    t15 += v * b4;
+    t16 += v * b5;
+    t17 += v * b6;
+    t18 += v * b7;
+    t19 += v * b8;
+    t20 += v * b9;
+    t21 += v * b10;
+    t22 += v * b11;
+    t23 += v * b12;
+    t24 += v * b13;
+    t25 += v * b14;
+    t26 += v * b15;
+    v = a[12];
+    t12 += v * b0;
+    t13 += v * b1;
+    t14 += v * b2;
+    t15 += v * b3;
+    t16 += v * b4;
+    t17 += v * b5;
+    t18 += v * b6;
+    t19 += v * b7;
+    t20 += v * b8;
+    t21 += v * b9;
+    t22 += v * b10;
+    t23 += v * b11;
+    t24 += v * b12;
+    t25 += v * b13;
+    t26 += v * b14;
+    t27 += v * b15;
+    v = a[13];
+    t13 += v * b0;
+    t14 += v * b1;
+    t15 += v * b2;
+    t16 += v * b3;
+    t17 += v * b4;
+    t18 += v * b5;
+    t19 += v * b6;
+    t20 += v * b7;
+    t21 += v * b8;
+    t22 += v * b9;
+    t23 += v * b10;
+    t24 += v * b11;
+    t25 += v * b12;
+    t26 += v * b13;
+    t27 += v * b14;
+    t28 += v * b15;
+    v = a[14];
+    t14 += v * b0;
+    t15 += v * b1;
+    t16 += v * b2;
+    t17 += v * b3;
+    t18 += v * b4;
+    t19 += v * b5;
+    t20 += v * b6;
+    t21 += v * b7;
+    t22 += v * b8;
+    t23 += v * b9;
+    t24 += v * b10;
+    t25 += v * b11;
+    t26 += v * b12;
+    t27 += v * b13;
+    t28 += v * b14;
+    t29 += v * b15;
+    v = a[15];
+    t15 += v * b0;
+    t16 += v * b1;
+    t17 += v * b2;
+    t18 += v * b3;
+    t19 += v * b4;
+    t20 += v * b5;
+    t21 += v * b6;
+    t22 += v * b7;
+    t23 += v * b8;
+    t24 += v * b9;
+    t25 += v * b10;
+    t26 += v * b11;
+    t27 += v * b12;
+    t28 += v * b13;
+    t29 += v * b14;
+    t30 += v * b15;
+
+    t0 += 38 * t16;
+    t1 += 38 * t17;
+    t2 += 38 * t18;
+    t3 += 38 * t19;
+    t4 += 38 * t20;
+    t5 += 38 * t21;
+    t6 += 38 * t22;
+    t7 += 38 * t23;
+    t8 += 38 * t24;
+    t9 += 38 * t25;
+    t10 += 38 * t26;
+    t11 += 38 * t27;
+    t12 += 38 * t28;
+    t13 += 38 * t29;
+    t14 += 38 * t30;
+    // t15 left as is
+
+    // first car
+    c = 1;
+    v = t0 + c + 65535;c = Math.floor(v / 65536);t0 = v - c * 65536;
+    v = t1 + c + 65535;c = Math.floor(v / 65536);t1 = v - c * 65536;
+    v = t2 + c + 65535;c = Math.floor(v / 65536);t2 = v - c * 65536;
+    v = t3 + c + 65535;c = Math.floor(v / 65536);t3 = v - c * 65536;
+    v = t4 + c + 65535;c = Math.floor(v / 65536);t4 = v - c * 65536;
+    v = t5 + c + 65535;c = Math.floor(v / 65536);t5 = v - c * 65536;
+    v = t6 + c + 65535;c = Math.floor(v / 65536);t6 = v - c * 65536;
+    v = t7 + c + 65535;c = Math.floor(v / 65536);t7 = v - c * 65536;
+    v = t8 + c + 65535;c = Math.floor(v / 65536);t8 = v - c * 65536;
+    v = t9 + c + 65535;c = Math.floor(v / 65536);t9 = v - c * 65536;
+    v = t10 + c + 65535;c = Math.floor(v / 65536);t10 = v - c * 65536;
+    v = t11 + c + 65535;c = Math.floor(v / 65536);t11 = v - c * 65536;
+    v = t12 + c + 65535;c = Math.floor(v / 65536);t12 = v - c * 65536;
+    v = t13 + c + 65535;c = Math.floor(v / 65536);t13 = v - c * 65536;
+    v = t14 + c + 65535;c = Math.floor(v / 65536);t14 = v - c * 65536;
+    v = t15 + c + 65535;c = Math.floor(v / 65536);t15 = v - c * 65536;
+    t0 += c - 1 + 37 * (c - 1);
+
+    // second car
+    c = 1;
+    v = t0 + c + 65535;c = Math.floor(v / 65536);t0 = v - c * 65536;
+    v = t1 + c + 65535;c = Math.floor(v / 65536);t1 = v - c * 65536;
+    v = t2 + c + 65535;c = Math.floor(v / 65536);t2 = v - c * 65536;
+    v = t3 + c + 65535;c = Math.floor(v / 65536);t3 = v - c * 65536;
+    v = t4 + c + 65535;c = Math.floor(v / 65536);t4 = v - c * 65536;
+    v = t5 + c + 65535;c = Math.floor(v / 65536);t5 = v - c * 65536;
+    v = t6 + c + 65535;c = Math.floor(v / 65536);t6 = v - c * 65536;
+    v = t7 + c + 65535;c = Math.floor(v / 65536);t7 = v - c * 65536;
+    v = t8 + c + 65535;c = Math.floor(v / 65536);t8 = v - c * 65536;
+    v = t9 + c + 65535;c = Math.floor(v / 65536);t9 = v - c * 65536;
+    v = t10 + c + 65535;c = Math.floor(v / 65536);t10 = v - c * 65536;
+    v = t11 + c + 65535;c = Math.floor(v / 65536);t11 = v - c * 65536;
+    v = t12 + c + 65535;c = Math.floor(v / 65536);t12 = v - c * 65536;
+    v = t13 + c + 65535;c = Math.floor(v / 65536);t13 = v - c * 65536;
+    v = t14 + c + 65535;c = Math.floor(v / 65536);t14 = v - c * 65536;
+    v = t15 + c + 65535;c = Math.floor(v / 65536);t15 = v - c * 65536;
+    t0 += c - 1 + 37 * (c - 1);
+
+    o[0] = t0;
+    o[1] = t1;
+    o[2] = t2;
+    o[3] = t3;
+    o[4] = t4;
+    o[5] = t5;
+    o[6] = t6;
+    o[7] = t7;
+    o[8] = t8;
+    o[9] = t9;
+    o[10] = t10;
+    o[11] = t11;
+    o[12] = t12;
+    o[13] = t13;
+    o[14] = t14;
+    o[15] = t15;
+  }
+
+  function S(o, a) {
+    M(o, a, a);
+  }
+
+  function inv25519(o, i) {
+    var c = gf();
+    var a;
+    for (a = 0; a < 16; a++) {
+      c[a] = i[a];
+    }for (a = 253; a >= 0; a--) {
+      S(c, c);
+      if (a !== 2 && a !== 4) M(c, c, i);
+    }
+    for (a = 0; a < 16; a++) {
+      o[a] = c[a];
+    }
+  }
+
+  function pow2523(o, i) {
+    var c = gf();
+    var a;
+    for (a = 0; a < 16; a++) {
+      c[a] = i[a];
+    }for (a = 250; a >= 0; a--) {
+      S(c, c);
+      if (a !== 1) M(c, c, i);
+    }
+    for (a = 0; a < 16; a++) {
+      o[a] = c[a];
+    }
+  }
+
+  function crypto_scalarmult(q, n, p) {
+    var z = new Uint8Array(32);
+    var x = new Float64Array(80),
+        r,
+        i;
+    var a = gf(),
+        b = gf(),
+        c = gf(),
+        d = gf(),
+        e = gf(),
+        f = gf();
+    for (i = 0; i < 31; i++) {
+      z[i] = n[i];
+    }z[31] = n[31] & 127 | 64;
+    z[0] &= 248;
+    unpack25519(x, p);
+    for (i = 0; i < 16; i++) {
+      b[i] = x[i];
+      d[i] = a[i] = c[i] = 0;
+    }
+    a[0] = d[0] = 1;
+    for (i = 254; i >= 0; --i) {
+      r = z[i >>> 3] >>> (i & 7) & 1;
+      sel25519(a, b, r);
+      sel25519(c, d, r);
+      A(e, a, c);
+      Z(a, a, c);
+      A(c, b, d);
+      Z(b, b, d);
+      S(d, e);
+      S(f, a);
+      M(a, c, a);
+      M(c, b, e);
+      A(e, a, c);
+      Z(a, a, c);
+      S(b, a);
+      Z(c, d, f);
+      M(a, c, _121665);
+      A(a, a, d);
+      M(c, c, a);
+      M(a, d, f);
+      M(d, b, x);
+      S(b, e);
+      sel25519(a, b, r);
+      sel25519(c, d, r);
+    }
+    for (i = 0; i < 16; i++) {
+      x[i + 16] = a[i];
+      x[i + 32] = c[i];
+      x[i + 48] = b[i];
+      x[i + 64] = d[i];
+    }
+    var x32 = x.subarray(32);
+    var x16 = x.subarray(16);
+    inv25519(x32, x32);
+    M(x16, x16, x32);
+    pack25519(q, x16);
+    return 0;
+  }
+
+  function crypto_scalarmult_base(q, n) {
+    return crypto_scalarmult(q, n, _9);
+  }
+
+  function add(p, q) {
+    var a = gf(),
+        b = gf(),
+        c = gf(),
+        d = gf(),
+        e = gf(),
+        f = gf(),
+        g = gf(),
+        h = gf(),
+        t = gf();
+
+    Z(a, p[1], p[0]);
+    Z(t, q[1], q[0]);
+    M(a, a, t);
+    A(b, p[0], p[1]);
+    A(t, q[0], q[1]);
+    M(b, b, t);
+    M(c, p[3], q[3]);
+    M(c, c, D2);
+    M(d, p[2], q[2]);
+    A(d, d, d);
+    Z(e, b, a);
+    Z(f, d, c);
+    A(g, d, c);
+    A(h, b, a);
+
+    M(p[0], e, f);
+    M(p[1], h, g);
+    M(p[2], g, f);
+    M(p[3], e, h);
+  }
+
+  function cswap(p, q, b) {
+    var i;
+    for (i = 0; i < 4; i++) {
+      sel25519(p[i], q[i], b);
+    }
+  }
+
+  function pack(r, p) {
+    var tx = gf(),
+        ty = gf(),
+        zi = gf();
+    inv25519(zi, p[2]);
+    M(tx, p[0], zi);
+    M(ty, p[1], zi);
+    pack25519(r, ty);
+    r[31] ^= par25519(tx) << 7;
+  }
+
+  function scalarmult(p, q, s) {
+    var b, i;
+    set25519(p[0], gf0);
+    set25519(p[1], gf1);
+    set25519(p[2], gf1);
+    set25519(p[3], gf0);
+    for (i = 255; i >= 0; --i) {
+      b = s[i / 8 | 0] >> (i & 7) & 1;
+      cswap(p, q, b);
+      add(q, p);
+      add(p, p);
+      cswap(p, q, b);
+    }
+  }
+
+  function scalarbase(p, s) {
+    var q = [gf(), gf(), gf(), gf()];
+    set25519(q[0], X);
+    set25519(q[1], Y);
+    set25519(q[2], gf1);
+    M(q[3], X, Y);
+    scalarmult(p, q, s);
+  }
+
+  function crypto_sign_keypair_hash(pk, sk, hashfunc) {
+    var d = new Uint8Array(64);
+    var p = [gf(), gf(), gf(), gf()];
+    var i;
+
+    hashfunc(d, sk, 32);
+    d[0] &= 248;
+    d[31] &= 127;
+    d[31] |= 64;
+
+    scalarbase(p, d);
+    pack(pk, p);
+
+    for (i = 0; i < 32; i++) {
+      sk[i + 32] = pk[i];
+    }return 0;
+  }
+
+  function crypto_shared_key_hash(shared, pk, sk, hashfunc) {
+    var d = new Uint8Array(64);
+    var p = [gf(), gf(), gf(), gf()];
+
+    hashfunc(d, sk, 32);
+    d[0] &= 248;
+    d[31] &= 127;
+    d[31] |= 64;
+
+    var q = [gf(), gf(), gf(), gf()];
+    unpack(q, pk);
+    scalarmult(p, q, d);
+    pack(shared, p);
+  }
+
+  function crypto_sign_hash(sm, keypair, data, hasher) {
+    var privHash = new Uint8Array(64);
+    var seededHash = new Uint8Array(64);
+    var result = new Uint8Array(64);
+    var p = [gf(), gf(), gf(), gf()];
+    var i;
+
+    hasher.update(keypair.secretKey);
+    hasher.finalize(privHash);
+
+    privHash[0] &= 248;
+    privHash[31] &= 127;
+    privHash[31] |= 64;
+
+    hasher.reset();
+    hasher.update(privHash.slice(32));
+    hasher.update(data);
+    hasher.finalize(seededHash);
+
+    reduce(seededHash);
+    scalarbase(p, seededHash);
+    pack(sm, p);
+
+    hasher.reset();
+    hasher.update(sm.slice(0, 32));
+    hasher.update(keypair.publicKey);
+    hasher.update(data);
+    hasher.finalize(result);
+
+    reduce(result);
+
+    // muladd - this is from original tweetnacl-js
+    var x = new Float64Array(64);
+    for (var i = 0; i < 64; i++) {
+      x[i] = 0;
+    }for (var i = 0; i < 32; i++) {
+      x[i] = seededHash[i];
+    }for (var i = 0; i < 32; i++) {
+      for (var j = 0; j < 32; j++) {
+        x[i + j] += result[i] * privHash[j];
+      }
+    }
+    modL(sm.subarray(32), x);
+
+    // check if zero
+    var isZero = 0;
+    for (var i = 0; i < 32; i++) {
+      isZero |= sm[32 + i] ^ 0;
+      result[i] = sm[32 + i];
+    }
+
+    if (isZero == 0) return false;
+
+    reduce(result);
+
+    // check if canonical
+    isZero = 0;
+    for (var i = 0; i < 32; i++) {
+      isZero |= sm[32 + i] ^ result[i];
+    }
+    return isZero == 0;
+  }
+
+  var L = new Float64Array([0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10]);
+
+  function modL(r, x) {
+    var carry, i, j, k;
+    for (i = 63; i >= 32; --i) {
+      carry = 0;
+      for (j = i - 32, k = i - 12; j < k; ++j) {
+        x[j] += carry - 16 * x[i] * L[j - (i - 32)];
+        carry = x[j] + 128 >> 8;
+        x[j] -= carry * 256;
+      }
+      x[j] += carry;
+      x[i] = 0;
+    }
+    carry = 0;
+    for (j = 0; j < 32; j++) {
+      x[j] += carry - (x[31] >> 4) * L[j];
+      carry = x[j] >> 8;
+      x[j] &= 255;
+    }
+    for (j = 0; j < 32; j++) {
+      x[j] -= carry * L[j];
+    }for (i = 0; i < 32; i++) {
+      x[i + 1] += x[i] >> 8;
+      r[i] = x[i] & 255;
+    }
+  }
+
+  function reduce(r) {
+    var x = new Float64Array(64),
+        i;
+    for (i = 0; i < 64; i++) {
+      x[i] = r[i];
+    }for (i = 0; i < 64; i++) {
+      r[i] = 0;
+    }modL(r, x);
+  }
+
+  function unpackneg(r, p) {
+    var t = gf(),
+        chk = gf(),
+        num = gf(),
+        den = gf(),
+        den2 = gf(),
+        den4 = gf(),
+        den6 = gf();
+
+    set25519(r[2], gf1);
+    unpack25519(r[1], p);
+
+    // num = u = y^2 - 1
+    // den = v = d * y^2 + 1
+    S(num, r[1]);
+    M(den, num, D);
+    Z(num, num, r[2]);
+    A(den, r[2], den);
+
+    // r[0] = x = sqrt(u / v)
+    S(den2, den);
+    S(den4, den2);
+    M(den6, den4, den2);
+    M(t, den6, num);
+    M(t, t, den);
+
+    pow2523(t, t);
+    M(t, t, num);
+    M(t, t, den);
+    M(t, t, den);
+    M(r[0], t, den);
+
+    S(chk, r[0]);
+    M(chk, chk, den);
+    if (neq25519(chk, num)) {
+      M(r[0], r[0], I);
+    }
+
+    S(chk, r[0]);
+    M(chk, chk, den);
+    if (neq25519(chk, num)) {
+      return -1;
+    }
+
+    if (par25519(r[0]) === p[31] >> 7) {
+      Z(r[0], gf0, r[0]);
+    }
+
+    M(r[3], r[0], r[1]);
+    return 0;
+  }
+
+  function unpack(r, p) {
+    var t = gf(),
+        chk = gf(),
+        num = gf(),
+        den = gf(),
+        den2 = gf(),
+        den4 = gf(),
+        den6 = gf();
+
+    set25519(r[2], gf1);
+    unpack25519(r[1], p);
+
+    // num = u = y^2 - 1
+    // den = v = d * y^2 + 1
+    S(num, r[1]);
+    M(den, num, D);
+    Z(num, num, r[2]);
+    A(den, r[2], den);
+
+    // r[0] = x = sqrt(u / v)
+    S(den2, den);
+    S(den4, den2);
+    M(den6, den4, den2);
+    M(t, den6, num);
+    M(t, t, den);
+
+    pow2523(t, t);
+    M(t, t, num);
+    M(t, t, den);
+    M(t, t, den);
+    M(r[0], t, den);
+
+    S(chk, r[0]);
+    M(chk, chk, den);
+    if (neq25519(chk, num)) {
+      M(r[0], r[0], I);
+    }
+
+    S(chk, r[0]);
+    M(chk, chk, den);
+    if (neq25519(chk, num)) {
+      console.log("not a valid Ed25519EncodedGroupElement.");
+      return -1;
+    }
+
+    if (par25519(r[0]) !== p[31] >> 7) {
+      Z(r[0], gf0, r[0]);
+    }
+
+    M(r[3], r[0], r[1]);
+    return 0;
+  }
+  var crypto_scalarmult_BYTES = 32,
+      crypto_scalarmult_SCALARBYTES = 32,
+      crypto_sign_BYTES = 64,
+      crypto_sign_PUBLICKEYBYTES = 32,
+      crypto_sign_SECRETKEYBYTES = 64,
+      crypto_sign_SEEDBYTES = 32,
+      crypto_hash_BYTES = 64;
+
+  function crypto_sign_open(m, sm, n, pk) {
+    var i, mlen;
+    var t = new Uint8Array(32),
+        h = new Uint8Array(64);
+    var p = [gf(), gf(), gf(), gf()],
+        q = [gf(), gf(), gf(), gf()];
+
+    mlen = -1;
+    if (n < 64) return -1;
+
+    if (unpackneg(q, pk)) return -1;
+
+    for (i = 0; i < n; i++) {
+      m[i] = sm[i];
+    }for (i = 0; i < 32; i++) {
+      m[i + 32] = pk[i];
+    }crypto_hash(h, m, n);
+    reduce(h);
+    scalarmult(p, q, h);
+
+    scalarbase(q, sm.subarray(32));
+    add(p, q);
+    pack(t, p);
+
+    n -= 64;
+    if (crypto_verify_32(sm, 0, t, 0)) {
+      for (i = 0; i < n; i++) {
+        m[i] = 0;
+      }return -1;
+    }
+
+    for (i = 0; i < n; i++) {
+      m[i] = sm[i + 64];
+    }mlen = n;
+    return mlen;
+  };
+
+  nacl.lowlevel = {
+    crypto_verify_32: crypto_verify_32,
+    crypto_scalarmult: crypto_scalarmult,
+    crypto_scalarmult_base: crypto_scalarmult_base,
+    crypto_sign_keypair_hash: crypto_sign_keypair_hash,
+    crypto_shared_key_hash: crypto_shared_key_hash,
+    crypto_sign_hash: crypto_sign_hash,
+
+    crypto_scalarmult_BYTES: crypto_scalarmult_BYTES,
+    crypto_scalarmult_SCALARBYTES: crypto_scalarmult_SCALARBYTES,
+    crypto_sign_BYTES: crypto_sign_BYTES,
+    crypto_sign_PUBLICKEYBYTES: crypto_sign_PUBLICKEYBYTES,
+    crypto_sign_SECRETKEYBYTES: crypto_sign_SECRETKEYBYTES,
+    crypto_sign_SEEDBYTES: crypto_sign_SEEDBYTES,
+    crypto_hash_BYTES: crypto_hash_BYTES
+  };
+
+  /*/////////////////////////////////////////////// High-level API ///////////////////////////////////////// */
+
+  function checkArrayTypes() {
+    var t, i;
+    for (i = 0; i < arguments.length; i++) {
+      if ((t = Object.prototype.toString.call(arguments[i])) !== '[object Uint8Array]') throw new TypeError('unexpected type ' + t + ', use Uint8Array');
+    }
+  }
+
+  nacl.verifySIgnature = function (msg, sig, publicKey) {
+    checkArrayTypes(msg, sig, publicKey);
+    if (sig.length !== crypto_sign_BYTES) console.log(sig.length);
+    throw new Error('bad signature size');
+    if (publicKey.length !== crypto_sign_PUBLICKEYBYTES) throw new Error('bad public key size');
+    var sm = new Uint8Array(crypto_sign_BYTES + msg.length);
+    var m = new Uint8Array(crypto_sign_BYTES + msg.length);
+    var i;
+    for (i = 0; i < crypto_sign_BYTES; i++) {
+      sm[i] = sig[i];
+    }for (i = 0; i < msg.length; i++) {
+      sm[i + crypto_sign_BYTES] = msg[i];
+    }return crypto_sign_open(m, sm, sm.length, publicKey) >= 0;
+  };
+
+  function cleanup(arr) {
+    for (var i = 0; i < arr.length; i++) {
+      arr[i] = 0;
+    }
+  }
+
+  nacl.randomBytes = function (n) {
+    var b = new Uint8Array(n);
+    randombytes(b, n);
+    return b;
+  };
+
+  nacl.scalarMult = function (n, p) {
+    checkArrayTypes(n, p);
+    if (n.length !== crypto_scalarmult_SCALARBYTES) throw new Error('bad n size');
+    if (p.length !== crypto_scalarmult_BYTES) throw new Error('bad p size');
+    var q = new Uint8Array(crypto_scalarmult_BYTES);
+    crypto_scalarmult(q, n, p);
+    return q;
+  };
+
+  nacl.scalarMult.base = function (n) {
+    checkArrayTypes(n);
+    if (n.length !== crypto_scalarmult_SCALARBYTES) throw new Error('bad n size');
+    var q = new Uint8Array(crypto_scalarmult_BYTES);
+    crypto_scalarmult_base(q, n);
+    return q;
+  };
+
+  nacl.scalarMult.scalarLength = crypto_scalarmult_SCALARBYTES;
+  nacl.scalarMult.groupElementLength = crypto_scalarmult_BYTES;
+
+  nacl.verify = function (x, y) {
+    checkArrayTypes(x, y);
+    // Zero length arguments are considered not equal.
+    if (x.length === 0 || y.length === 0) return false;
+    if (x.length !== y.length) return false;
+    return vn(x, 0, y, 0, x.length) === 0 ? true : false;
+  };
+
+  nacl.setPRNG = function (fn) {
+    randombytes = fn;
+  };
+
+  (function () {
+    // Initialize PRNG if environment provides CSPRNG.
+    // If not, methods calling randombytes will throw.
+    var crypto;
+    if (typeof window !== 'undefined') {
+      // Browser.
+      if (window.crypto && window.crypto.getRandomValues) {
+        crypto = window.crypto; // Standard
+      } else if (window.msCrypto && window.msCrypto.getRandomValues) {
+        crypto = window.msCrypto; // Internet Explorer 11+
+      }
+      if (crypto) {
+        nacl.setPRNG(function (x, n) {
+          var i,
+              v = new Uint8Array(n);
+          crypto.getRandomValues(v);
+          for (i = 0; i < n; i++) {
+            x[i] = v[i];
+          }cleanup(v);
+        });
+      }
+    } else if (typeof require !== 'undefined') {
+      // Node.js.
+      crypto = require('crypto');
+      if (crypto) {
+        nacl.setPRNG(function (x, n) {
+          var i,
+              v = crypto.randomBytes(n);
+          for (i = 0; i < n; i++) {
+            x[i] = v[i];
+          }cleanup(v);
+        });
+      }
+    }
+  })();
+})(typeof module !== 'undefined' && module.exports ? module.exports : window.nacl = window.nacl || {});
+
+},{"crypto":32}],10:[function(require,module,exports){
+'use strict';
+
+/** @module utils/nodes */
+
+/**
+ * The default testnet node
+ *
+ * @type {string}
+ */
+var defaultTestnetNode = 'http://bob.nem.ninja:7778';
+
+/**
+ * The default mainnet node
+ *
+ * @type {string}
+ */
+var defaultMainnetNode = 'http://alice6.nem.ninja:7778';
+
+/**
+ * The default mijin node
+ *
+ * @type {string}
+ */
+var defaultMijinNode = '';
+
+/**
+ * The default mainnet block explorer
+ *
+ * @type {string}
+ */
+var defaultMainnetExplorer = 'http://chain.nem.ninja/#/transfer/';
+
+/**
+ * The default testnet block explorer
+ *
+ * @type {string}
+ */
+var defaultTestnetExplorer = 'http://bob.nem.ninja:8765/#/transfer/';
+
+/**
+ * The default mijin block explorer
+ *
+ * @type {string}
+ */
+var defaultMijinExplorer = '';
+
+/**
+ * The nodes allowing search by transaction hash on testnet
+ *
+ * @type {array}
+ */
+var testnetSearchNodes = [{
+  'uri': 'http://bigalice2.nem.ninja:7890',
+  'location': 'America / New_York'
+}, {
+  'uri': 'http://192.3.61.243:7890',
+  'location': 'America / Los_Angeles'
+}, {
+  'uri': 'http://23.228.67.85:7890',
+  'location': 'America / Los_Angeles'
+}];
+
+/**
+ * The nodes allowing search by transaction hash on mainnet
+ *
+ * @type {array}
+ */
+var mainnetSearchNodes = [{
+  'uri': 'http://62.75.171.41:7890',
+  'location': 'Germany'
+}, {
+  'uri': 'http://104.251.212.131:7890',
+  'location': 'USA'
+}, {
+  'uri': 'http://45.124.65.125:7890',
+  'location': 'Hong Kong'
+}, {
+  'uri': 'http://185.53.131.101:7890',
+  'location': 'Netherlands'
+}, {
+  'uri': 'http://sz.nemchina.com:7890',
+  'location': 'China'
+}];
+
+/**
+ * The nodes allowing search by transaction hash on mijin
+ *
+ * @type {array}
+ */
+var mijinSearchNodes = [{
+  'uri': '',
+  'location': ''
+}];
+
+/**
+ * The testnet nodes
+ *
+ * @type {array}
+ */
+var testnetNodes = [{
+  uri: 'http://bob.nem.ninja:7778'
+}, {
+  uri: 'http://104.128.226.60:7778'
+}, {
+  uri: 'http://23.228.67.85:7778'
+}, {
+  uri: 'http://192.3.61.243:7778'
+}, {
+  uri: 'http://50.3.87.123:7778'
+}, {
+  uri: 'http://localhost:7778'
+}];
+
+/**
+ * The mainnet nodes
+ *
+ * @type {array}
+ */
+var mainnetNodes = [{
+  uri: 'http://62.75.171.41:7778'
+}, {
+  uri: 'http://san.nem.ninja:7778'
+}, {
+  uri: 'http://go.nem.ninja:7778'
+}, {
+  uri: 'http://hachi.nem.ninja:7778'
+}, {
+  uri: 'http://jusan.nem.ninja:7778'
+}, {
+  uri: 'http://nijuichi.nem.ninja:7778'
+}, {
+  uri: 'http://alice2.nem.ninja:7778'
+}, {
+  uri: 'http://alice3.nem.ninja:7778'
+}, {
+  uri: 'http://alice4.nem.ninja:7778'
+}, {
+  uri: 'http://alice5.nem.ninja:7778'
+}, {
+  uri: 'http://alice6.nem.ninja:7778'
+}, {
+  uri: 'http://alice7.nem.ninja:7778'
+}, {
+  uri: 'http://localhost:7778'
+}];
+
+/**
+ * The mijin nodes
+ *
+ * @type {array}
+ */
+var mijinNodes = [{
+  uri: ''
+}];
+
+/**
+ * The server verifying signed apostilles
+ *
+ * @type {string}
+ */
+var apostilleAuditServer = 'http://185.117.22.58:4567/verify';
+
+module.exports = {
+  defaultTestnetNode: defaultTestnetNode,
+  defaultMainnetNode: defaultMainnetNode,
+  defaultMijinNode: defaultMijinNode,
+  defaultMainnetExplorer: defaultMainnetExplorer,
+  defaultTestnetExplorer: defaultTestnetExplorer,
+  defaultMijinExplorer: defaultMijinExplorer,
+  testnetSearchNodes: testnetSearchNodes,
+  mainnetSearchNodes: mainnetSearchNodes,
+  mijinSearchNodes: mijinSearchNodes,
+  testnetNodes: testnetNodes,
+  mainnetNodes: mainnetNodes,
+  mijinNodes: mijinNodes,
+  apostilleAuditServer: apostilleAuditServer
+};
+
+},{}],11:[function(require,module,exports){
+"use strict";
+
+var testnetAccountData = {
+    "meta": {
+        "cosignatories": [],
+        "cosignatoryOf": [{
+            "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
+            "harvestedBlocks": 0,
+            "balance": 16000000,
+            "importance": 0,
+            "vestedBalance": 0,
+            "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
+            "label": null,
+            "multisigInfo": {
+                "cosignatoriesCount": 1,
+                "minCosignatories": 1
+            }
+        }],
+        "status": "LOCKED",
+        "remoteStatus": "INACTIVE"
+    },
+    "account": {
+        "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
+        "harvestedBlocks": 0,
+        "balance": 54500000,
+        "importance": 0,
+        "vestedBalance": 28432820,
+        "publicKey": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+        "label": null,
+        "multisigInfo": {}
+    }
+};
+
+var testnetNamespaceOwned = {
+    "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO": {
+        "nano": {
+            "owner": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
+            "fqn": "nano",
+            "height": 547741
+        }
+    }
+};
+
+var testnetMosaicOwned = {
+    "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO": {
+        "nano:points": {
+            "quantity": 9999,
+            "mosaicId": {
+                "namespaceId": "nano",
+                "name": "points"
+            }
+        },
+        "nem:xem": {
+            "quantity": 14514500000,
+            "mosaicId": {
+                "namespaceId": "nem",
+                "name": "xem"
+            }
+        }
+    },
+    "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X": {
+        "nem:xem": {
+            "quantity": 16000000,
+            "mosaicId": {
+                "namespaceId": "nem",
+                "name": "xem"
+            }
+        }
+    }
+};
+
+var testnetMosaicDefinitionMetaDataPair = {
+    "nano:points": {
+        "mosaicDefinition": {
+            "creator": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "description": "Test",
+            "id": {
+                "namespaceId": "nano2",
+                "name": "points"
+            },
+            "properties": [{
+                "name": "divisibility",
+                "value": "3"
+            }, {
+                "name": "initialSupply",
+                "value": "1000000"
+            }, {
+                "name": "supplyMutable",
+                "value": "true"
+            }, {
+                "name": "transferable",
+                "value": "true"
+            }],
+            "levy": {}
+        },
+        "supply": 1000000
+    },
+    "nem:xem": {
+        "mosaicDefinition": {
+            "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+            "description": "reserved xem mosaic",
+            "id": {
+                "namespaceId": "nem",
+                "name": "xem"
+            },
+            "properties": [{
+                "name": "divisibility",
+                "value": "6"
+            }, {
+                "name": "initialSupply",
+                "value": "8999999999"
+            }, {
+                "name": "supplyMutable",
+                "value": "false"
+            }, {
+                "name": "transferable",
+                "value": "true"
+            }],
+            "levy": {}
+        },
+        "supply": 8999999999
+    }
+};
+
+var mainnetAccountData = {
+    "meta": {
+        "cosignatories": [],
+        "cosignatoryOf": [],
+        "status": "LOCKED",
+        "remoteStatus": "INACTIVE"
+    },
+    "account": {
+        "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
+        "harvestedBlocks": 0,
+        "balance": 0,
+        "importance": 0,
+        "vestedBalance": 0,
+        "publicKey": null,
+        "label": null,
+        "multisigInfo": {}
+    }
+};
+
+var mainnetNamespaceOwned = {
+    "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6": {
+        "nano": {
+            "owner": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
+            "fqn": "nano",
+            "height": 547741
+        }
+    }
+};
+
+var mainnetMosaicOwned = {
+    "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6": {
+        "nano:points": {
+            "quantity": 9999,
+            "mosaicId": {
+                "namespaceId": "nano",
+                "name": "points"
+            }
+        },
+        "nem:xem": {
+            "quantity": 0,
+            "mosaicId": {
+                "namespaceId": "nem",
+                "name": "xem"
+            }
+        }
+    }
+};
+
+var mainnetMosaicDefinitionMetaDataPair = {
+    "nano:points": {
+        "mosaicDefinition": {
+            "creator": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "description": "Test",
+            "id": {
+                "namespaceId": "nano2",
+                "name": "points"
+            },
+            "properties": [{
+                "name": "divisibility",
+                "value": "3"
+            }, {
+                "name": "initialSupply",
+                "value": "1000000"
+            }, {
+                "name": "supplyMutable",
+                "value": "true"
+            }, {
+                "name": "transferable",
+                "value": "true"
+            }],
+            "levy": {}
+        },
+        "supply": 1000000
+    },
+    "nem:xem": {
+        "mosaicDefinition": {
+            "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+            "description": "reserved xem mosaic",
+            "id": {
+                "namespaceId": "nem",
+                "name": "xem"
+            },
+            "properties": [{
+                "name": "divisibility",
+                "value": "6"
+            }, {
+                "name": "initialSupply",
+                "value": "8999999999"
+            }, {
+                "name": "supplyMutable",
+                "value": "false"
+            }, {
+                "name": "transferable",
+                "value": "true"
+            }],
+            "levy": {}
+        },
+        "supply": 8999999999
+    }
+};
+
+module.exports = {
+    testnetAccountData: testnetAccountData,
+    testnetNamespaceOwned: testnetNamespaceOwned,
+    testnetMosaicOwned: testnetMosaicOwned,
+    testnetMosaicDefinitionMetaDataPair: testnetMosaicDefinitionMetaDataPair,
+    mainnetAccountData: mainnetAccountData,
+    mainnetNamespaceOwned: mainnetNamespaceOwned,
+    mainnetMosaicOwned: mainnetMosaicOwned,
+    mainnetMosaicDefinitionMetaDataPair: mainnetMosaicDefinitionMetaDataPair
+};
+
+},{}],12:[function(require,module,exports){
+"use strict";
+
+var testnetWallet = {
+    "privateKey": "",
+    "name": "TestnetSpec",
+    "accounts": {
+        "0": {
+            "brain": true,
+            "algo": "pass:bip32",
+            "encrypted": "c6dcbc8a538c9e2ec9e9be115aa6a1349d1a8a27e574136b4e603f0549474053e026e0771bf8d86a392fccce5b543d0b",
+            "iv": "4c637775236d5a3698c973b9ba67459e",
+            "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
+            "network": -104,
+            "child": "e6683b4b03722d0a049a9a21861d90c48e843f421d6ccb587f809d41a4af14c5"
+        }
+    }
+};
+
+var mainnetWallet = {
+    "privateKey": "",
+    "name": "QM",
+    "accounts": {
+        "0": {
+            "brain": true,
+            "algo": "pass:6k",
+            "encrypted": "",
+            "iv": "",
+            "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
+            "network": 104,
+            "child": "NCC7KUVPQYBTPBABABR5D724CJAOMIA2RJERW3N7"
+        }
+    }
+};
+
+var mainnetWalletDoubleAccounts = {
+    "privateKey": "",
+    "name": "Quantum_Mechanics",
+    "accounts": {
+        "0": {
+            "brain": true,
+            "algo": "pass:6k",
+            "encrypted": "",
+            "iv": "",
+            "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
+            "network": 104,
+            "child": "NCC7KUVPQYBTPBABABR5D724CJAOMIA2RJERW3N7"
+        },
+        "1": {
+            "encrypted": "",
+            "iv": "",
+            "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIWRE",
+            "child": "NCC7KUVPQYBTPBABABR5D724CJAOMIA2RJERFRTO"
+        }
+    }
+};
+
+module.exports = {
+    testnetWallet: testnetWallet,
+    mainnetWallet: mainnetWallet,
+    mainnetWalletDoubleAccounts: mainnetWalletDoubleAccounts
+};
+
+},{}],13:[function(require,module,exports){
+'use strict';
+
+var _Address = require('../../nempay/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _convert = require('../../nempay/app/utils/convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Address util tests', function () {
+
+    function generateRandomKey() {
+        var rawPublicKey = new Uint8Array(32);
+        window.crypto.getRandomValues(rawPublicKey);
+        return _convert2.default.ua2hex(rawPublicKey);
+    }
+
+    it("Can create mainnet address", function () {
+        // Arrange:
+        var publicKey = generateRandomKey();
+
+        // Act:
+        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
+
+        // Assert:
+        expect(address[0]).toEqual(_Network2.default.data.Mainnet.char);
+        expect(address.length).toBe(40);
+    });
+
+    it("Can create testnet address", function () {
+        // Arrange:
+        var publicKey = generateRandomKey();
+
+        // Act:
+        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
+
+        // Assert:
+        expect(address[0]).toEqual(_Network2.default.data.Testnet.char);
+        expect(address.length).toBe(40);
+    });
+
+    it("Same public key yields same address", function () {
+        // Arrange:
+        var publicKey = generateRandomKey();
+
+        // Act:
+        var address1 = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
+        var address2 = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
+
+        // Assert:
+        expect(address1).toEqual(address2);
+        expect(address1.length).toBe(40);
+    });
+
+    it("Different network yields different address", function () {
+        // Arrange:
+        var publicKey = generateRandomKey();
+
+        // Act:
+        var address1 = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
+        var address2 = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
+
+        // Assert:
+        expect(address1.slice(1)).not.toEqual(address2.slice(1));
+        expect(address1.length).toBe(40);
+    });
+
+    it("Generated address is valid", function () {
+        // Arrange:
+        var publicKey = generateRandomKey();
+
+        // Act:
+        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
+
+        // Assert:
+        expect(_Address2.default.isValid(address)).toBe(true);
+        expect(address.length).toBe(40);
+    });
+
+    it("Altered address is not valid", function () {
+        // Arrange:
+        var publicKey = generateRandomKey();
+
+        // Act:
+        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
+        var modifiedAddress = _Network2.default.data.Testnet.char + address.slice(1);
+
+        // Assert:
+        expect(_Address2.default.isValid(address)).toBe(true);
+        expect(_Address2.default.isValid(modifiedAddress)).toBe(false);
+    });
+
+    it("Can convert public key to address", function () {
+        // Arrange:
+        var publicKeyMainnet = "ed9bf729c0d93f238bc4af468b952c35071d9fe1219b27c30dfe108c2e3db030";
+        var publicKeyTestnet = "4fec0eb477c3294c0ae1de1c6f6e47253b6e392ecb136bdf60721cde90890db0";
+        var expectedAddressMainnet = "NC3KIMHFGODLLWLQLRIUVF5BLXBCEZLC7AI7L36K";
+        var expectedAddressTestnet = "TA4B72ATAJ6NAWTYWNRKJBPH5PQ5VQA2GQFDCEPL";
+
+        // Act:
+        var addressMainnet = _Address2.default.toAddress(publicKeyMainnet, _Network2.default.data.Mainnet.id);
+        var addressTestnet = _Address2.default.toAddress(publicKeyTestnet, _Network2.default.data.Testnet.id);
+
+        // Assert:
+        expect(addressMainnet).toEqual(expectedAddressMainnet);
+        expect(addressTestnet).toEqual(expectedAddressTestnet);
+    });
+
+    it("Can convert same public key to different network address", function () {
+        // Arrange:
+        var publicKey = "ed9bf729c0d93f238bc4af468b952c35071d9fe1219b27c30dfe108c2e3db030";
+        var expectedAddressMainnet = "NC3KIMHFGODLLWLQLRIUVF5BLXBCEZLC7AI7L36K";
+        var expectedAddressTestnet = "TC3KIMHFGODLLWLQLRIUVF5BLXBCEZLC7CL2246V";
+
+        // Act:
+        var addressMainnet = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
+        var addressTestnet = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
+
+        // Assert:
+        expect(addressMainnet).toEqual(expectedAddressMainnet);
+        expect(addressTestnet).toEqual(expectedAddressTestnet);
+    });
+});
+
+},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/Network":4,"../../nempay/app/utils/convert":7}],14:[function(require,module,exports){
+'use strict';
+
+var _convert = require('../../nempay/app/utils/convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Convert util tests', function () {
+
+    it("utf8ToHex encodes ascii", function () {
+        // Arrange:
+        var ascii = "Hello";
+        var expectedResult = "48656c6c6f";
+
+        // Act:
+        var result = _convert2.default.utf8ToHex(ascii);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("utf8ToHex encodes utf8", function () {
+        // Arrange:
+        var utf8 = "Любя, съешь щипцы, - вздохнёт мэр, - кайф жгуч";
+        var expectedResult = "d09bd18ed0b1d18f2c20d181d18ad0b5d188d18c20d189d0b8d0bfd186d18b2c202d20d0b2d0b7d0b4d0bed185d0bdd191d18220d0bcd18dd1802c202d20d0bad0b0d0b9d18420d0b6d0b3d183d187";
+
+        // Act:
+        var result = _convert2.default.utf8ToHex(utf8);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("hex2ua does not throw on invalid input", function () {
+        // Arrange:
+        var input = null;
+
+        // Act:
+        // toThrow requires a function, not an actual result, so wrap in bind
+        var result = _convert2.default.hex2ua.bind(null, {});
+
+        // Assert:
+        expect(result).not.toThrow();
+    });
+
+    it("hex2ua converts proper data", function () {
+        // Arrange:
+        var hex = "55aa90bb";
+        var expectedResult = new Uint8Array([85, 170, 144, 187]);
+
+        // Act: 
+        var result = _convert2.default.hex2ua(hex);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("hex2ua discards odd bytes", function () {
+        // Arrange:
+        var hex = "55aa90b";
+        var expectedResult = new Uint8Array([85, 170, 144]);
+
+        // Act:
+        var result = _convert2.default.hex2ua(hex);
+
+        // Assert:
+        expect().toEqual(expectedResult);
+    });
+
+    it("ua2hex works on typed arrays", function () {
+        // Arrange:
+        var source = new Uint8Array([85, 170, 144, 187]);
+        var expectedResult = "55aa90bb";
+
+        // Act:
+        var result = _convert2.default.ua2hex(source);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    // this one is actually not a requirement...
+    it("ua2hex works on untyped arrays", function () {
+        // Arrange:
+        var source = [85, 170, 144, 187];
+        var expectedResult = "55aa90bb";
+
+        // Act:
+        var result = _convert2.default.ua2hex(source);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    // actually maybe it'd be good if it would throw ...
+    it("ua2hex does throws on invalid data", function () {
+        // Arrange:
+        var source = [256];
+        var data = null;
+
+        // Act: 
+        var result = _convert2.default.ua2hex.bind(data, source);
+
+        // Assert:
+        expect(result).not.toThrow();
+    });
+
+    it("roundtrip ua2hex(hex2ua())", function () {
+        // Arrange:
+        var hex = "55aa90bb";
+
+        // Act:
+        var result = _convert2.default.ua2hex(_convert2.default.hex2ua(hex));
+
+        // Assert:
+        expect(result).toEqual(hex);
+    });
+
+    it("roundtrip hex2ua(ua2hex())", function () {
+        // Arrange:
+        var source = new Uint8Array([85, 170, 144, 187]);
+
+        // Act:
+        var result = _convert2.default.hex2ua(_convert2.default.ua2hex(source));
+
+        // Assert:
+        expect(result).toEqual(source);
+    });
+
+    it("hex2ua_reversed returns reversed array", function () {
+        // Arrange:
+        var hex = "55aa90bb";
+        var expectedResult = new Uint8Array([187, 144, 170, 85]);
+
+        // Act:
+        var result = _convert2.default.hex2ua_reversed(hex);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("hex2ua_reversed discards odd bytes", function () {
+        // Arrange:
+        var hex = "55aa90bb";
+        var expectedResult = new Uint8Array([144, 170, 85]);
+
+        // Act:
+        var result = _convert2.default.hex2ua_reversed(hex);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("hex2a encodes byte-to-byte", function () {
+        // Arrange:
+        var source = "90909055aa90bbc3bc";
+        var expectedResult = 9;
+
+        // Act:
+        var result = _convert2.default.hex2a(source).length;
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can convert ua to words", function () {
+        // Arrange:
+        var ua = new Uint8Array([125, 109, 176, 209, 206, 169, 43, 155, 2, 2, 206, 98, 33, 74, 26, 25, 30, 25, 123, 238, 201, 175, 91, 63, 25, 79, 136, 232, 177, 18, 201, 127]);
+        var uaLength = 32;
+        var expectedResult = CryptoJS.enc.Hex.parse("7d6db0d1cea92b9b0202ce62214a1a191e197beec9af5b3f194f88e8b112c97f");
+
+        // Act:
+        var result = _convert2.default.ua2words(ua, uaLength).toString(CryptoJS.enc.Hex);
+
+        // Assert:
+        expect(CryptoJS.enc.Hex.parse(result)).toEqual(expectedResult);
+    });
+
+    it("Can convert words to ua", function () {
+        // Arrange:
+        var ua = new Uint8Array([125, 109, 176, 209, 206, 169, 43, 155, 2, 2, 206, 98, 33, 74, 26, 25, 30, 25, 123, 238, 201, 175, 91, 63, 25, 79, 136, 232, 177, 18, 201, 127]);
+        var words = CryptoJS.enc.Hex.parse("7d6db0d1cea92b9b0202ce62214a1a191e197beec9af5b3f194f88e8b112c97f");
+        var destUa = new Uint8Array(64);
+        var hash = CryptoJS.SHA3(words, {
+            outputLength: 512
+        });
+
+        // Act:
+        var result = _convert2.default.words2ua(words, hash);
+
+        // Assert:
+        expect(_convert2.default.hex2ua(result)).toEqual(ua);
+    });
+});
+
+},{"../../nempay/app/utils/convert":7}],15:[function(require,module,exports){
+'use strict';
+
+var _Address = require('../../nempay/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _convert = require('../../nempay/app/utils/convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _KeyPair = require('../../nempay/app/utils/KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+var _CryptoHelpers = require('../../nempay/app/utils/CryptoHelpers');
+
+var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('CryptoHelpers util tests', function () {
+    var $filter = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_$filter_) {
+        $filter = _$filter_;
+    }));
+
+    it("Can check address", function () {
+        // Arrange:
+        var privatekey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+        var address = "NCRCWIADNM3UQQTRRFKXBAVHDPZMGVBBXA4J4RE5";
+
+        // Act:
+        var result = _CryptoHelpers2.default.checkAddress(privatekey, _Network2.default.data.Mainnet.id, address);
+
+        // Assert:
+        expect(result).toBe(true);
+    });
+
+    it("Can derive a key from password and count", function () {
+        // Arrange:
+        var password = "TestTest";
+        var count = 20;
+        var expectedKey = "8cd87bc513857a7079d182a6e19b370e907107d97bd3f81a85bcebcc4b5bd3b5";
+
+        // Act:
+        var result = _CryptoHelpers2.default.derivePassSha(password, count);
+
+        // Assert:
+        expect(result.priv).toEqual(expectedKey);
+    });
+
+    it("Can encrypt a private key", function () {
+        // Arrange:
+        var password = "TestTest";
+        var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+        var expectedKey = "8cd87bc513857a7079d182a6e19b370e907107d97bd3f81a85bcebcc4b5bd3b5";
+
+        // Act:
+        var result = _CryptoHelpers2.default.encodePrivKey(privateKey, password);
+        var pass = _CryptoHelpers2.default.derivePassSha(password, 20);
+        var obj = {
+            ciphertext: CryptoJS.enc.Hex.parse(result.ciphertext),
+            iv: _convert2.default.hex2ua(result.iv),
+            key: _convert2.default.hex2ua(pass.priv)
+        };
+
+        // Assert:
+        expect(pass.priv).toEqual(expectedKey);
+        expect(result.iv.length).toBe(16 * 2);
+        expect(result.ciphertext.length).toBe(48 * 2);
+    });
+
+    it("Can decrypt a private key", function () {
+        // Arrange:
+        var password = "TestTest";
+        var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+        var key = "8cd87bc513857a7079d182a6e19b370e907107d97bd3f81a85bcebcc4b5bd3b5";
+        var encrypted = "c09ef3ed0cadd6ca6d3638b5dd854ac871a0afaec6b7fed791166b571a64d57f564376dc0180c851b0a1120b5896e6a0";
+        var iv = "0329814121c7a4bb11418084dbe40560";
+        var obj = {
+            ciphertext: CryptoJS.enc.Hex.parse(encrypted),
+            iv: _convert2.default.hex2ua(iv),
+            key: _convert2.default.hex2ua(key)
+        };
+
+        // Act:
+        var decrypted = _CryptoHelpers2.default.decrypt(obj);
+
+        // Assert:
+        expect(decrypted).toEqual(expectedPrivateKey);
+    });
+
+    it("Can encrypt and decrypt private Key", function () {
+        // Arrange:
+        var password = "TestTest";
+        var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+
+        // Act:
+        var result = _CryptoHelpers2.default.encodePrivKey(privateKey, password);
+        var pass = _CryptoHelpers2.default.derivePassSha(password, 20);
+        var obj = {
+            ciphertext: CryptoJS.enc.Hex.parse(result.ciphertext),
+            iv: _convert2.default.hex2ua(result.iv),
+            key: _convert2.default.hex2ua(pass.priv)
+        };
+        var decrypted = _CryptoHelpers2.default.decrypt(obj);
+
+        // Assert:
+        expect(privateKey).toEqual(decrypted);
+    });
+
+    describe('Encrypt private key edge-cases', function () {
+
+        it("Encryption return error if no password", function () {
+            // Arrange:
+            var password = "";
+            var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+
+            // Act:
+            var result = _CryptoHelpers2.default.encodePrivKey.bind(null, privateKey, password);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+
+        it("Encryption return error if no private key", function () {
+            // Arrange:
+            var password = "TestTest";
+            var privateKey = "";
+
+            // Act
+            var result = _CryptoHelpers2.default.encodePrivKey.bind(null, privateKey, password);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+    });
+
+    it("Can decrypt private key of pass:enc wallets", function () {
+        // Arrange:
+        var common = {
+            'password': 'TestTest',
+            'privateKey': ''
+        };
+        var walletAccount = {
+            "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
+            "iv": "dccffaa4883cda85d6b06714aabe6ec6"
+        };
+        var mainAlgo = "pass:enc";
+        var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+
+        // Act:
+        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+        // Assert:
+        expect(result).toBe(true);
+        expect(common.privateKey).toEqual(expectedPrivateKey);
+        expect(!common.password).toEqual(true);
+    });
+
+    it("Can decrypt private key of pass:bip32 wallets", function () {
+        // Arrange:
+        var common = {
+            'password': 'TestTest',
+            'privateKey': ''
+        };
+        var walletAccount = {
+            "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
+            "iv": "dccffaa4883cda85d6b06714aabe6ec6"
+        };
+        var mainAlgo = "pass:bip32";
+        var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+
+        // Act:
+        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+        // Assert:
+        expect(result).toBe(true);
+        expect(common.privateKey).toEqual(expectedPrivateKey);
+        expect(!common.password).toEqual(true);
+    });
+
+    it("Can decrypt private key of pass:6k wallets", function () {
+        // Arrange:
+        var common = {
+            'password': 'TestTest',
+            'privateKey': ''
+        };
+        var walletAccount = {
+            "encrypted": "",
+            "iv": ""
+        };
+        var mainAlgo = "pass:6k";
+        var expectedPrivateKey = "8fac70ea9aca3ae3418e25c0d31d9a0723e0a1790ae8fa97747c00dc0037472e";
+
+        // Act:
+        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+        // Assert:
+        expect(result).toBe(true);
+        expect(common.privateKey).toEqual(expectedPrivateKey);
+    });
+
+    it("Can decrypt private key of pass:6k wallets childs", function () {
+        // Arrange:
+        var common = {
+            'password': 'TestTest',
+            'privateKey': ''
+        };
+        var walletAccount = {
+            "encrypted": "5c3a7ebbefb391e5175a29ec5a22cb162cd590bb2e0b09416273f86bdc39fa83c04c4bb53b9c64fd1e6eaba5dba149bd",
+            "iv": "f131d9a4dfb1b0b696e05ccae9412e8f"
+        };
+        var mainAlgo = "pass:6k";
+        var expectedPrivateKey = "4f27ca43521bbc394a6f6dde65b533e0768f954fa47ce320b0e9f4b5fe450f9d";
+
+        // Act:
+        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+        // Assert:
+        expect(result).toBe(true);
+        expect(common.privateKey).toEqual(expectedPrivateKey);
+        expect(!common.password).toEqual(true);
+    });
+
+    describe('Decrypt private key edge-cases', function () {
+
+        it("Private key decryption return false and alert if no algo", function () {
+            // Arrange:
+            var common = {
+                'password': 'TestTest',
+                'privateKey': ''
+            };
+            var walletAccount = {
+                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
+                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
+            };
+            var mainAlgo = "";
+            var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+
+            // Act:
+            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+            // Assert:
+            expect(result).toBe(false);
+            expect(common.privateKey).toEqual("");
+            expect(!common.password).toEqual(false);
+        });
+
+        it("Decryption of pass:enc wallets return false if no password", function () {
+            // Arrange:
+            var common = {
+                'password': '',
+                'privateKey': ''
+            };
+            var walletAccount = {
+                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
+                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
+            };
+            var mainAlgo = "pass:enc";
+
+            // Act:
+            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+            // Assert:
+            expect(result).toBe(false);
+            expect(common.privateKey).toEqual("");
+            expect(!common.password).toEqual(true);
+        });
+
+        it("Decryption of pass:bip32 wallets return false if no password", function () {
+            // Arrange:
+            var common = {
+                'password': '',
+                'privateKey': ''
+            };
+            var walletAccount = {
+                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
+                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
+            };
+            var mainAlgo = "pass:bip32";
+
+            // Act:
+            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+            // Assert:
+            expect(result).toBe(false);
+            expect(common.privateKey).toEqual("");
+            expect(!common.password).toEqual(true);
+        });
+
+        it("Decryption of pass:6k wallets return false if no password", function () {
+            // Arrange:
+            var common = {
+                'password': '',
+                'privateKey': ''
+            };
+            var walletAccount = {
+                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
+                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
+            };
+            var mainAlgo = "pass:6k";
+
+            // Act:
+            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+            // Assert:
+            expect(result).toBe(false);
+            expect(common.privateKey).toEqual("");
+            expect(!common.password).toEqual(true);
+        });
+
+        it("Decryption of pass:6k wallets generate key if no encrypted and iv in wallet account", function () {
+            // Arrange:
+            var common = {
+                'password': 'TestTest',
+                'privateKey': ''
+            };
+            var walletAccount = {
+                "encrypted": "",
+                "iv": ""
+            };
+            var mainAlgo = "pass:6k";
+            var expectedPrivateKey = "8fac70ea9aca3ae3418e25c0d31d9a0723e0a1790ae8fa97747c00dc0037472e";
+
+            // Act:
+            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+            // Assert:
+            expect(result).toBe(true);
+            expect(common.privateKey).toEqual(expectedPrivateKey);
+            expect(!common.password).toEqual(true);
+        });
+
+        it("Decryption of pass:6k wallets return false and alert if encrypted but no iv", function () {
+            // Arrange:
+            var common = {
+                'password': 'TestTest',
+                'privateKey': ''
+            };
+            var walletAccount = {
+                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
+                "iv": ""
+            };
+            var mainAlgo = "pass:6k";
+
+            // Act:
+            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+            // Assert:
+            expect(result).toBe(false);
+            expect(common.privateKey).toEqual("");
+            expect(!common.password).toEqual(false);
+        });
+
+        it("Decryption of pass:6k wallets return false and alert if no encrypted but iv", function () {
+            // Arrange:
+            var common = {
+                'password': 'TestTest',
+                'privateKey': ''
+            };
+            var walletAccount = {
+                "encrypted": "",
+                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
+            };
+            var mainAlgo = "pass:6k";
+
+            // Act:
+            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
+
+            // Assert:
+            expect(result).toBe(false);
+            expect(common.privateKey).toEqual("");
+            expect(!common.password).toEqual(false);
+        });
+    });
+
+    it("Can generate bip32 seed and child on mainnet", function (done) {
+        // Arrange:
+        var privateKey = "6809a9582cd395aa8803bbce10449c9819e34d3afa1cb4f4e2df52fb37864ccb";
+        var password = "TestTest";
+        var index = 0;
+        var expectedSeed = "P5XzbwJKMQMpm1hYYk1z9k4KNcjnvDMfGsxmimSWH7QwPJu2jK3u8GvwPSaeZajxHS1gPEMovGk2pcu3Y2zpgC7VcYDK5Cpkb3aNtyjfiiPnf2Nq";
+        var expectedChildPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+
+        // Act:
+        _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Mainnet.id).then(function (data) {
+            var seed = data.seed;
+            var childPrivateKey = data.privateKey;
+
+            // Assert:
+            expect(seed).toEqual(expectedSeed);
+            expect(childPrivateKey).toEqual(expectedChildPrivateKey);
+
+            done();
+        });
+    });
+
+    it("Can generate bip32 seed and child on testnet", function (done) {
+        // Arrange:
+        var privateKey = "6809a9582cd395aa8803bbce10449c9819e34d3afa1cb4f4e2df52fb37864ccb";
+        var password = "TestTest";
+        var index = 0;
+        var expectedSeed = "ZGYuxVoQi4Wi11wqqQpDHg16w3Je6wP6KCfqWT9o8SatSvpr5VUfmAENCyh3svgaXGFXZN11RYvrNA2equ6yprZmNrr2JjrCcYMuQwrZ4XAoJdBs";
+        var expectedChildPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+
+        // Act:
+        _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Testnet.id).then(function (data) {
+            var seed = data.seed;
+            var childPrivateKey = data.privateKey;
+
+            // Assert:
+            expect(seed).toEqual(expectedSeed);
+            expect(childPrivateKey).toEqual(expectedChildPrivateKey);
+
+            done();
+        });
+    });
+
+    it("Can derive account from bip32 seed", function (done) {
+        // Arrange:
+        var seed = "ZGYuxVoQi4Wi11wqqQpDHg16w3Je6wP6KCfqWT9o8SatSvpr5VUfmAENCyh3svgaXGFXZN11RYvrNA2equ6yprZmNrr2JjrCcYMuQwrZ4XAoJdBs";
+        var index = 1;
+        var expectedAccount = "NA7RDSYKYNPPU6F5FDT2ACXN4WHIMD33G7IZPR3N";
+        var expectedAccountPrivateKey = "e1a5c85cd1a9162022eab2e60429cbea6e65977f048dab25c86a5bab923b675f";
+
+        // Act:
+        _CryptoHelpers2.default.BIP32derivation(seed, index, _Network2.default.data.Mainnet.id).then(function (data) {
+            var account = data.address;
+            var accountPrivateKey = data.privateKey;
+
+            // Assert:
+            expect(account).toEqual(expectedAccount);
+            expect(accountPrivateKey).toEqual(expectedAccountPrivateKey);
+
+            done();
+        });
+    });
+
+    describe('Bip32 edge-cases', function () {
+
+        it("Bip32 return error if no private key", function (done) {
+            // Arrange:
+            var privateKey = "";
+            var password = "TestTest";
+            var index = 0;
+
+            // Act:
+            _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Mainnet.id).then(function (data) {}, function (err) {
+                // Assert:
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Bip32 return error if no password", function (done) {
+            // Arrange:
+            var privateKey = "6809a9582cd395aa8803bbce10449c9819e34d3afa1cb4f4e2df52fb37864ccb";
+            var password = "";
+            var index = 0;
+
+            // Act:
+            var result = _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Mainnet.id).then(function (data) {}, function (err) {
+                // Assert:
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Bip32 can't derivate account without seed", function (done) {
+            // Arrange:
+            var seed = "";
+            var index = 1;
+            var isMultisig = false;
+
+            // Act:
+            var result = _CryptoHelpers2.default.BIP32derivation(seed, isMultisig, index, _Network2.default.data.Mainnet.id).then(function (data) {}, function (err) {
+                // Assert:
+                expect(result).toBeDefined();
+
+                done();
+            });
+        });
+    });
+
+    it("Can encode message with sender private key", function () {
+        // Arrange:
+        var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+        var recipientPublic = "5aae0b521c59cfc8c2114dc74d2f652359a68e377657c3f6bd6091f16f72e1ec";
+        var message = "NEM is awesome !";
+        var iv = "f396cf605ee7cb0e7618df82aa48c684";
+        var salt = "5f8d37e8116b6dc9171ffeb7617b0988bfd8abe0e611c2c34cc127b637d8192a";
+        var expectedHex = "5f8d37e8116b6dc9171ffeb7617b0988bfd8abe0e611c2c34cc127b637d8192af396cf605ee7cb0e7618df82aa48c684eb60d26923a2672758f7df7b1430a026e88fea1f4bb3171ab213a5679b9fb9d9";
+
+        // Act:
+        var encryptedHex = _CryptoHelpers2.default._encode(senderPriv, recipientPublic, message, _convert2.default.hex2ua(iv), _convert2.default.hex2ua(salt));
+
+        // Assert:
+        expect(encryptedHex).toEqual(expectedHex);
+    });
+
+    it("Can decode message with recipient private key", function () {
+        // Arrange:
+        var senderPublic = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
+        var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
+        var expectedMessage = "NEM is awesome !";
+        var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
+
+        // Act:
+        var decrypted = {
+            'type': 1,
+            'payload': _CryptoHelpers2.default.decode(recipientPriv, senderPublic, encryptedMessage)
+        };
+        var decryptedMessage = $filter('fmtHexMessage')(decrypted);
+
+        // Assert:
+        expect(decryptedMessage).toEqual(expectedMessage);
+    });
+
+    it("Roundtrip decode encode", function () {
+        // Arrange:
+        var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+        var sender = _KeyPair2.default.create(senderPriv);
+        var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
+        var recipient = _KeyPair2.default.create(recipientPriv);
+        var message = "NEM is awesome !";
+        var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
+
+        // Act:
+        var decrypted = {
+            'type': 1,
+            'payload': _CryptoHelpers2.default.decode(recipientPriv, sender.publicKey.toString(), encryptedMessage)
+        };
+        var decryptedMessage = $filter('fmtHexMessage')(decrypted);
+
+        var encrypted = _CryptoHelpers2.default.encode(recipientPriv, sender.publicKey.toString(), decryptedMessage);
+
+        // Assert:
+        expect(decryptedMessage).toEqual(message);
+        expect(encrypted.length).toBe(80 * 2);
+    });
+
+    it("Roundtrip encode decode", function () {
+        // Arrange:
+        var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+        var sender = _KeyPair2.default.create(senderPriv);
+        var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
+        var recipient = _KeyPair2.default.create(recipientPriv);
+        var message = "NEM is awesome !";
+
+        // Act:
+        var encrypted = _CryptoHelpers2.default.encode(senderPriv, recipient.publicKey.toString(), message);
+        var decrypted = {
+            'type': 1,
+            'payload': _CryptoHelpers2.default.decode(recipientPriv, sender.publicKey.toString(), encrypted)
+        };
+        var decryptedMessage = $filter('fmtHexMessage')(decrypted);
+
+        // Assert:
+        expect(decryptedMessage).toEqual(message);
+    });
+
+    describe('Encode & decode message edge-cases', function () {
+
+        it("Message encoding return error if no sender private key", function () {
+            // Arrange:
+            var senderPriv = "";
+            var recipientPublic = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
+            var message = "NEM is awesome !";
+
+            // Act:
+            var result = _CryptoHelpers2.default.encode.bind(null, senderPriv, recipientPublic, message);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+
+        it("Message encoding return error if no recipient public key", function () {
+            // Arrange:
+            var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+            var recipientPublic = "";
+            var message = "NEM is awesome !";
+
+            // Act:
+            var result = _CryptoHelpers2.default.encode.bind(null, senderPriv, recipientPublic, message);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+
+        it("Message encoding return error if no message", function () {
+            // Arrange:
+            var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+            var recipientPublic = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
+            var message = "";
+
+            // Act:
+            var result = _CryptoHelpers2.default.encode.bind(null, senderPriv, recipientPublic, message);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+
+        it("Message decoding return error if no recipient private key", function () {
+            // Arrange:
+            var senderPublic = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
+            var recipientPriv = "";
+            var message = "NEM is awesome !";
+            var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
+
+            // Act:
+            var result = _CryptoHelpers2.default.decode.bind(null, recipientPriv, senderPublic, encryptedMessage);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+
+        it("Message decoding return error if no sender public key", function () {
+            // Arrange:
+            var senderPublic = "";
+            var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
+            var message = "NEM is awesome !";
+            var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
+
+            // Act:
+            var result = _CryptoHelpers2.default.decode.bind(null, recipientPriv, senderPublic, encryptedMessage);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+
+        it("Message decoding return error if no payload", function () {
+            // Arrange:
+            var senderPublic = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
+            var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
+            var message = "NEM is awesome !";
+            var encryptedMessage = "";
+
+            // Act:
+            var result = _CryptoHelpers2.default.decode.bind(null, recipientPriv, senderPublic, encryptedMessage);
+
+            // Assert:
+            expect(result).toThrow();
+        });
+    });
+
+    //Key is different each time and it return an error... Not sure how to do that properly
+    xit("Can encrypt and decrypt private key for mobile", function () {
+        // Arrange:
+        var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
+        var password = "TestTest";
+
+        // Act:
+        var result = _CryptoHelpers2.default.AES_PBKF2_encryption(password, privateKey);
+        var encrypted = result.encrypted.ciphertext.toString();
+        var salt = result.salt.toString();
+
+        var key = CryptoJS.PBKDF2(password, salt, {
+            keySize: 256 / 32,
+            iterations: 2000,
+            hasher: CryptoJS.algo.SHA1
+        });
+
+        var decrypted = CryptoJS.AES.decrypt(result.encrypted.enc, key.toString());
+
+        // Assert:
+        expect(encrypted.length).toBe(48 * 2);
+        expect(salt.length).toBe(32 * 2);
+        expect(decrypted).toEqual(privateKey);
+    });
+});
+
+},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/CryptoHelpers":2,"../../nempay/app/utils/KeyPair":3,"../../nempay/app/utils/Network":4,"../../nempay/app/utils/convert":7}],16:[function(require,module,exports){
+'use strict';
+
+var _helpers = require('../../nempay/app/utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+var _wallet = require('../data/wallet');
+
+var _wallet2 = _interopRequireDefault(_wallet);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('DataBridge service tests', function () {
+    var DataBridge = void 0,
+        AppConstants = void 0,
+        $localStorage = void 0,
+        Wallet = void 0,
+        Connector = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_AppConstants_, _$localStorage_, _DataBridge_, _Wallet_, _Connector_) {
+        DataBridge = _DataBridge_;
+        Wallet = _Wallet_;
+        Connector = _Connector_;
+        AppConstants = _AppConstants_;
+        $localStorage = _$localStorage_;
+    }));
+
+    function createContext(Wallet) {
+        Wallet.setWallet(_wallet2.default);
+        Wallet.setDefaultNode();
+    }
+
+    it("Default properties initialized", function () {
+        // Assert
+        expect(DataBridge.nisHeight).toBe(0);
+        expect(DataBridge.connectionStatus).toBe(false);
+        expect(DataBridge.accountData).toBeUndefined();
+        expect(DataBridge.transactions).toEqual([]);
+        expect(DataBridge.unconfirmed).toEqual([]);
+        expect(DataBridge.mosaicDefinitionMetaDataPair).toEqual({});
+        expect(DataBridge.mosaicDefinitionMetaDataPairSize).toBe(0);
+        expect(DataBridge.mosaicOwned).toEqual({});
+        expect(DataBridge.mosaicOwnedSize).toEqual({});
+        expect(DataBridge.namespaceOwned).toEqual({});
+        expect(DataBridge.harvestedBlocks).toEqual([]);
+        expect(DataBridge.connector).toBeUndefined();
+        expect(DataBridge.delegatedData).toBeUndefined();
+        expect(DataBridge.marketInfo).toBeUndefined();
+    });
+});
+
+},{"../../nempay/app/utils/helpers":8,"../data/wallet":12}],17:[function(require,module,exports){
+'use strict';
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _Address = require('../../nempay/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Filters tests', function () {
+    var $filter = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_$filter_) {
+        $filter = _$filter_;
+    }));
+
+    it("Can format public key to address", function () {
+        // Arrange:
+        var publicKey = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
+        var expectedAddress = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
+
+        // Act:
+        var result = $filter('fmtPubToAddress')(publicKey, _Network2.default.data.Mainnet.id);
+
+        // Assert:
+        expect(result).toEqual(expectedAddress);
+    });
+
+    it("Can format address", function () {
+        // Arrange:
+        var address = "NCRCWIADNM3UQQTRRFKXBAVHDPZMGVBBXA4J4RE5";
+        var expectedResult = "NCRCWI-ADNM3U-QQTRRF-KXBAVH-DPZMGV-BBXA4J-4RE5";
+
+        // Act:
+        var result = $filter('fmtAddress')(address);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can format NEM date", function () {
+        // Arrange:
+        var timestamp = 37629823;
+        var expectedResult = "Mon, 06 Jun 2016 12:50:08 GMT";
+
+        // Act:
+        var result = $filter('fmtNemDate')(timestamp);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can format NEM value", function () {
+        // Arrange:
+        var value = 10000200;
+
+        // Act:
+        var result = $filter('fmtNemValue')(value);
+
+        // Assert
+        expect(result[0]).toEqual("10");
+        expect(result[1]).toEqual("000200");
+    });
+
+    it("Can format Importance score", function () {
+        // Arrange:
+        var data = 0.0005305934429032625;
+
+        // Act:
+        var result = $filter('fmtNemImportanceScore')(data);
+
+        // Assert:
+        expect(result[0]).toEqual("5");
+        expect(result[1]).toEqual("3059");
+    });
+
+    it("Can format Importance transfer modes", function () {
+        // Arrange:
+        var mode1 = "Activation";
+        var mode2 = "Deactivation";
+
+        //Act:
+        var result1 = $filter('fmtImportanceTransferMode')(1);
+        var result2 = $filter('fmtImportanceTransferMode')(2);
+
+        // Assert:
+        expect(result1).toEqual(mode1);
+        expect(result2).toEqual(mode2);
+    });
+
+    it("Can reverse array", function () {
+        // Arrange:
+        var array = [0, 1, 2, 3, 4, 5];
+        var expectedResult = [5, 4, 3, 2, 1, 0];
+
+        // Act:
+        var result = $filter('reverse')(array);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can format name from network id", function () {
+        // Arrange:
+        var mijin = "Mijin";
+        var mainnet = "Mainnet";
+        var testnet = "Testnet";
+
+        // Act:
+        var result1 = $filter('toNetworkName')(_Network2.default.data.Mijin.id);
+        var result2 = $filter('toNetworkName')(_Network2.default.data.Mainnet.id);
+        var result3 = $filter('toNetworkName')(_Network2.default.data.Testnet.id);
+
+        // Assert:
+        expect(result1).toEqual(mijin);
+        expect(result2).toEqual(mainnet);
+        expect(result3).toEqual(testnet);
+    });
+
+    it("Can paginate an array", function () {
+        // Arrange:
+        var currentPage = 1;
+        var pageSize = 5;
+        var input = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+        var expectedResult = [5, 6, 7, 8];
+
+        // Act:
+        var result = $filter('startFrom')(input, currentPage * pageSize);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can paginate unconfirmed txes", function () {
+        // Arrange:
+        var currentPage = 1;
+        var pageSize = 5;
+        var input = {
+            "7b0f03c193207e1be74d573f36c4456d55bc9eaf2400c559313aafe0c47273bc": {
+                "meta": {
+                    "innerHash": {},
+                    "id": 0,
+                    "hash": {
+                        "data": "7b0f03c193207e1be74d573f36c4456d55bc9eaf2400c559313aafe0c47273bc"
+                    },
+                    "height": 9007199254740991
+                },
+                "transaction": {
+                    "timeStamp": 38180238,
+                    "amount": 0,
+                    "signature": "3eeec6afffcbafa9dc81958f8ae599ede115159dfe1132c5b85e23f05f5b31297aa692c36045b0b55dc9516715839c55dd33cc97940f575326e6f0ab17e98205",
+                    "fee": 10000000,
+                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                    "type": 257,
+                    "deadline": 38183838,
+                    "message": {},
+                    "version": -1744830463,
+                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
+                }
+            },
+            "58e0481ffbdd3b94817dcfb36b5f7fb6631aad624ea6d025489ac03afb0b6c7f": {
+                "meta": {
+                    "innerHash": {},
+                    "id": 0,
+                    "hash": {
+                        "data": "58e0481ffbdd3b94817dcfb36b5f7fb6631aad624ea6d025489ac03afb0b6c7f"
+                    },
+                    "height": 9007199254740991
+                },
+                "transaction": {
+                    "timeStamp": 38180242,
+                    "amount": 0,
+                    "signature": "a8d9428674eb67593df3d14abf44a2c4a6406de879ba276abda578f2a7c74346e8a39333ef1a75d7c4fe90cff1545ae00f5806713f07511dcdce01a79adf6d0d",
+                    "fee": 10000000,
+                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                    "type": 257,
+                    "deadline": 38183842,
+                    "message": {},
+                    "version": -1744830463,
+                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
+                }
+            },
+            "d75b34c37919643fd4e4e6977442b8395ca084e6eaa0207cf9a290366a89f75a": {
+                "meta": {
+                    "innerHash": {},
+                    "id": 0,
+                    "hash": {
+                        "data": "d75b34c37919643fd4e4e6977442b8395ca084e6eaa0207cf9a290366a89f75a"
+                    },
+                    "height": 9007199254740991
+                },
+                "transaction": {
+                    "timeStamp": 38180246,
+                    "amount": 0,
+                    "signature": "2b201dc47d3e3c1770beb719068ecfcce79a054181c906e5774d733936d3149fa7369a41eb981447fa5874dd532699bbbbacbd5f3bc30ba3f3ef8ff96ce49805",
+                    "fee": 10000000,
+                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                    "type": 257,
+                    "deadline": 38183846,
+                    "message": {},
+                    "version": -1744830463,
+                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
+                }
+            },
+            "dc0710faefd670bc61160b557bcf6842fe3a825e522444ee6aa1317fc34bab10": {
+                "meta": {
+                    "innerHash": {},
+                    "id": 0,
+                    "hash": {
+                        "data": "dc0710faefd670bc61160b557bcf6842fe3a825e522444ee6aa1317fc34bab10"
+                    },
+                    "height": 9007199254740991
+                },
+                "transaction": {
+                    "timeStamp": 38180249,
+                    "amount": 0,
+                    "signature": "5f0b553873b8d97bcc3b6a64a464e0359b8d3f4afe853fd3d79522b404173bdf03e648bc0c256cb530a9f70c18f28438449eee20e786140ca180f6d523ca8700",
+                    "fee": 10000000,
+                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                    "type": 257,
+                    "deadline": 38183849,
+                    "message": {},
+                    "version": -1744830463,
+                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
+                }
+            },
+            "2ded88a0bb62efa9f6bfbc014d2c1bf3df3facd7f5d3bcee3b74923b0f9b971b": {
+                "meta": {
+                    "innerHash": {},
+                    "id": 0,
+                    "hash": {
+                        "data": "2ded88a0bb62efa9f6bfbc014d2c1bf3df3facd7f5d3bcee3b74923b0f9b971b"
+                    },
+                    "height": 9007199254740991
+                },
+                "transaction": {
+                    "timeStamp": 38180253,
+                    "amount": 0,
+                    "signature": "73ff0bbcb5a4163631edab82f50fbb84c6090b47ff953c0bdffa636521892d89b3cfe661ca5e6ff77871470db8556af565bf751bc6f701c0da06c007f573d80b",
+                    "fee": 10000000,
+                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                    "type": 257,
+                    "deadline": 38183853,
+                    "message": {},
+                    "version": -1744830463,
+                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
+                }
+            },
+            "2c7afcd6590ea4859835c435fd1df2c43d9b32479744e0dbf225236212a66c2f": {
+                "meta": {
+                    "innerHash": {},
+                    "id": 0,
+                    "hash": {
+                        "data": "2c7afcd6590ea4859835c435fd1df2c43d9b32479744e0dbf225236212a66c2f"
+                    },
+                    "height": 9007199254740991
+                },
+                "transaction": {
+                    "timeStamp": 38180256,
+                    "amount": 0,
+                    "signature": "ba75097a85535c1b962f6b64f06597f0d153f976e7e0826c2426732321bd1d44f4c08c83b70f0560cca8e4e52b06154de6d8277fd4926748bc7c5a43d997fa0d",
+                    "fee": 10000000,
+                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                    "type": 257,
+                    "deadline": 38183856,
+                    "message": {},
+                    "version": -1744830463,
+                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
+                }
+            }
+        };
+        var expectedResult = [{
+            "meta": {
+                "innerHash": {},
+                "id": 0,
+                "hash": {
+                    "data": "2c7afcd6590ea4859835c435fd1df2c43d9b32479744e0dbf225236212a66c2f"
+                },
+                "height": 9007199254740991
+            },
+            "transaction": {
+                "timeStamp": 38180256,
+                "amount": 0,
+                "signature": "ba75097a85535c1b962f6b64f06597f0d153f976e7e0826c2426732321bd1d44f4c08c83b70f0560cca8e4e52b06154de6d8277fd4926748bc7c5a43d997fa0d",
+                "fee": 10000000,
+                "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "type": 257,
+                "deadline": 38183856,
+                "message": {},
+                "version": -1744830463,
+                "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
+            }
+        }];
+
+        // Act:
+        var result = $filter('startFromUnc')(input, currentPage * pageSize);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can format supply", function () {
+        // Arrange:
+        var supply = 50000000000;
+        var mosaicId = {
+            namespaceId: "nw.fiat",
+            name: "eur"
+        };
+        var mosaics = {
+            "nem:xem": {
+                "mosaicDefinition": {
+                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+                    "description": "reserved xem mosaic",
+                    "id": {
+                        "namespaceId": "nem",
+                        "name": "xem"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "6"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "8999999999"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "false"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {}
+                },
+                "supply": 8999999999
+            },
+            "nano.fiat:eur": {
+                "mosaicDefinition": {
+                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                    "description": "Test currency",
+                    "id": {
+                        "namespaceId": "nano.fiat",
+                        "name": "eur"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "2"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "9999999"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "true"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {}
+                },
+                "supply": 9999999
+            },
+            "nw.fiat:eur": {
+                "mosaicDefinition": {
+                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                    "description": "Test asset",
+                    "id": {
+                        "namespaceId": "nw.fiat",
+                        "name": "eur"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "2"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "300000000"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "true"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {}
+                },
+                "supply": 500000000
+            },
+            "nano.fiat:usd": {
+                "mosaicDefinition": {
+                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                    "description": "Test currency",
+                    "id": {
+                        "namespaceId": "nano.fiat",
+                        "name": "usd"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "2"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "1000000000"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "true"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {}
+                },
+                "supply": 1000010000
+            }
+        };
+        var expectedResult = ['500 000 000', '00'];
+
+        // Act:
+        var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    describe('Fmt supply edge-cases', function () {
+
+        it("Fmt supply return error if unknown mosaic name", function () {
+            // Arrange:
+            var supply = 50000000000;
+            var mosaicId = {
+                namespaceId: "nw.fiat",
+                name: "vouchers"
+            };
+            var mosaics = {
+                "nem:xem": {
+                    "mosaicDefinition": {
+                        "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+                        "description": "reserved xem mosaic",
+                        "id": {
+                            "namespaceId": "nem",
+                            "name": "xem"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "6"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "8999999999"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "false"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 8999999999
+                },
+                "nano.fiat:eur": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test currency",
+                        "id": {
+                            "namespaceId": "nano.fiat",
+                            "name": "eur"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "9999999"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 9999999
+                },
+                "nw.fiat:eur": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test asset",
+                        "id": {
+                            "namespaceId": "nw.fiat",
+                            "name": "eur"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "300000000"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 500000000
+                },
+                "nano.fiat:usd": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test currency",
+                        "id": {
+                            "namespaceId": "nano.fiat",
+                            "name": "usd"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "1000000000"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 1000010000
+                }
+            };
+            var expectedResult = ["unknown mosaic divisibility", 50000000000];
+
+            // Act:
+            var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
+
+            // Assert:
+            expect(result).toEqual(expectedResult);
+        });
+
+        it("Fmt supply return no divisibility if == 0", function () {
+            // Arrange:
+            var supply = 50000000000;
+            var mosaicId = {
+                namespaceId: "nw.fiat",
+                name: "eur"
+            };
+            var mosaics = {
+                "nem:xem": {
+                    "mosaicDefinition": {
+                        "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+                        "description": "reserved xem mosaic",
+                        "id": {
+                            "namespaceId": "nem",
+                            "name": "xem"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "6"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "8999999999"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "false"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 8999999999
+                },
+                "nano.fiat:eur": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test currency",
+                        "id": {
+                            "namespaceId": "nano.fiat",
+                            "name": "eur"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "9999999"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 9999999
+                },
+                "nw.fiat:eur": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test asset",
+                        "id": {
+                            "namespaceId": "nw.fiat",
+                            "name": "eur"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "0"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "300000000"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 500000000
+                },
+                "nano.fiat:usd": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test currency",
+                        "id": {
+                            "namespaceId": "nano.fiat",
+                            "name": "usd"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "1000000000"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 1000010000
+                }
+            };
+            var expectedResult = ["50 000 000 000", ""];
+
+            // Act:
+            var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
+
+            // Assert:
+            expect(result).toEqual(expectedResult);
+        });
+
+        it("Fmt supply return 0 if supply == 0", function () {
+            // Arrange:
+            var supply = 0;
+            var mosaicId = {
+                namespaceId: "nw.fiat",
+                name: "eur"
+            };
+            var mosaics = {
+                "nem:xem": {
+                    "mosaicDefinition": {
+                        "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+                        "description": "reserved xem mosaic",
+                        "id": {
+                            "namespaceId": "nem",
+                            "name": "xem"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "6"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "8999999999"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "false"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 8999999999
+                },
+                "nano.fiat:eur": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test currency",
+                        "id": {
+                            "namespaceId": "nano.fiat",
+                            "name": "eur"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "9999999"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 9999999
+                },
+                "nw.fiat:eur": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test asset",
+                        "id": {
+                            "namespaceId": "nw.fiat",
+                            "name": "eur"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "300000000"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 500000000
+                },
+                "nano.fiat:usd": {
+                    "mosaicDefinition": {
+                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                        "description": "Test currency",
+                        "id": {
+                            "namespaceId": "nano.fiat",
+                            "name": "usd"
+                        },
+                        "properties": [{
+                            "name": "divisibility",
+                            "value": "2"
+                        }, {
+                            "name": "initialSupply",
+                            "value": "1000000000"
+                        }, {
+                            "name": "supplyMutable",
+                            "value": "true"
+                        }, {
+                            "name": "transferable",
+                            "value": "true"
+                        }],
+                        "levy": {}
+                    },
+                    "supply": 1000010000
+                }
+            };
+            var expectedResult = ["0", "00"];
+
+            // Act:
+            var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
+
+            // Assert:
+            expect(result).toEqual(expectedResult);
+        });
+    });
+
+    it("Can format raw supply", function () {
+        // Arrange:
+        var supply = 420000;
+        var divisibility = 3;
+        var expectedResult = ['420', '000'];
+
+        // Act:
+        var result = $filter('fmtSupplyRaw')(supply, divisibility);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    describe('Fmt raw supply edge-cases', function () {
+
+        it("Fmt raw supply return 0 if raw supply == 0", function () {
+            // Arrange:
+            var supply = 0;
+            var divisibility = 3;
+            var expectedResult = ['0', '000'];
+
+            // Act:
+            var result = $filter('fmtSupplyRaw')(supply, divisibility);
+
+            // Assert:
+            expect(result).toEqual(expectedResult);
+        });
+
+        it("Fmt raw supply return no divisibility if == 0", function () {
+            // Arrange:
+            var supply = 420000;
+            var divisibility = 0;
+            var expectedResult = ['420 000', ''];
+
+            // Act:
+            var result = $filter('fmtSupplyRaw')(supply, divisibility);
+
+            // Assert:
+            expect(result).toEqual(expectedResult);
+        });
+    });
+
+    it("Can format HEX to UTF8", function () {
+        // Arrange:
+        var hex = "d09bd18ed0b1d18f2c20d181d18ad0b5d188d18c20d189d0b8d0bfd186d18b2c202d20d0b2d0b7d0b4d0bed185d0bdd191d18220d0bcd18dd1802c202d20d0bad0b0d0b9d18420d0b6d0b3d183d187";
+        var expectedResult = "Любя, съешь щипцы, - вздохнёт мэр, - кайф жгуч";
+
+        // Act:
+        var result = $filter('fmtHexToUtf8')(hex);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can format Levy", function () {
+        // Arrange:
+        var mosaic = {
+            "quantity": 1000000,
+            "mosaicId": {
+                "namespaceId": "nano",
+                "name": "usd"
+            },
+            "levy": {
+                "fee": 1000,
+                "recipient": "TALICE2GMA34CXHD7XLJQ536NM5UNKQHTORNNT2J",
+                "type": 1,
+                "mosaicId": {
+                    "namespaceId": "nem",
+                    "name": "xem"
+                }
+            }
+        };
+        var multiplier = 1;
+        var levy = mosaic.levy;
+        var mosaics = {
+            "nano:usd": {
+                "mosaicDefinition": {
+                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                    "description": "Test currency",
+                    "id": {
+                        "namespaceId": "nano",
+                        "name": "usd"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "2"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "1000000000"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "true"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {
+                        "fee": 1000,
+                        "recipient": "TALICE2GMA34CXHD7XLJQ536NM5UNKQHTORNNT2J",
+                        "type": 1,
+                        "mosaicId": {
+                            "namespaceId": "nem",
+                            "name": "xem"
+                        },
+                        "supply": 1000000
+                    }
+                }
+            },
+            "nem:xem": {
+                "mosaicDefinition": {
+                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+                    "description": "reserved xem mosaic",
+                    "id": {
+                        "namespaceId": "nem",
+                        "name": "xem"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "6"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "8999999999"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "false"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {}
+                },
+                "supply": 8999999999
+            }
+        };
+
+        // Act:
+        var result = $filter('fmtLevyFee')(mosaic, multiplier, levy, mosaics);
+
+        // Assert:
+        expect(result).toEqual("0.001000");
+    });
+
+    it("Can format HEX message", function () {
+        // Arrange:
+        var data = {
+            type: 1,
+            payload: "4e454d20697320617765736f6d652021"
+        };
+        var expectedMessage = "NEM is awesome !";
+
+        // Act:
+        var message = $filter('fmtHexMessage')(data);
+
+        // Assert:
+        expect(message).toEqual(expectedMessage);
+    });
+
+    it("Can split HEX", function () {
+        // Arrange:
+        var hex = "aef202e4e1ea9ec9b409e9bea3ab97115e5341dec70966cddda0fdcaf36ea28493f93c48c5221ab87327dd30ee712b94f721d899866b3d2566f46178e63a243d2036006a14aef4776ea81445def250c8";
+        var expectedResult = "aef202e4e1ea9ec9b409e9bea3ab97115e5341dec70966cddda0fdcaf36ea284\n93f93c48c5221ab87327dd30ee712b94f721d899866b3d2566f46178e63a243d\n2036006a14aef4776ea81445def250c8";
+
+        // Act:
+        var result = $filter('fmtSplitHex')(hex);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+
+    it("Can split HEX return initial HEX if length < 64 chars", function () {
+        // Arrange:
+        var hex = "aef202e4e1ea9ec9b409e9bea3ab97115e5341dec709";
+
+        // Act:
+        var result = $filter('fmtSplitHex')(hex);
+
+        // Assert:
+        expect(result).toEqual(hex);
+    });
+
+    it("Can format objects to array", function () {
+        // Arrange:
+        var data = {
+            "nw.fiat": {
+                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "fqn": "nw.fiat",
+                "height": 307541
+            },
+            "nano.assets": {
+                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "fqn": "nano.assets",
+                "height": 437986
+            },
+            "nano": {
+                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "fqn": "nano",
+                "height": 437986
+            },
+            "nanowallet": {
+                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "fqn": "nanowallet",
+                "height": 447390
+            },
+            "nw": {
+                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "fqn": "nw",
+                "height": 307541
+            },
+            "nano.fiat": {
+                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "fqn": "nano.fiat",
+                "height": 437986
+            }
+        };
+        var expectedResult = [{
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nw.fiat",
+            "height": 307541
+        }, {
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nano.assets",
+            "height": 437986
+        }, {
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nano",
+            "height": 437986
+        }, {
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nanowallet",
+            "height": 447390
+        }, {
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nw",
+            "height": 307541
+        }, {
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nano.fiat",
+            "height": 437986
+        }];
+
+        // Act:
+        var result = $filter('objValues')(data);
+
+        // Assert:
+        expect(result).toEqual(expectedResult);
+    });
+});
+
+},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/Network":4}],18:[function(require,module,exports){
+'use strict';
+
+var _Address = require('../../nempay/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _convert = require('../../nempay/app/utils/convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _KeyPair = require('../../nempay/app/utils/KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Keypair tests', function () {
+
+    it("Can create keypair from hex private key", function () {
+        // Arrange:
+        var privateKey = "c9fb7f16b738b783be5192697a684cba4a36adb3d9c22c0808f30ae1d85d384f";
+        var expectedPublicKey = "ed9bf729c0d93f238bc4af468b952c35071d9fe1219b27c30dfe108c2e3db030";
+
+        // Act:
+        var kp = _KeyPair2.default.create(privateKey);
+
+        // Assert:
+        expect(kp.publicKey.toString()).toEqual(expectedPublicKey);
+    });
+
+    it("Can sign data with private key", function () {
+        // Arrange:
+        var privateKey = "abf4cf55a2b3f742d7543d9cc17f50447b969e6e06f5ea9195d428ab12b7318d";
+        var publicKey = "8a558c728c21c126181e5e654b404a45b4f0137ce88177435a69978cc6bec1f4";
+        var signature = "d9cec0cc0e3465fab229f8e1d6db68ab9cc99a18cb0435f70deb6100948576cd5c0aa1feb550bdd8693ef81eb10a556a622db1f9301986827b96716a7134230c";
+
+        // Act:
+        var kp = _KeyPair2.default.create(privateKey);
+        var sign = kp.sign("8ce03cd60514233b86789729102ea09e867fc6d964dea8c2018ef7d0a2e0e24bf7e348e917116690b9").toString();
+
+        // Assert:
+        expect(kp.publicKey.toString()).toEqual(publicKey);
+        expect(sign).toEqual(signature);
+    });
+});
+
+},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/KeyPair":3,"../../nempay/app/utils/Network":4,"../../nempay/app/utils/convert":7}],19:[function(require,module,exports){
+'use strict';
+
+var _CryptoHelpers = require('../../nempay/app/utils/CryptoHelpers');
+
+var CryptoHelpers = _interopRequireWildcard(_CryptoHelpers);
+
+var _wallet = require('../data/wallet');
+
+var _wallet2 = _interopRequireDefault(_wallet);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+describe('Load Wallet module tests', function () {
+    var Wallet = void 0,
+        $localStorage = void 0,
+        $controller = void 0,
+        $q = void 0,
+        $rootScope = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_$controller_, _$localStorage_, _Wallet_, _$q_, _$rootScope_) {
+        Wallet = _Wallet_;
+        $localStorage = _$localStorage_;
+        $controller = _$controller_;
+        $localStorage.$reset();
+        $q = _$q_;
+        $rootScope = _$rootScope_;
+    }));
+
+    function override(ctrl) {
+        ctrl._downloadWalletCalled = false;
+        ctrl.download = function (wallet) {
+            ctrl._downloadWalletCalled = true;
+        };
+    }
+
+    it("Default properties initialized", function () {
+        // Arrange:
+        var ctrl = $controller('LoadWalletCtrl');
+
+        // Assert
+        expect(ctrl.selectedWallet).toEqual('');
+        expect(ctrl._storage.wallets).toEqual($localStorage.wallets || []);
+        expect(ctrl.common).toEqual({
+            'password': '',
+            'privateKey': ''
+        });
+    });
+
+    it("Can load a wallet into app", function () {
+        // Arrange:
+        var ctrl = $controller('LoadWalletCtrl');
+        var base64WalletString = "eyJwcml2YXRlS2V5IjoiIiwibmFtZSI6IlRlc3RuZXRTcGVjIiwiYWNjb3VudHMiOnsiMCI6eyJicmFpbiI6dHJ1ZSwiYWxnbyI6InBhc3M6YmlwMzIiLCJlbmNyeXB0ZWQiOiJjNmRjYmM4YTUzOGM5ZTJlYzllOWJlMTE1YWE2YTEzNDlkMWE4YTI3ZTU3NDEzNmI0ZTYwM2YwNTQ5NDc0MDUzZTAyNmUwNzcxYmY4ZDg2YTM5MmZjY2NlNWI1NDNkMGIiLCJpdiI6IjRjNjM3Nzc1MjM2ZDVhMzY5OGM5NzNiOWJhNjc0NTllIiwiYWRkcmVzcyI6IlRBRjdCUERWMjJIQ0ZOUkpFV09HTFJLQllRRjY1R0JPTFFQSTVHR08iLCJuZXR3b3JrIjotMTA0LCJIRHNlZWQiOiJaR1l1eFZvUWk0V2kxMXdxcVFYaHRmZFdZU01iZWpEUVp1NW5uY25vNmFHSnhaVmR3UEtyb01oY0hhelBOTnAxYWE4UmQyenBCOHRtbm93WE40b3ViM3NyUEtGYnBDQWNvVHBoeml0eXNMcWk1ckJVIiwiY2hpbGQiOiJURDQySTRENVU3VU00VjJXUDJNNlNBNE5XQTdQNTVJVFRZVVZMQkFVIn19fQ==";
+
+        // Act
+        ctrl.loadWallet(base64WalletString);
+
+        // Assert
+        expect(ctrl._storage.wallets).toEqual([{
+            "privateKey": "",
+            "name": "TestnetSpec",
+            "accounts": {
+                "0": {
+                    "brain": true,
+                    "algo": "pass:bip32",
+                    "encrypted": "c6dcbc8a538c9e2ec9e9be115aa6a1349d1a8a27e574136b4e603f0549474053e026e0771bf8d86a392fccce5b543d0b",
+                    "iv": "4c637775236d5a3698c973b9ba67459e",
+                    "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
+                    "network": -104,
+                    "HDseed": "ZGYuxVoQi4Wi11wqqQXhtfdWYSMbejDQZu5nncno6aGJxZVdwPKroMhcHazPNNp1aa8Rd2zpB8tmnowXN4oub3srPKFbpCAcoTphzitysLqi5rBU",
+                    "child": "TD42I4D5U7UM4V2WP2M6SA4NWA7P55ITTYUVLBAU"
+                }
+            }
+        }]);
+    });
+
+    xit("Can login with selected wallet - Don't know how to test", function () {
+        // Arrange:
+        var ctrl = $controller('LoadWalletCtrl');
+        ctrl._storage.wallets = [_wallet2.default.testnetWallet];
+        var selectedWallet = ctrl._storage.wallets[0];
+        spyOn(ctrl._location, 'path');
+
+        // Act
+        ctrl.login(selectedWallet);
+
+        // Assert
+        expect(Wallet.current).toEqual(selectedWallet);
+        expect(ctrl._location.path).toHaveBeenCalledWith('/balance');
+    });
+
+    it("Can clear sensitive data", function () {
+        // Arrange:
+        var ctrl = $controller('LoadWalletCtrl');
+        ctrl.common = {
+            'password': '1234567890123456789012345678901234567890123456789012345678901234',
+            'privateKey': 'Hello'
+        };
+
+        // Act
+        ctrl.clearSensitiveData();
+
+        // Assert
+        expect(ctrl.common).toEqual({
+            'password': '',
+            'privateKey': ''
+        });
+    });
+
+    describe('Login module edge-cases', function () {
+
+        it("Can't load a wallet into app if empty data", function () {
+            // Arrange:
+            var ctrl = $controller('LoadWalletCtrl');
+            var base64WalletString = "";
+
+            // Act
+            ctrl.loadWallet(base64WalletString);
+
+            // Assert
+            expect(ctrl._storage.wallets).toEqual([]);
+        });
+
+        it("Can't login without selected wallet", function () {
+            // Arrange:
+            var ctrl = $controller('LoadWalletCtrl');
+            var selectedWallet = "";
+            spyOn(ctrl._location, 'path');
+
+            // Act
+            ctrl.login(selectedWallet);
+
+            // Assert
+            expect(Wallet.current).toEqual(undefined);
+            expect(ctrl._location.path).not.toHaveBeenCalled();
+        });
+    });
+
+    xit("Pass right parameters to generateBIP32Data on wallet upgrade ", function (done) {
+        // Arrange:
+        var scope = $rootScope.$new();
+        var ctrl = $controller('LoadWalletCtrl');
+        override(ctrl);
+        ctrl.common = {
+            'password': 'TestTest11',
+            'privateKey': ''
+        };
+        ctrl._storage.wallets = [_wallet2.default.testnetWallet];
+        ctrl.selectedWallet = ctrl._storage.wallets[0];
+        spyOn(CryptoHelpers, 'generateBIP32Data').and.returnValues($q.when({}));
+        spyOn(ctrl, 'upgradeWallet').and.callThrough();
+
+        // Act
+        ctrl.upgradeWallet();
+
+        // Assert
+        expect(CryptoHelpers.generateBIP32Data).toHaveBeenCalledWith(ctrl.common.privateKey, ctrl.common.password, 0, ctrl.selectedWallet.accounts[0].network);
+        done();
+    });
+
+    xit("Can upgrade a wallet", function (done) {
+        // Arrange:
+        var ctrl = $controller('LoadWalletCtrl');
+        override(ctrl);
+        var expectedWallet = _wallet2.default.testnetWallet;
+        var bip32Data = {
+            "seed": "ZGYuxVoQi4Wi11wqqQXhtfdWYSMbejDQZu5nncno6aGJxZVdwPKroMhcHazPNNp1aa8Rd2zpB8tmnowXN4oub3srPKFbpCAcoTphzitysLqi5rBU",
+            "address": "TD42I4D5U7UM4V2WP2M6SA4NWA7P55ITTYUVLBAU"
+        };
+        ctrl.common = {
+            'password': 'TestTest11',
+            'privateKey': ''
+        };
+        ctrl._storage.wallets = [_wallet2.default.testnetWallet];
+        ctrl.selectedWallet = ctrl._storage.wallets[0];
+        spyOn(CryptoHelpers, 'generateBIP32Data').and.callThrough();
+
+        // Act
+        ctrl.upgradeWallet();
+
+        // Assert
+        expect(ctrl._storage.wallets[0]).toEqual(expectedWallet);
+        expect(ctrl.common).toEqual({
+            'password': '',
+            'privateKey': ''
+        });
+        expect(ctrl._downloadWalletCalled).toBe(true);
+        done();
+    });
+});
+
+},{"../../nempay/app/utils/CryptoHelpers":2,"../data/wallet":12}],20:[function(require,module,exports){
+'use strict';
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _Address = require('../../nempay/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _KeyPair = require('../../nempay/app/utils/KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+var _CryptoHelpers = require('../../nempay/app/utils/CryptoHelpers');
+
+var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Signup module tests', function () {
+    var WalletBuilder = void 0,
+        $filter = void 0,
+        $controller = void 0,
+        $localStorage = void 0,
+        AppConstants = void 0,
+        $q = void 0,
+        $rootScope = void 0,
+        $timeout = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _WalletBuilder_, _$localStorage_, _AppConstants_, _$q_, _$rootScope_, _$timeout_) {
+        WalletBuilder = _WalletBuilder_;
+        $filter = _$filter_;
+        $controller = _$controller_;
+        $localStorage = _$localStorage_;
+        AppConstants = _AppConstants_;
+        $q = _$q_;
+        $rootScope = _$rootScope_;
+        $timeout = _$timeout_;
+    }));
+
+    // Override
+    function override(ctrl) {
+        ctrl._storage.wallets = [];
+        ctrl._downloadWalletCalled = false;
+        ctrl.download = function (wallet) {
+            ctrl._downloadWalletCalled = true;
+        };
+    }
+
+    it("Default properties initialized", function () {
+        // Arrange:
+        var ctrl = $controller('RegisterCtrl');
+
+        // Assert
+        expect(ctrl.network).toBe(AppConstants.defaultNetwork);
+        expect(ctrl.networks).toEqual(_Network2.default.data);
+        expect(ctrl._selectedType).toEqual(ctrl.walletTypes[0]);
+        expect(ctrl._storage.wallets).toEqual($localStorage.wallets || []);
+    });
+
+    it("Can change network", function () {
+        // Arrange:
+        var ctrl = $controller('RegisterCtrl');
+
+        // Act
+        ctrl.changeNetwork(_Network2.default.data.Mainnet.id);
+
+        // Assert
+        expect(ctrl.network).toBe(_Network2.default.data.Mainnet.id);
+    });
+
+    it("Can change wallet type", function () {
+        // Arrange:
+        var ctrl = $controller('RegisterCtrl');
+        var type = 2;
+
+        // Act
+        ctrl.changeWalletType(type);
+
+        // Assert
+        expect(ctrl._selectedType).toEqual(ctrl.walletTypes[type - 1]);
+    });
+
+    xit("Can create new wallet", function () {
+        // Arrange
+        var scope = $rootScope.$new();
+        var ctrl = $controller('RegisterCtrl', {
+            $scope: scope
+        });
+        override(ctrl);
+        ctrl.formData = {};
+        ctrl.formData.walletName = "QM";
+        ctrl.formData.password = "TestTest";
+        ctrl.formData.confirmPassword = "TestTest";
+        ctrl.network = _Network2.default.data.Mainnet.id;
+        scope.$digest();
+
+        // Act
+        spyOn(ctrl._WalletBuilder, 'createWallet').and.callThrough();
+
+        ctrl.createWallet();
+
+        expect(ctrl._storage.wallets.length).toEqual(1);
+        expect(ctrl._downloadWalletCalled).toBe(true);
+    });
+
+    describe('createWallet edge-cases', function () {
+
+        it("Can't create new wallet if name already exist", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "TestTest";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+            ctrl._storage.wallets.push({ "name": "QM" });
+
+            spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createWallet();
+
+            expect(ctrl._WalletBuilder.createWallet).not.toHaveBeenCalled();
+        });
+
+        it("Can't create new wallet if parameter missing", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+
+            spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createWallet();
+
+            expect(ctrl._WalletBuilder.createWallet).not.toHaveBeenCalled();
+        });
+
+        it("Can't create new wallet if passwords not matching", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "TestTest11";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+
+            spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createWallet();
+
+            expect(ctrl._WalletBuilder.createWallet).not.toHaveBeenCalled();
+        });
+    });
+
+    xit("Can create brain wallet", function (done) {
+        // Arrange:
+        var ctrl = $controller('RegisterCtrl');
+        override(ctrl);
+        ctrl.formData = {};
+        ctrl.formData.walletName = "QM";
+        ctrl.formData.password = "TestTest";
+        ctrl.formData.confirmPassword = "TestTest";
+        ctrl.network = _Network2.default.data.Mainnet.id;
+        var expectedWallet = {
+            "privateKey": "",
+            "name": "QM",
+            "accounts": {
+                "0": {
+                    "brain": true,
+                    "algo": "pass:6k",
+                    "encrypted": "",
+                    "iv": "",
+                    "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
+                    "network": 104,
+                    "child": "fda69cfb780e65ee400be32101f80c7611ba95930cd838a4d32dabb4c738f1af"
+                }
+            }
+        };
+
+        // Act
+        ctrl._createBrainWallet().then(function () {
+
+            // Assert
+            expect(ctrl._storage.wallets.length).toEqual(1);
+            expect(ctrl._downloadWalletCalled).toBe(true);
+            expect(ctrl._storage.wallets[0]).toEqual(expectedWallet);
+
+            done();
+        });
+    });
+
+    describe('createBrainWallet edge-cases', function () {
+
+        it("Can't create brain wallet if name already exist", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "TestTest";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+            ctrl._storage.wallets[0] = {
+                "privateKey": "",
+                "name": "QM",
+                "accounts": {
+                    "0": {
+                        "brain": true,
+                        "algo": "pass:6k",
+                        "encrypted": "",
+                        "iv": "",
+                        "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
+                        "network": 104,
+                        "child": "fda69cfb780e65ee400be32101f80c7611ba95930cd838a4d32dabb4c738f1af"
+                    }
+                }
+            };
+
+            spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createBrainWallet();
+
+            expect(ctrl._WalletBuilder.createBrainWallet).not.toHaveBeenCalled();
+        });
+
+        it("Can't create brain wallet if parameter missing", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+
+            spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createBrainWallet();
+
+            expect(ctrl._WalletBuilder.createBrainWallet).not.toHaveBeenCalled();
+        });
+
+        it("Can't create brain wallet if passwords not matching", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "TestTest11";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+
+            spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createBrainWallet();
+
+            expect(ctrl._WalletBuilder.createBrainWallet).not.toHaveBeenCalled();
+        });
+    });
+
+    xit("Can create private key wallet", function (done) {
+        // Arrange
+        var ctrl = $controller('RegisterCtrl');
+        override(ctrl);
+        ctrl.formData = {};
+        ctrl.formData.walletName = "QM";
+        ctrl.formData.password = "TestTest";
+        ctrl.formData.confirmPassword = "TestTest";
+        ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+        ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+        ctrl.network = _Network2.default.data.Mainnet.id;
+
+        // Act
+        ctrl._createPrivateKeyWallet().then(function () {
+
+            // Assert
+            expect(ctrl._storage.wallets.length).toEqual(1);
+            expect(ctrl._downloadWalletCalled).toBe(true);
+
+            done();
+        });
+    });
+
+    describe('createPrivateKeyWallet edge-cases', function () {
+
+        it("Can't create private key wallet if name already exist", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "TestTest";
+            ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+            ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+            ctrl._storage.wallets[0] = {
+                "privateKey": "",
+                "name": "QM",
+                "accounts": {
+                    "0": {
+                        "brain": false,
+                        "algo": "pass:enc",
+                        "encrypted": "4b51d000bce632b5e47d3d1583d421042a81e6dc19edd15339de39e0297c1920aa1646671f111bd712846f1643aaae57",
+                        "iv": "a1ba21b3193e6f07e0873b07a3044fd2",
+                        "address": "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK",
+                        "network": 104,
+                        "child": "NCETMVL7JDELNHFQUNQ3554TUM2A5Z4SGFGIL3WC"
+                    }
+                }
+            };
+
+            spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createPrivateKeyWallet();
+
+            expect(ctrl._WalletBuilder.createPrivateKeyWallet).not.toHaveBeenCalled();
+        });
+
+        it("Can't create private key wallet if parameter missing", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "TestTest";
+            ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+            ctrl.formData.address = "";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+
+            spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createPrivateKeyWallet();
+
+            expect(ctrl._WalletBuilder.createPrivateKeyWallet).not.toHaveBeenCalled();
+        });
+
+        it("Can't create private key wallet if passwords not matching", function () {
+            // Arrange:
+            var ctrl = $controller('RegisterCtrl');
+            override(ctrl);
+            ctrl.formData = {};
+            ctrl.formData.walletName = "QM";
+            ctrl.formData.password = "TestTest";
+            ctrl.formData.confirmPassword = "TestTest11";
+            ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+            ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+            ctrl.network = _Network2.default.data.Mainnet.id;
+
+            spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
+
+            // Act: 
+            ctrl.createPrivateKeyWallet();
+
+            expect(ctrl._WalletBuilder.createPrivateKeyWallet).not.toHaveBeenCalled();
+        });
+    });
+});
+
+},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/CryptoHelpers":2,"../../nempay/app/utils/KeyPair":3,"../../nempay/app/utils/Network":4}],21:[function(require,module,exports){
+'use strict';
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _Address = require('../../nempay/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _KeyPair = require('../../nempay/app/utils/KeyPair');
+
+var _KeyPair2 = _interopRequireDefault(_KeyPair);
+
+var _CryptoHelpers = require('../../nempay/app/utils/CryptoHelpers');
+
+var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Signup module delegated tests', function () {
+    var WalletBuilder = void 0,
+        $filter = void 0,
+        $controller = void 0,
+        $localStorage = void 0,
+        AppConstants = void 0,
+        $q = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _$localStorage_, _AppConstants_, _WalletBuilder_, _$q_) {
+        WalletBuilder = _WalletBuilder_;
+        $q = _$q_;
+        $filter = _$filter_;
+        $controller = _$controller_;
+        $localStorage = _$localStorage_;
+        AppConstants = _AppConstants_;
+    }));
+
+    // Override
+    function override(ctrl) {
+        ctrl._storage.wallets = [];
+        ctrl._downloadWalletCalled = false;
+        ctrl.download = function (wallet) {
+            ctrl._downloadWalletCalled = true;
+        };
+    }
+
+    it("Can create new wallet", function () {
+        // Arrange
+        var ctrl = $controller('RegisterCtrl');
+        override(ctrl);
+        ctrl.formData = {};
+        ctrl.formData.walletName = "QM";
+        ctrl.formData.password = "TestTest";
+        ctrl.formData.confirmPassword = "TestTest";
+        ctrl.network = _Network2.default.data.Mainnet.id;
+
+        spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
+
+        // Act
+        ctrl.createWallet();
+
+        // Assert: 
+        expect(ctrl._WalletBuilder.createWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.network);
+    });
+
+    it("Can create brain wallet", function () {
+        // Arrange
+        var ctrl = $controller('RegisterCtrl');
+        override(ctrl);
+        ctrl.formData = {};
+        ctrl.formData.walletName = "QM";
+        ctrl.formData.password = "TestTest";
+        ctrl.formData.confirmPassword = "TestTest";
+        ctrl.network = _Network2.default.data.Mainnet.id;
+
+        spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
+
+        // Act
+        ctrl.createBrainWallet();
+
+        // Assert: 
+        expect(ctrl._WalletBuilder.createBrainWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.network);
+    });
+
+    it("Can create private key wallet", function () {
+        // Arrange
+        var ctrl = $controller('RegisterCtrl');
+        override(ctrl);
+        ctrl.formData = {};
+        ctrl.formData.walletName = "QM";
+        ctrl.formData.password = "TestTest";
+        ctrl.formData.confirmPassword = "TestTest";
+        ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+        ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+        ctrl.network = _Network2.default.data.Mainnet.id;
+
+        spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
+
+        // Act
+        ctrl.createPrivateKeyWallet();
+
+        // Assert: 
+        expect(ctrl._WalletBuilder.createPrivateKeyWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.formData.address, ctrl.formData.privateKey, ctrl.network);
+    });
+});
+
+},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/CryptoHelpers":2,"../../nempay/app/utils/KeyPair":3,"../../nempay/app/utils/Network":4}],22:[function(require,module,exports){
+'use strict';
+
+var _wallet = require('../data/wallet');
+
+var _wallet2 = _interopRequireDefault(_wallet);
+
+var _TransactionTypes = require('../../nempay/app/utils/TransactionTypes');
+
+var _TransactionTypes2 = _interopRequireDefault(_TransactionTypes);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Transactions service tests', function () {
+    var Wallet = void 0,
+        DataBridge = void 0,
+        $localStorage = void 0,
+        Transactions = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_Wallet_, _DataBridge_, _$localStorage_, _Transactions_) {
+        Wallet = _Wallet_;
+        DataBridge = _DataBridge_;
+        $localStorage = _$localStorage_;
+        $localStorage.$reset();
+        Transactions = _Transactions_;
+    }));
+
+    function createDummyWalletContextMainnet(Wallet) {
+        Wallet.setWallet(_wallet2.default.mainnetWallet);
+        Wallet.setDefaultNode();
+
+        DataBridge.nisHeight = 999999999;
+    }
+
+    function createDummyWalletContextTestnet(Wallet) {
+        Wallet.setWallet(_wallet2.default.testnetWallet);
+        Wallet.setDefaultNode();
+
+        DataBridge.nisHeight = 999999999;
+    }
+
+    it("Can set right mainnet network version", function () {
+        // Arrange
+        createDummyWalletContextMainnet(Wallet);
+
+        // Act
+        var version1 = Transactions.CURRENT_NETWORK_VERSION(1);
+        var version2 = Transactions.CURRENT_NETWORK_VERSION(2);
+
+        // Assert
+        expect(version1).toEqual(0x68000000 | 1);
+        expect(version2).toEqual(0x68000000 | 2);
+    });
+
+    it("Can set right testnet network version", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+
+        // Act
+        var version1 = Transactions.CURRENT_NETWORK_VERSION(1);
+        var version2 = Transactions.CURRENT_NETWORK_VERSION(2);
+
+        // Assert
+        expect(version1).toEqual(0x98000000 | 1);
+        expect(version2).toEqual(0x98000000 | 2);
+    });
+
+    it("Can create transfer transaction common data part on mainnet", function () {
+        // Arrange
+        createDummyWalletContextMainnet(Wallet);
+        var expectedCommonDataPart = {
+            "type": 257,
+            "version": 1744830465,
+            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
+            "timeStamp": 42682584,
+            "deadline": 42686184
+        };
+        var senderPublicKey = "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6";
+        var timeStamp = 42682584;
+        var version = Transactions.CURRENT_NETWORK_VERSION(1);
+        var due = 60;
+
+        // Act
+        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.Transfer, senderPublicKey, timeStamp, due, version);
+
+        // Assert
+        expect(commonDataPart).toEqual(expectedCommonDataPart);
+    });
+
+    it("Can create transfer transaction common data part on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var expectedCommonDataPart = {
+            "type": 257,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 42658411,
+            "deadline": 42662011
+        };
+        var senderPublicKey = "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495";
+        var timeStamp = 42658411;
+        var version = Transactions.CURRENT_NETWORK_VERSION(1);
+        var due = 60;
+
+        // Act
+        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.Transfer, senderPublicKey, timeStamp, due, version);
+
+        // Assert
+        expect(commonDataPart).toEqual(expectedCommonDataPart);
+    });
+
+    it("Can create correct transfer transaction object on mainnet", function () {
+        // Arrange
+        createDummyWalletContextMainnet(Wallet);
+        var common = {
+            "privateKey": "e47a818db63310158a38d5e9f6503f40b17011635110cbaa64e0ad3491fe3126",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
+            "recipientPubKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
+            "amount": 0,
+            "message": "",
+            "mosaics": null,
+            "fee": 10000000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transferTransactionObject = {
+            "type": 257,
+            "version": 1744830465,
+            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
+            "timeStamp": 42682584,
+            "deadline": 42686184,
+            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
+            "amount": 0,
+            "fee": 10000000,
+            "message": {
+                "type": 1,
+                "payload": ""
+            },
+            "mosaics": null
+        };
+
+        // Act
+        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
+        entity.timeStamp = 42682584;
+        entity.deadline = 42686184;
+
+        // Assert
+        expect(entity).toEqual(transferTransactionObject);
+    });
+
+    it("Can create correct transfer transaction object on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var common = {
+            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "recipientPubKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+            "amount": 0,
+            "message": "",
+            "mosaics": null,
+            "fee": 1000000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transferTransactionObject = {
+            "type": 257,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 42658411,
+            "deadline": 42662011,
+            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "amount": 0,
+            "fee": 1000000,
+            "message": {
+                "type": 1,
+                "payload": ""
+            },
+            "mosaics": null
+        };
+
+        // Act
+        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
+        entity.timeStamp = 42658411;
+        entity.deadline = 42662011;
+
+        // Assert
+        expect(entity).toEqual(transferTransactionObject);
+    });
+
+    it("Can create correct transfer transaction object with message on mainnet", function () {
+        // Arrange
+        createDummyWalletContextMainnet(Wallet);
+        var common = {
+            "privateKey": "e47a818db63310158a38d5e9f6503f40b17011635110cbaa64e0ad3491fe3126",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
+            "recipientPubKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
+            "amount": 0,
+            "message": "Hey !",
+            "mosaics": null,
+            "fee": 12000000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transferTransactionObject = {
+            "type": 257,
+            "version": 1744830465,
+            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
+            "timeStamp": 42682584,
+            "deadline": 42686184,
+            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
+            "amount": 0,
+            "fee": 12000000,
+            "message": {
+                "type": 1,
+                "payload": "4865792021"
+            },
+            "mosaics": null
+        };
+
+        // Act
+        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
+        entity.timeStamp = 42682584;
+        entity.deadline = 42686184;
+
+        // Assert
+        expect(entity).toEqual(transferTransactionObject);
+    });
+
+    it("Can create correct transfer transaction object with message on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var common = {
+            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "recipientPubKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+            "amount": 0,
+            "message": "Hey !",
+            "mosaics": null,
+            "fee": 2000000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transferTransactionObject = {
+            "type": 257,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 42658411,
+            "deadline": 42662011,
+            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "amount": 0,
+            "fee": 2000000,
+            "message": {
+                "type": 1,
+                "payload": "4865792021"
+            },
+            "mosaics": null
+        };
+
+        // Act
+        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
+        entity.timeStamp = 42658411;
+        entity.deadline = 42662011;
+
+        // Assert
+        expect(entity).toEqual(transferTransactionObject);
+    });
+
+    it("Can create correct transfer transaction object with mosaics on mainnet", function () {
+        // Arrange
+        createDummyWalletContextMainnet(Wallet);
+        var mosaicDefinitionMetaDataPair = {
+            "nem:xem": {
+                "mosaicDefinition": {
+                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+                    "description": "reserved xem mosaic",
+                    "id": {
+                        "namespaceId": "nem",
+                        "name": "xem"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "6"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "8999999999"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "false"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {}
+                },
+                "supply": 8999999999
+            }
+        };
+        var common = {
+            "privateKey": "e47a818db63310158a38d5e9f6503f40b17011635110cbaa64e0ad3491fe3126",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
+            "recipientPubKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
+            "amount": 1,
+            "message": "",
+            "mosaics": [{
+                "mosaicId": {
+                    "namespaceId": "nem",
+                    "name": "xem"
+                },
+                "quantity": 0,
+                "gid": "mos_id_0"
+            }],
+            "fee": 12500000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transferTransactionObject = {
+            "type": 257,
+            "version": 1744830466,
+            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
+            "timeStamp": 42697337,
+            "deadline": 42700937,
+            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
+            "amount": 1000000,
+            "fee": 12500000,
+            "message": {
+                "type": 1,
+                "payload": ""
+            },
+            "mosaics": [{
+                "mosaicId": {
+                    "namespaceId": "nem",
+                    "name": "xem"
+                },
+                "quantity": 0,
+                "gid": "mos_id_0"
+            }]
+        };
+
+        // Act
+        var entity = Transactions.prepareTransfer(common, dummyTransaction, mosaicDefinitionMetaDataPair);
+        entity.timeStamp = 42697337;
+        entity.deadline = 42700937;
+
+        // Assert
+        expect(entity).toEqual(transferTransactionObject);
+    });
+
+    it("Can create correct transfer transaction object with mosaics on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var mosaicDefinitionMetaDataPair = {
+            "nem:xem": {
+                "mosaicDefinition": {
+                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
+                    "description": "reserved xem mosaic",
+                    "id": {
+                        "namespaceId": "nem",
+                        "name": "xem"
+                    },
+                    "properties": [{
+                        "name": "divisibility",
+                        "value": "6"
+                    }, {
+                        "name": "initialSupply",
+                        "value": "8999999999"
+                    }, {
+                        "name": "supplyMutable",
+                        "value": "false"
+                    }, {
+                        "name": "transferable",
+                        "value": "true"
+                    }],
+                    "levy": {}
+                },
+                "supply": 8999999999
+            }
+        };
+        var common = {
+            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "recipientPubKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+            "amount": 1,
+            "message": "",
+            "mosaics": [{
+                "mosaicId": {
+                    "namespaceId": "nem",
+                    "name": "xem"
+                },
+                "quantity": 0,
+                "gid": "mos_id_0"
+            }],
+            "fee": 1000000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transferTransactionObject = {
+            "type": 257,
+            "version": -1744830462,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 42698693,
+            "deadline": 42702293,
+            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "amount": 1000000,
+            "fee": 1000000,
+            "message": {
+                "type": 1,
+                "payload": ""
+            },
+            "mosaics": [{
+                "mosaicId": {
+                    "namespaceId": "nem",
+                    "name": "xem"
+                },
+                "quantity": 0,
+                "gid": "mos_id_0"
+            }]
+        };
+
+        // Act
+        var entity = Transactions.prepareTransfer(common, dummyTransaction, mosaicDefinitionMetaDataPair);
+        entity.timeStamp = 42698693;
+        entity.deadline = 42702293;
+
+        // Assert
+        expect(entity).toEqual(transferTransactionObject);
+    });
+
+    /**
+    * Provision namespace transaction tests
+    */
+    it("Can create provision namespace transaction common data part on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var expectedCommonDataPart = {
+            "type": 8193,
+            "version": -1744830463,
+            "signer": "462ee976890916e54fa825d26bdd0235f5eb5b6a143c199ab0ae5ee9328e08ce",
+            "timeStamp": 43290303,
+            "deadline": 43293903
+        };
+        var senderPublicKey = "462ee976890916e54fa825d26bdd0235f5eb5b6a143c199ab0ae5ee9328e08ce";
+        var timeStamp = 43290303;
+        var version = Transactions.CURRENT_NETWORK_VERSION(1);
+        var due = 60;
+
+        // Act
+        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.ProvisionNamespace, senderPublicKey, timeStamp, due, version);
+
+        // Assert
+        expect(commonDataPart).toEqual(expectedCommonDataPart);
+    });
+
+    it("Can create correct provision namespace transaction object on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var common = {
+            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
+            "rentalFee": 5000000000,
+            "namespaceName": "",
+            "namespaceParent": null,
+            "fee": 20000000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transactionObject = {
+            "type": 8193,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "newPart": "",
+            "parent": null,
+            "timeStamp": 42658411,
+            "deadline": 42662011,
+            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
+            "fee": 20000000,
+            "rentalFee": 5000000000
+        };
+
+        // Act
+        var entity = Transactions.prepareNamespace(common, dummyTransaction);
+        entity.timeStamp = 42658411;
+        entity.deadline = 42662011;
+
+        // Assert
+        expect(entity).toEqual(transactionObject);
+    });
+
+    it("Can create correct provision namespace transaction object for sub-namespace on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var common = {
+            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
+            "rentalFee": 200000000,
+            "namespaceName": "nemrocks",
+            "namespaceParent": {
+                "fqn": "nano2"
+            },
+            "fee": 20000000,
+            "innerFee": 0,
+            "due": 60,
+            "isMultisig": false,
+            "multisigAccount": ''
+        };
+        var transactionObject = {
+            "type": 8193,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "newPart": "nemrocks",
+            "parent": "nano2",
+            "timeStamp": 42658411,
+            "deadline": 42662011,
+            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
+            "fee": 20000000,
+            "rentalFee": 200000000
+        };
+
+        // Act
+        var entity = Transactions.prepareNamespace(common, dummyTransaction);
+        entity.timeStamp = 42658411;
+        entity.deadline = 42662011;
+
+        // Assert
+        expect(entity).toEqual(transactionObject);
+    });
+
+    /**
+    * Mosaic definition transaction tests
+    */
+    it("Can create mosaic definition transaction common data part on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var expectedCommonDataPart = {
+            "type": 16385,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 43290303,
+            "deadline": 43293903
+        };
+        var senderPublicKey = "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495";
+        var timeStamp = 43290303;
+        var version = Transactions.CURRENT_NETWORK_VERSION(1);
+        var due = 60;
+
+        // Act
+        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.MosaicDefinition, senderPublicKey, timeStamp, due, version);
+
+        // Assert
+        expect(commonDataPart).toEqual(expectedCommonDataPart);
+    });
+
+    it("Can create correct mosaic definition transaction object on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var common = {
+            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "mosaicFeeSink": "TBMOSA-ICOD4F-54EE5C-DMR23C-CBGOAM-2XSJBR-5OLC",
+            "mosaicFee": 500000000,
+            "mosaicName": "",
+            "namespaceParent": {
+                "owner": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
+                "fqn": "nw.fiat",
+                "height": 307541
+            },
+            "mosaicDescription": "",
+            "properties": {
+                "initialSupply": 0,
+                "divisibility": 0,
+                "transferable": true,
+                "supplyMutable": true
+            },
+            "levy": {
+                "mosaic": null,
+                "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
+                "feeType": 1,
+                "fee": 5
+            },
+            "fee": 0,
+            "due": 60,
+            "innerFee": 0,
+            "isMultisig": false,
+            "multisigAccount": ""
+        };
+
+        var transactionObject = {
+            "type": 16385,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 43773466,
+            "deadline": 43777066,
+            "creationFeeSink": "TBMOSAICOD4F54EE5CDMR23CCBGOAM2XSJBR5OLC",
+            "creationFee": 500000000,
+            "mosaicDefinition": {
+                "creator": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+                "id": {
+                    "namespaceId": "nw.fiat",
+                    "name": ""
+                },
+                "description": "",
+                "properties": [{
+                    "name": "initialSupply",
+                    "value": "0"
+                }, {
+                    "name": "divisibility",
+                    "value": "0"
+                }, {
+                    "name": "transferable",
+                    "value": "true"
+                }, {
+                    "name": "supplyMutable",
+                    "value": "true"
+                }],
+                "levy": null
+            },
+            "fee": 20000000
+        };
+
+        // Act
+        var entity = Transactions.prepareMosaicDefinition(common, dummyTransaction);
+        entity.timeStamp = 43773466;
+        entity.deadline = 43777066;
+
+        // Assert
+        expect(entity).toEqual(transactionObject);
+    });
+
+    /**
+    * Mosaic supply change transaction tests
+    */
+    it("Can create mosaic supply change transaction common data part on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var expectedCommonDataPart = {
+            "type": 16386,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 43290303,
+            "deadline": 43293903
+        };
+        var senderPublicKey = "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495";
+        var timeStamp = 43290303;
+        var version = Transactions.CURRENT_NETWORK_VERSION(1);
+        var due = 60;
+
+        // Act
+        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.MosaicSupply, senderPublicKey, timeStamp, due, version);
+
+        // Assert
+        expect(commonDataPart).toEqual(expectedCommonDataPart);
+    });
+
+    it("Can create correct mosaic supply change transaction object on testnet", function () {
+        // Arrange
+        createDummyWalletContextTestnet(Wallet);
+        var common = {
+            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
+            "password": ""
+        };
+        var dummyTransaction = {
+            "mosaic": {
+                "namespaceId": "nano2",
+                "name": "points"
+            },
+            "supplyType": 1,
+            "delta": 0,
+            "fee": 0,
+            "due": 60,
+            "innerFee": 0,
+            "isMultisig": false,
+            "multisigAccount": ""
+        };
+
+        var transactionObject = {
+            "type": 16386,
+            "version": -1744830463,
+            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
+            "timeStamp": 43775455,
+            "deadline": 43779055,
+            "mosaicId": {
+                "namespaceId": "nano2",
+                "name": "points"
+            },
+            "supplyType": 1,
+            "delta": 0,
+            "fee": 20000000
+        };
+
+        // Act
+        var entity = Transactions.prepareMosaicSupply(common, dummyTransaction);
+        entity.timeStamp = 43775455;
+        entity.deadline = 43779055;
+
+        // Assert
+        expect(entity).toEqual(transactionObject);
+    });
+});
+
+},{"../../nempay/app/utils/TransactionTypes":5,"../data/wallet":12}],23:[function(require,module,exports){
+'use strict';
+
+var _helpers = require('../../nempay/app/utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _wallet = require('../data/wallet');
+
+var _wallet2 = _interopRequireDefault(_wallet);
+
+var _accountData = require('../data/accountData');
+
+var _accountData2 = _interopRequireDefault(_accountData);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Transfer transaction module tests', function () {
+    var $controller = void 0,
+        $localStorage = void 0,
+        AppConstants = void 0,
+        $rootScope = void 0,
+        Wallet = void 0,
+        DataBridge = void 0,
+        $httpBackend = void 0,
+        NetworkRequests = void 0,
+        $q = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_$controller_, _$localStorage_, _AppConstants_, _$rootScope_, _Wallet_, _DataBridge_, _$httpBackend_, _NetworkRequests_, _$q_) {
+        $controller = _$controller_;
+        $localStorage = _$localStorage_;
+        AppConstants = _AppConstants_;
+        $rootScope = _$rootScope_;
+        Wallet = _Wallet_;
+        DataBridge = _DataBridge_;
+        $httpBackend = _$httpBackend_;
+        NetworkRequests = _NetworkRequests_;
+        $q = _$q_;
+    }));
+
+    function createDummyWalletContextTestnet(Wallet) {
+        Wallet.setWallet(_wallet2.default.testnetWallet);
+        Wallet.setDefaultNode();
+
+        DataBridge.accountData = _accountData2.default.testnetAccountData;
+        DataBridge.namespaceOwned = _accountData2.default.testnetNamespaceOwned;
+        DataBridge.mosaicOwned = _accountData2.default.testnetMosaicOwned;
+        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.testnetMosaicDefinitionMetaDataPair;
+        DataBridge.nisHeight = 999999999;
+    }
+
+    function createDummyWalletContextMainnet(Wallet) {
+        Wallet.setWallet(_wallet2.default.mainnetWallet);
+        Wallet.setDefaultNode();
+
+        DataBridge.accountData = _accountData2.default.mainnetAccountData;
+        DataBridge.namespaceOwned = _accountData2.default.mainnetNamespaceOwned;
+        DataBridge.mosaicOwned = _accountData2.default.mainnetMosaicOwned;
+        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.mainnetMosaicDefinitionMetaDataPair;
+        DataBridge.nisHeight = 999999999;
+    }
+
+    it("Default properties initialized", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+
+        // Assert
+        expect(ctrl.formData).toEqual({
+            rawRecipient: '',
+            recipientPubKey: '',
+            recipient: '',
+            message: '',
+            amount: 0,
+            fee: 1 * 1000000,
+            encryptMessage: false,
+            innerFee: 0,
+            isMultisig: false,
+            multisigAccount: {
+                "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
+                "harvestedBlocks": 0,
+                "balance": 16000000,
+                "importance": 0,
+                "vestedBalance": 0,
+                "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
+                "label": null,
+                "multisigInfo": {
+                    "cosignatoriesCount": 1,
+                    "minCosignatories": 1
+                }
+            },
+            mosaics: null,
+            isMosaicTransfer: false
+        });
+        expect(ctrl.counter).toBe(1);
+        expect(ctrl.mosaicsMetaData).toEqual(DataBridge.mosaicDefinitionMetaDataPair);
+        expect(ctrl.currentAccountMosaicNames).toEqual(["nano:points", "nem:xem"]);
+        expect(ctrl.selectedMosaic).toEqual("nem:xem");
+        expect(ctrl.invoice).toBe(false);
+        expect(ctrl.aliasAddress).toEqual('');
+        expect(ctrl.showAlias).toBe(false);
+        expect(ctrl.okPressed).toBe(false);
+        expect(ctrl.common).toEqual({
+            'password': '',
+            'privateKey': ''
+        });
+        expect(ctrl.invoiceData).toEqual({
+            "v": ctrl._Wallet.network === _Network2.default.data.Testnet.id ? 1 : 2,
+            "type": 2,
+            "data": {
+                "addr": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
+                "amount": 0,
+                "msg": "",
+                "name": "NanoWallet XEM invoice"
+            }
+        });
+    });
+
+    it("Can update fee - Testnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+
+        // Act
+        ctrl.updateFees();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(1000000);
+    });
+
+    it("Can update fee - Mainnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+
+        // Act
+        ctrl.updateFees();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(10000000);
+    });
+
+    it("Update fee on amount change - Testnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.amount = 20000;
+        ctrl.updateFees();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(2000000);
+        expect(ctrl.formData.innerFee).toBe(0);
+    });
+
+    it("Update fee on amount change - Mainnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.amount = 20000;
+        ctrl.updateFees();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(13000000);
+        expect(ctrl.formData.innerFee).toBe(0);
+    });
+
+    it("Update fee on message change - Testnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.message = "Hello";
+        ctrl.updateFees();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(2000000);
+        expect(ctrl.formData.innerFee).toBe(0);
+    });
+
+    it("Update fee on message change - Mainnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.message = "Hello";
+        ctrl.updateFees();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(12000000);
+        expect(ctrl.formData.innerFee).toBe(0);
+    });
+
+    it("Update fee if multisig", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMultisig = true;
+        ctrl.updateFees();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(6000000);
+        expect(ctrl.formData.innerFee).toBe(1000000);
+    });
+
+    it("Update fee if mosaic transfer - Testnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(1000000);
+    });
+
+    it("Update fee if mosaic transfer - Mainnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(12500000);
+    });
+
+    it("Update fee if multisig and mosaic transfer", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMultisig = true;
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.innerFee).toBe(1000000);
+        expect(ctrl.formData.fee).toBe(6000000);
+    });
+
+    it("Fee cap is 25 XEM - Testnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.amount = 500000;
+        ctrl.updateFees();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(25000000);
+        expect(ctrl.formData.innerFee).toBe(0);
+    });
+
+    it("Calculate right fees for mosaics - Testnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        ctrl.formData.mosaics[0].quantity = 150000000000; // 150'000 XEM
+        scope.$digest();
+        ctrl.updateFees();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(15000000);
+    });
+
+    it("Calculate right fees for mosaics - Mainnet", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        ctrl.formData.mosaics[0].quantity = 150000000000; // 150'000 XEM
+        scope.$digest();
+        ctrl.updateFees();
+
+        // Assert
+        expect(ctrl.formData.fee).toBe(96250000);
+    });
+
+    it("Calculate right fees for multisig mosaic transfers", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMultisig = true;
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        ctrl.formData.mosaics[0].quantity = 150000000000; // 150'000 XEM
+        scope.$digest();
+        ctrl.updateFees();
+
+        // Assert
+        expect(ctrl.formData.innerFee).toBe(15000000);
+        expect(ctrl.formData.fee).toBe(6000000);
+    });
+
+    it("Encrypt message disabled if multisig", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.encryptMessage = true;
+        ctrl.formData.isMultisig = true;
+        // Done directly in view when click on multisig tab, set encrypt message to false
+        ctrl.formData.encryptMessage = false;
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.encryptMessage).toBe(false);
+    });
+
+    it("Define right values for mosaics and amount if mosaic transfer enabled", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.mosaics).toEqual([{
+            'mosaicId': {
+                'namespaceId': 'nem',
+                'name': 'xem'
+            },
+            'quantity': 0,
+            'gid': 'mos_id_0'
+        }]);
+        expect(ctrl.formData.amount).toBe(1);
+    });
+
+    it("Define right values for mosaics and amount if mosaic transfer disabled", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMosaicTransfer = false;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.mosaics).toBe(null);
+        expect(ctrl.formData.amount).toBe(0);
+    });
+
+    it("Define right values for mosaics and amount if mosaic transfer enabled then disabled", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Act
+        ctrl.formData.isMosaicTransfer = false;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.mosaics).toBe(null);
+        expect(ctrl.formData.amount).toBe(0);
+    });
+
+    it("Can remove mosaic from mosaics array", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Act
+        ctrl.removeMosaic(0);
+
+        // Assert
+        expect(ctrl.formData.mosaics).toEqual([]);
+    });
+
+    it("Can update current account mosaics", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        ctrl.currentAccountMosaicNames = [];
+        scope.$digest();
+
+        // Act
+        ctrl.updateCurrentAccountMosaics();
+
+        // Assert
+        expect(ctrl.currentAccountMosaicNames).toEqual(["nano:points", "nem:xem"]);
+    });
+
+    it("Can update current multisig account mosaics", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        ctrl.currentAccountMosaicNames = [];
+        ctrl.formData.isMultisig = true;
+        scope.$digest();
+
+        // Act
+        ctrl.updateCurrentAccountMosaics();
+
+        // Assert
+        if (!DataBridge.accountData.meta.cosignatoryOf.length) {
+            expect(ctrl.currentAccountMosaicNames).toEqual([]);
+        } else {
+            expect(ctrl.currentAccountMosaicNames).toEqual(["nem:xem"]);
+        }
+    });
+
+    it("Can attach a mosaic to mosaics array", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Act
+        ctrl.selectedMosaic = 'nano:points';
+        ctrl.attachMosaic();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.mosaics).toEqual([{
+            'mosaicId': {
+                'namespaceId': 'nem',
+                'name': 'xem'
+            },
+            'quantity': 0,
+            'gid': 'mos_id_0'
+        }, {
+            'mosaicId': {
+                'namespaceId': 'nano',
+                'name': 'points'
+            },
+            'quantity': 0,
+            'gid': 'mos_id_' + ctrl.counter
+        }]);
+    });
+
+    it("Can reset mosaics array if multisig", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        ctrl.formData.isMosaicTransfer = true;
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+        ctrl.formData.mosaics = [{
+            'mosaicId': {
+                'namespaceId': 'nem',
+                'name': 'xem'
+            },
+            'quantity': 0,
+            'gid': 'mos_id_0'
+        }, {
+            'mosaicId': {
+                'namespaceId': 'nano',
+                'name': 'points'
+            },
+            'quantity': 0,
+            'gid': 'mos_id_' + ctrl.counter
+        }];
+
+        // Act
+        ctrl.formData.isMultisig = true;
+        // Done directly in view when click on multisig tab, reset mosaic array
+        ctrl.setMosaicTransfer();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.formData.mosaics).toEqual([{
+            'mosaicId': {
+                'namespaceId': 'nem',
+                'name': 'xem'
+            },
+            'quantity': 0,
+            'gid': 'mos_id_0'
+        }]);
+    });
+
+    it("Can get recipient's public key from network and set right data using plain address", function (done) {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        var cleanAddress = 'TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S';
+        var accountData = {
+            "meta": {
+                "cosignatories": [],
+                "cosignatoryOf": [],
+                "status": "LOCKED",
+                "remoteStatus": "ACTIVE"
+            },
+            "account": {
+                "address": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "harvestedBlocks": 592,
+                "balance": 231445000000,
+                "importance": 2.9038651986973836E-4,
+                "vestedBalance": 231356599161,
+                "publicKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                "label": null,
+                "multisigInfo": {}
+            }
+        };
+
+        // Act
+        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/account/get?address=TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S').respond(200, accountData);
+        ctrl.formData.rawRecipient = 'TBCI2A-67UQZA-KCR6NS-4JWAEI-CEIGEI-M72G3M-VW5S';
+        ctrl.processRecipientInput();
+        scope.$digest();
+        $httpBackend.flush();
+
+        // Assert
+        expect(ctrl.formData.recipientPubKey.length).toBe(64);
+        expect(ctrl.formData.recipient).toEqual(cleanAddress);
+        done();
+    });
+
+    it("Can get recipient's public key from network and set right data using @alias", function (done) {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        var cleanAddress = 'TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S';
+        var accountData = {
+            "meta": {
+                "cosignatories": [],
+                "cosignatoryOf": [],
+                "status": "LOCKED",
+                "remoteStatus": "INACTIVE"
+            },
+            "account": {
+                "address": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "harvestedBlocks": 592,
+                "balance": 231445000000,
+                "importance": 2.9038651986973836E-4,
+                "vestedBalance": 231356599161,
+                "publicKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                "label": null,
+                "multisigInfo": {}
+            }
+        };
+        var namespaceData = {
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nw",
+            "height": 440493
+        };
+
+        // Act
+        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/namespace?namespace=nw').respond(200, namespaceData);
+        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/account/get?address=TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S').respond(200, accountData);
+        ctrl.formData.rawRecipient = '@nw';
+        ctrl.processRecipientInput();
+        scope.$digest();
+        $httpBackend.flush();
+
+        // Assert
+        expect(ctrl.formData.recipientPubKey.length).toBe(64);
+        expect(ctrl.formData.recipient).toEqual(cleanAddress);
+        expect(ctrl.showAlias).toBe(true);
+        done();
+    });
+
+    it("Can reset recipient data", function (done) {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        var cleanAddress = 'TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S';
+        var accountData = {
+            "meta": {
+                "cosignatories": [],
+                "cosignatoryOf": [],
+                "status": "LOCKED",
+                "remoteStatus": "INACTIVE"
+            },
+            "account": {
+                "address": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+                "harvestedBlocks": 592,
+                "balance": 231445000000,
+                "importance": 2.9038651986973836E-4,
+                "vestedBalance": 231356599161,
+                "publicKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
+                "label": null,
+                "multisigInfo": {}
+            }
+        };
+        var namespaceData = {
+            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
+            "fqn": "nw",
+            "height": 440493
+        };
+
+        // Act
+        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/namespace?namespace=nw').respond(200, namespaceData);
+        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/account/get?address=TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S').respond(200, accountData);
+        ctrl.formData.rawRecipient = '@nw';
+        ctrl.processRecipientInput();
+        scope.$digest();
+        $httpBackend.flush();
+        ctrl.resetRecipientData();
+
+        // Assert
+        expect(ctrl.formData.recipientPubKey.length).toBe(0);
+        expect(ctrl.formData.recipient).toEqual('');
+        expect(ctrl.showAlias).toBe(false);
+        done();
+    });
+
+    it("Can reset form data", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextTestnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        ctrl.formData.amount = 8;
+        ctrl.formData.message = 'NEM rocks !';
+        scope.$digest();
+
+        // Act
+        ctrl.resetData();
+
+        // Assert
+        expect(ctrl.formData.amount).toBe(0);
+        expect(ctrl.formData.message).toEqual('');
+    });
+});
+
+},{"../../nempay/app/utils/Network":4,"../../nempay/app/utils/helpers":8,"../data/accountData":11,"../data/wallet":12}],24:[function(require,module,exports){
+'use strict';
+
+var _helpers = require('../../nempay/app/utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+var _wallet = require('../data/wallet');
+
+var _wallet2 = _interopRequireDefault(_wallet);
+
+var _accountData = require('../data/accountData');
+
+var _accountData2 = _interopRequireDefault(_accountData);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Transfer transaction module delegated tests', function () {
+    var WalletBuilder = void 0,
+        $controller = void 0,
+        $rootScope = void 0,
+        Wallet = void 0,
+        DataBridge = void 0,
+        $httpBackend = void 0,
+        NetworkRequests = void 0,
+        $q = void 0,
+        Transactions = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_$controller_, _$rootScope_, _Wallet_, _DataBridge_, _$httpBackend_, _NetworkRequests_, _$q_, _Transactions_) {
+        $controller = _$controller_;
+        $rootScope = _$rootScope_;
+        Wallet = _Wallet_;
+        DataBridge = _DataBridge_;
+        $httpBackend = _$httpBackend_;
+        NetworkRequests = _NetworkRequests_;
+        $q = _$q_;
+        Transactions = _Transactions_;
+    }));
+
+    function createDummyWalletContextMainnet(Wallet) {
+        Wallet.setWallet(_wallet2.default.mainnetWallet);
+        Wallet.setDefaultNode();
+
+        DataBridge.accountData = _accountData2.default.mainnetAccountData;
+        DataBridge.namespaceOwned = _accountData2.default.mainnetNamespaceOwned;
+        DataBridge.mosaicOwned = _accountData2.default.mainnetMosaicOwned;
+        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.mainnetMosaicDefinitionMetaDataPair;
+        DataBridge.nisHeight = 999999999;
+    }
+
+    it("Call getRecipientData function with right parameter", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        spyOn(ctrl, 'getRecipientData').and.returnValue($q.when({}));
+        var cleanAddress = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
+
+        // Act
+        ctrl.formData.rawRecipient = 'NAMOAV-HFVPJ6-FP32YP-2GCM64-WSRMKX-A5KKYW-WHPY';
+        scope.$digest();
+        ctrl.processRecipientInput();
+
+        // Assert
+        expect(ctrl.getRecipientData).toHaveBeenCalledWith(cleanAddress);
+    });
+
+    it("Call getRecipientDataFromAlias function with right parameter", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        spyOn(ctrl, 'getRecipientDataFromAlias').and.returnValue($q.when({}));
+        var alias = 'imre';
+
+        // Act
+        ctrl.formData.rawRecipient = '@imre';
+        ctrl.processRecipientInput();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.getRecipientDataFromAlias).toHaveBeenCalledWith(alias);
+    });
+
+    it("Right parameters in getAccountData request when using plain address", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        var cleanAddress = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
+        var accountData = {
+            "meta": {
+                "cosignatories": [],
+                "cosignatoryOf": [],
+                "status": "LOCKED",
+                "remoteStatus": "ACTIVE"
+            },
+            "account": {
+                "address": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
+                "harvestedBlocks": 116,
+                "balance": 3030159148572,
+                "importance": 3.543180679979003E-4,
+                "vestedBalance": 3005640174876,
+                "publicKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
+                "label": null,
+                "multisigInfo": {}
+            }
+        };
+
+        spyOn(ctrl, 'getRecipientData').and.callThrough();
+        spyOn(ctrl._NetworkRequests, 'getAccountData').and.callFake(function () {
+            return {
+                then: function then(callback) {
+                    return callback(accountData);
+                }
+            };
+        });
+
+        // Act
+        ctrl.formData.rawRecipient = 'NAMOAV-HFVPJ6-FP32YP-2GCM64-WSRMKX-A5KKYW-WHPY';
+        ctrl.processRecipientInput();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.getRecipientData).toHaveBeenCalledWith(cleanAddress);
+        expect(ctrl._NetworkRequests.getAccountData).toHaveBeenCalledWith(_helpers2.default.getHostname(Wallet.node), cleanAddress);
+    });
+
+    it("Right parameters in getNamespacesById and getAccountData request when using @alias", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        var cleanAddress = 'NDS3R3ZVAUCQGIU4GUG7L56II4IIXBGIMREL45YG';
+        var alias = 'imre';
+        var accountData = {
+            "meta": {
+                "cosignatories": [],
+                "cosignatoryOf": [],
+                "status": "LOCKED",
+                "remoteStatus": "INACTIVE"
+            },
+            "account": {
+                "address": "NDS3R3ZVAUCQGIU4GUG7L56II4IIXBGIMREL45YG",
+                "harvestedBlocks": 0,
+                "balance": 13949807000001,
+                "importance": 0.001423425672461785,
+                "vestedBalance": 13949807000001,
+                "publicKey": "f85ab43dad059b9d2331ddacc384ad925d3467f03207182e01296bacfb242d01",
+                "label": null,
+                "multisigInfo": {}
+            }
+        };
+        var namespaceData = {
+            "owner": "NDS3R3ZVAUCQGIU4GUG7L56II4IIXBGIMREL45YG",
+            "fqn": "imre",
+            "height": 440493
+        };
+
+        spyOn(ctrl, 'getRecipientDataFromAlias').and.callThrough();
+        spyOn(ctrl._NetworkRequests, 'getNamespacesById').and.callFake(function () {
+            return {
+                then: function then(callback) {
+                    return callback(namespaceData);
+                }
+            };
+        });
+        spyOn(ctrl._NetworkRequests, 'getAccountData').and.callFake(function () {
+            return {
+                then: function then(callback) {
+                    return callback(accountData);
+                }
+            };
+        });
+
+        // Act
+        ctrl.formData.rawRecipient = '@imre';
+        ctrl.processRecipientInput();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl.getRecipientDataFromAlias).toHaveBeenCalledWith(alias);
+        expect(ctrl._NetworkRequests.getNamespacesById).toHaveBeenCalledWith(_helpers2.default.getHostname(Wallet.node), alias);
+        expect(ctrl._NetworkRequests.getAccountData).toHaveBeenCalledWith(_helpers2.default.getHostname(Wallet.node), cleanAddress);
+    });
+
+    it("Pass right parameters to prepareTranfer when updating fees", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        spyOn(ctrl._Transactions, 'prepareTransfer').and.callThrough();
+        ctrl.common = {
+            "privateKey": "8fac70ea9aca3ae3418e25c0d31d9a0723e0a1790ae8fa97747c00dc0037472e",
+            "password": ""
+        };
+
+        // Act
+        ctrl.formData.recipient = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
+        ctrl.formData.amount = 8;
+        ctrl.formData.message = 'NEM rocks !';
+        ctrl.updateFees();
+        scope.$digest();
+
+        // Assert
+        expect(ctrl._Transactions.prepareTransfer).toHaveBeenCalledWith(ctrl.common, ctrl.formData, ctrl.mosaicsMetaData);
+    });
+
+    it("Pass right parameters to prepareTranfer in send() method", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        // Override
+        ctrl.updateFees = function () {
+            // Otherwise it calls prepareTransfer from here first and then spy is on the wrong function
+        };
+        spyOn(ctrl._Transactions, 'prepareTransfer').and.callThrough();
+        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
+        ctrl.common = {
+            "privateKey": "",
+            "password": "TestTest"
+        };
+        ctrl.formData.recipient = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
+        ctrl.formData.amount = 8;
+        ctrl.formData.message = 'NEM rocks !';
+        scope.$digest();
+
+        // Act
+        ctrl.send();
+
+        // Assert
+        expect(ctrl._Transactions.prepareTransfer).toHaveBeenCalledWith(ctrl.common, ctrl.formData, ctrl.mosaicsMetaData);
+    });
+
+    it("Can't call prepareTransfer in send() method if wrong password", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        // Override
+        ctrl.updateFees = function () {
+            // Otherwise it calls prepareTransfer from here first and then spy is on the wrong function
+        };
+        spyOn(ctrl._Transactions, 'prepareTransfer').and.callThrough();
+        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
+        ctrl.common = {
+            "privateKey": "",
+            "password": "TestTest11"
+        };
+
+        // Act
+        ctrl.send();
+
+        // Assert
+        expect(ctrl._Transactions.prepareTransfer).not.toHaveBeenCalled();
+    });
+
+    it("Pass right parameters to serializeAndAnnounceTransaction in send() method", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
+        ctrl.common = {
+            "privateKey": "",
+            "password": "TestTest"
+        };
+        ctrl.formData.recipient = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
+        ctrl.formData.amount = 8;
+        scope.$digest();
+
+        // Act
+        ctrl.send();
+
+        // Assert
+        expect(ctrl._Transactions.serializeAndAnnounceTransaction).toHaveBeenCalledWith(jasmine.any(Object), ctrl.common);
+    });
+
+    it("Can't call serializeAndAnnounceTransaction in send() method if wrong password", function () {
+        // Arrange:
+        var scope = $rootScope.$new();
+        createDummyWalletContextMainnet(Wallet);
+        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
+        scope.$digest();
+        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
+        ctrl.common = {
+            "privateKey": "",
+            "password": "TestTest11"
+        };
+
+        // Act
+        ctrl.send();
+
+        // Assert
+        expect(ctrl._Transactions.serializeAndAnnounceTransaction).not.toHaveBeenCalled();
+    });
+});
+
+},{"../../nempay/app/utils/helpers":8,"../data/accountData":11,"../data/wallet":12}],25:[function(require,module,exports){
+'use strict';
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _helpers = require('../../nempay/app/utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+var _nodes = require('../../nempay/app/utils/nodes');
+
+var _nodes2 = _interopRequireDefault(_nodes);
+
+var _wallet = require('../data/wallet');
+
+var _wallet2 = _interopRequireDefault(_wallet);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('Wallet service tests', function () {
+    var Wallet = void 0,
+        AppConstants = void 0,
+        $localStorage = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_Wallet_, _AppConstants_, _$localStorage_) {
+        Wallet = _Wallet_;
+        AppConstants = _AppConstants_;
+        $localStorage = _$localStorage_;
+        $localStorage.$reset();
+    }));
+
+    it("Default properties initialized", function () {
+        // Assert
+        expect(Wallet.current).toBeUndefined();
+        expect(Wallet.currentAccount).toBeUndefined();
+        expect(Wallet.algo).toBeUndefined();
+        expect(Wallet.node).toBeUndefined();
+        expect(Wallet.searchNode).toBeUndefined();
+        expect(Wallet.chainLink).toBeUndefined();
+        expect(Wallet.harvestingNode).toBeUndefined();
+        expect(Wallet.ntyData).toBeUndefined();
+    });
+
+    it("Can set a wallet", function () {
+        // Arrange
+        var wallet = _wallet2.default.mainnetWallet;
+
+        // Act
+        Wallet.setWallet(wallet);
+
+        // Assert
+        expect(Wallet.current).toEqual(wallet);
+        expect(Wallet.currentAccount).toEqual(wallet.accounts[0]);
+        expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
+        expect(Wallet.network).toEqual(wallet.accounts[0].network);
+    });
+
+    describe('Set a wallet edge-cases', function () {
+
+        it("Can't set a wallet if no wallet", function () {
+            // Arrange
+            var wallet = "";
+
+            // Act
+            Wallet.setWallet(wallet);
+
+            // Assert
+            expect(Wallet.current).toBe(undefined);
+            expect(Wallet.currentAccount).toBe(undefined);
+            expect(Wallet.algo).toBe(undefined);
+            expect(Wallet.network).toBe(AppConstants.defaultNetwork);
+        });
+    });
+
+    it("Can set a wallet at index", function () {
+        // Arrange
+        var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
+        Wallet.setWallet(wallet);
+        var index = 1;
+
+        // Act
+        Wallet.setWalletAccount(wallet, index);
+
+        // Assert
+        expect(Wallet.currentAccount).toEqual(wallet.accounts[index]);
+        expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
+        expect(Wallet.network).toEqual(wallet.accounts[0].network);
+    });
+
+    describe('Set a wallet account edge-cases', function () {
+
+        it("Can't set a wallet account if no current wallet", function () {
+            // Arrange
+            var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
+            var index = 1;
+
+            // Act
+            Wallet.setWalletAccount(wallet, index);
+
+            // Assert
+            expect(Wallet.current).toBe(undefined);
+            expect(Wallet.currentAccount).toBe(undefined);
+            expect(Wallet.algo).toBe(undefined);
+            expect(Wallet.network).toBe(AppConstants.defaultNetwork);
+        });
+
+        it("Can't set a wallet account if no selected wallet", function () {
+            // Arrange
+            var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
+            Wallet.setWallet(wallet);
+            var index = 1;
+            var selectedWallet = "";
+
+            // Act
+            Wallet.setWalletAccount(selectedWallet, index);
+
+            // Assert
+            expect(Wallet.current).toEqual(wallet);
+            expect(Wallet.currentAccount).toEqual(wallet.accounts[0]);
+            expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
+            expect(Wallet.network).toBe(wallet.accounts[0].network);
+        });
+
+        it("Can't set a wallet account if index is out of bounds", function () {
+            // Arrange
+            var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
+            Wallet.setWallet(wallet);
+            var index = 2;
+
+            // Act
+            Wallet.setWalletAccount(wallet, index);
+
+            // Assert
+            expect(Wallet.current).toEqual(wallet);
+            expect(Wallet.currentAccount).toEqual(wallet.accounts[0]);
+            expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
+            expect(Wallet.network).toBe(wallet.accounts[0].network);
+        });
+    });
+
+    it("Can set default mainnet node if none in local storage", function () {
+        // Arrange
+        Wallet.network = 104;
+
+        // Act
+        Wallet.setDefaultNode();
+
+        // Assert
+        expect(Wallet.node).toEqual(_nodes2.default.defaultMainnetNode);
+    });
+
+    it("Can set mainnet node if one in local storage", function () {
+        // Arrange
+        Wallet.network = 104;
+        $localStorage.selectedMainnetNode = "http://san.nem.ninja:7778";
+
+        // Act
+        Wallet.setDefaultNode();
+
+        // Assert
+        expect(Wallet.node).toEqual($localStorage.selectedMainnetNode);
+    });
+
+    it("Can set default testnet node if none in local storage", function () {
+        // Arrange
+        Wallet.network = -104;
+
+        // Act
+        Wallet.setDefaultNode();
+
+        // Assert
+        expect(Wallet.node).toEqual(_nodes2.default.defaultTestnetNode);
+    });
+
+    it("Can set testnet node if one in local storage", function () {
+        // Arrange
+        Wallet.network = -104;
+        $localStorage.selectedTestnetNode = "http://bob.nem.ninja:7778";
+
+        // Act
+        Wallet.setDefaultNode();
+
+        // Assert
+        expect(Wallet.node).toEqual($localStorage.selectedTestnetNode);
+    });
+
+    it("Can set mainnet util nodes", function () {
+        // Arrange
+        Wallet.network = 104;
+
+        // Act
+        Wallet.setUtilNodes();
+
+        // Assert
+        expect(Wallet.chainLink).toEqual(_nodes2.default.defaultMainnetExplorer);
+        expect(Wallet.searchNode).toEqual(_nodes2.default.mainnetSearchNodes[0]);
+    });
+
+    it("Can set testnet util nodes", function () {
+        // Arrange
+        Wallet.network = -104;
+
+        // Act
+        Wallet.setUtilNodes();
+
+        // Assert
+        expect(Wallet.chainLink).toEqual(_nodes2.default.defaultTestnetExplorer);
+        expect(Wallet.searchNode).toEqual(_nodes2.default.testnetSearchNodes[0]);
+    });
+
+    it("Can set mainnet nty data if present in local storage", function () {
+        // Arrange
+        Wallet.network = _Network2.default.data.Mainnet.id;
+        $localStorage.ntyMainnet = [{
+            "filename": "Accords-jazz.pdf",
+            "tags": "Mainnet",
+            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
+            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
+            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
+        }];
+
+        // Act
+        Wallet.setNtyData();
+
+        // Assert
+        expect(Wallet.ntyData).toEqual($localStorage.ntyMainnet);
+    });
+
+    it("Can set testnet nty data if present in local storage", function () {
+        // Arrange
+        Wallet.network = _Network2.default.data.Testnet.id;
+        $localStorage.ntyTestnet = [{
+            "filename": "Accords-jazz.pdf",
+            "tags": "Testnet",
+            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
+            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
+            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
+        }];
+
+        // Act
+        Wallet.setNtyData();
+
+        // Assert
+        expect(Wallet.ntyData).toEqual($localStorage.ntyTestnet);
+    });
+
+    it("Can set mainnet nty data in local storage", function () {
+        // Arrange
+        Wallet.network = _Network2.default.data.Mainnet.id;
+        var ntyData = [{
+            "filename": "Accords-jazz.pdf",
+            "tags": "Mainnet",
+            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
+            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
+            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
+        }];
+
+        // Act
+        Wallet.setNtyDataInLocalStorage(ntyData);
+
+        // Assert
+        expect($localStorage.ntyMainnet).toEqual(ntyData);
+    });
+
+    it("Can set testnet nty data in local storage", function () {
+        // Arrange
+        Wallet.network = _Network2.default.data.Testnet.id;
+        var ntyData = [{
+            "filename": "Accords-jazz.pdf",
+            "tags": "Mainnet",
+            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
+            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
+            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
+        }];
+
+        // Act
+        Wallet.setNtyDataInLocalStorage(ntyData);
+
+        // Assert
+        expect($localStorage.ntyTestnet).toEqual(ntyData);
+    });
+});
+
+},{"../../nempay/app/utils/Network":4,"../../nempay/app/utils/helpers":8,"../../nempay/app/utils/nodes":10,"../data/wallet":12}],26:[function(require,module,exports){
+'use strict';
+
+var _Network = require('../../nempay/app/utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _Address = require('../../nempay/app/utils/Address');
+
+var _Address2 = _interopRequireDefault(_Address);
+
+var _convert = require('../../nempay/app/utils/convert');
+
+var _convert2 = _interopRequireDefault(_convert);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+describe('WalletBuilder service tests', function () {
+    var WalletBuilder = void 0;
+
+    beforeEach(angular.mock.module('app'));
+
+    beforeEach(angular.mock.inject(function (_WalletBuilder_) {
+        WalletBuilder = _WalletBuilder_;
+    }));
+
+    it("Can create new wallet", function (done) {
+        // Arrange:
+        var walletName = "Quantum_Mechanics";
+        var password = "TestTest";
+        var network = _Network2.default.data.Mainnet.id;
+
+        // Act
+        WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {
+
+            // Assert
+            expect(wallet).not.toBe(0);
+
+            done();
+        });
+    });
+
+    describe('Create new wallet edge-cases', function () {
+
+        it("Can't create new wallet without password", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create new wallet without name", function (done) {
+            // Arrange:
+            var walletName = "";
+            var password = "TestTest";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create new wallet without network", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "TestTest";
+            var network = "";
+
+            //// Act
+            WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+    });
+
+    it("Can create brain wallet", function (done) {
+        // Arrange:
+        var walletName = "Quantum_Mechanics";
+        var password = "TestTest";
+        var network = _Network2.default.data.Mainnet.id;
+        var expectedWallet = {
+            "privateKey": "",
+            "name": "Quantum_Mechanics",
+            "accounts": {
+                "0": {
+                    "brain": true,
+                    "algo": "pass:6k",
+                    "encrypted": "",
+                    "iv": "",
+                    "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
+                    "label": "Primary",
+                    "network": 104,
+                    "child": "fda69cfb780e65ee400be32101f80c7611ba95930cd838a4d32dabb4c738f1af"
+                }
+            }
+        };
+
+        // Act
+        WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {
+
+            // Assert
+            expect(wallet).toEqual(expectedWallet);
+
+            done();
+        });
+    });
+
+    describe('Create brain wallet edge-cases', function () {
+
+        it("Can't create brain wallet without password", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create brain wallet without name", function (done) {
+            // Arrange:
+            var walletName = "";
+            var password = "TestTest";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create brain wallet without network", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "TestTest";
+            var network = "";
+
+            // Act
+            WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+    });
+
+    it("Can create private key wallet", function (done) {
+        // Arrange:
+        var walletName = "Quantum_Mechanics";
+        var password = "TestTest";
+        var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+        var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+        var network = _Network2.default.data.Mainnet.id;
+
+        // Act
+        WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {
+
+            // Assert
+            expect(wallet).not.toBe(0);
+
+            done();
+        });
+    });
+
+    describe('Create private key wallet edge-cases', function () {
+
+        it("Can't create private Key wallet without password", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "";
+            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create private Key wallet without private key", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "TestTest";
+            var privateKey = "";
+            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create private Key wallet without address", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "TestTest";
+            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+            var address = "";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create private Key wallet without name", function (done) {
+            // Arrange:
+            var walletName = "";
+            var password = "TestTest";
+            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+            var network = _Network2.default.data.Mainnet.id;
+
+            // Act
+            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+
+        it("Can't create private Key wallet without network", function (done) {
+            // Arrange:
+            var walletName = "Quantum_Mechanics";
+            var password = "TestTest";
+            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
+            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
+            var network = "";
+
+            // Act
+            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
+
+                // Assert
+                expect(err).toBeDefined();
+
+                done();
+            });
+        });
+    });
+});
+
+},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/Network":4,"../../nempay/app/utils/convert":7}],27:[function(require,module,exports){
+
+},{}],28:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -1793,7 +10551,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":3,"ieee754":4,"isarray":5}],3:[function(require,module,exports){
+},{"base64-js":29,"ieee754":30,"isarray":31}],29:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -1909,7 +10667,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],4:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -1995,14 +10753,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],5:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],6:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 'use strict'
 
 exports.randomBytes = exports.rng = exports.pseudoRandomBytes = exports.prng = require('randombytes')
@@ -2081,7 +10839,7 @@ var publicEncrypt = require('public-encrypt')
   }
 })
 
-},{"browserify-cipher":7,"browserify-sign":37,"browserify-sign/algos":36,"create-ecdh":104,"create-hash":130,"create-hmac":143,"diffie-hellman":144,"pbkdf2":151,"public-encrypt":153,"randombytes":198}],7:[function(require,module,exports){
+},{"browserify-cipher":33,"browserify-sign":63,"browserify-sign/algos":62,"create-ecdh":130,"create-hash":156,"create-hmac":169,"diffie-hellman":170,"pbkdf2":177,"public-encrypt":179,"randombytes":224}],33:[function(require,module,exports){
 var ebtk = require('evp_bytestokey')
 var aes = require('browserify-aes/browser')
 var DES = require('browserify-des')
@@ -2156,7 +10914,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"browserify-aes/browser":10,"browserify-aes/modes":14,"browserify-des":25,"browserify-des/modes":26,"evp_bytestokey":35}],8:[function(require,module,exports){
+},{"browserify-aes/browser":36,"browserify-aes/modes":40,"browserify-des":51,"browserify-des/modes":52,"evp_bytestokey":61}],34:[function(require,module,exports){
 (function (Buffer){
 // based on the aes implimentation in triple sec
 // https://github.com/keybase/triplesec
@@ -2337,7 +11095,7 @@ AES.prototype._doCryptBlock = function (M, keySchedule, SUB_MIX, SBOX) {
 exports.AES = AES
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],9:[function(require,module,exports){
+},{"buffer":28}],35:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -2438,7 +11196,7 @@ function xorTest (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":8,"./ghash":13,"buffer":2,"buffer-xor":22,"cipher-base":23,"inherits":200}],10:[function(require,module,exports){
+},{"./aes":34,"./ghash":39,"buffer":28,"buffer-xor":48,"cipher-base":49,"inherits":226}],36:[function(require,module,exports){
 var ciphers = require('./encrypter')
 exports.createCipher = exports.Cipher = ciphers.createCipher
 exports.createCipheriv = exports.Cipheriv = ciphers.createCipheriv
@@ -2451,7 +11209,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"./decrypter":11,"./encrypter":12,"./modes":14}],11:[function(require,module,exports){
+},{"./decrypter":37,"./encrypter":38,"./modes":40}],37:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -2592,7 +11350,7 @@ exports.createDecipher = createDecipher
 exports.createDecipheriv = createDecipheriv
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":8,"./authCipher":9,"./modes":14,"./modes/cbc":15,"./modes/cfb":16,"./modes/cfb1":17,"./modes/cfb8":18,"./modes/ctr":19,"./modes/ecb":20,"./modes/ofb":21,"./streamCipher":24,"buffer":2,"cipher-base":23,"evp_bytestokey":35,"inherits":200}],12:[function(require,module,exports){
+},{"./aes":34,"./authCipher":35,"./modes":40,"./modes/cbc":41,"./modes/cfb":42,"./modes/cfb1":43,"./modes/cfb8":44,"./modes/ctr":45,"./modes/ecb":46,"./modes/ofb":47,"./streamCipher":50,"buffer":28,"cipher-base":49,"evp_bytestokey":61,"inherits":226}],38:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -2718,7 +11476,7 @@ exports.createCipheriv = createCipheriv
 exports.createCipher = createCipher
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":8,"./authCipher":9,"./modes":14,"./modes/cbc":15,"./modes/cfb":16,"./modes/cfb1":17,"./modes/cfb8":18,"./modes/ctr":19,"./modes/ecb":20,"./modes/ofb":21,"./streamCipher":24,"buffer":2,"cipher-base":23,"evp_bytestokey":35,"inherits":200}],13:[function(require,module,exports){
+},{"./aes":34,"./authCipher":35,"./modes":40,"./modes/cbc":41,"./modes/cfb":42,"./modes/cfb1":43,"./modes/cfb8":44,"./modes/ctr":45,"./modes/ecb":46,"./modes/ofb":47,"./streamCipher":50,"buffer":28,"cipher-base":49,"evp_bytestokey":61,"inherits":226}],39:[function(require,module,exports){
 (function (Buffer){
 var zeros = new Buffer(16)
 zeros.fill(0)
@@ -2820,7 +11578,7 @@ function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],14:[function(require,module,exports){
+},{"buffer":28}],40:[function(require,module,exports){
 exports['aes-128-ecb'] = {
   cipher: 'AES',
   key: 128,
@@ -2993,7 +11751,7 @@ exports['aes-256-gcm'] = {
   type: 'auth'
 }
 
-},{}],15:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 var xor = require('buffer-xor')
 
 exports.encrypt = function (self, block) {
@@ -3012,7 +11770,7 @@ exports.decrypt = function (self, block) {
   return xor(out, pad)
 }
 
-},{"buffer-xor":22}],16:[function(require,module,exports){
+},{"buffer-xor":48}],42:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -3047,7 +11805,7 @@ function encryptStart (self, data, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"buffer-xor":22}],17:[function(require,module,exports){
+},{"buffer":28,"buffer-xor":48}],43:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad
@@ -3085,7 +11843,7 @@ function shiftIn (buffer, value) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],18:[function(require,module,exports){
+},{"buffer":28}],44:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad = self._cipher.encryptBlock(self._prev)
@@ -3104,7 +11862,7 @@ exports.encrypt = function (self, chunk, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],19:[function(require,module,exports){
+},{"buffer":28}],45:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -3139,7 +11897,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"buffer-xor":22}],20:[function(require,module,exports){
+},{"buffer":28,"buffer-xor":48}],46:[function(require,module,exports){
 exports.encrypt = function (self, block) {
   return self._cipher.encryptBlock(block)
 }
@@ -3147,7 +11905,7 @@ exports.decrypt = function (self, block) {
   return self._cipher.decryptBlock(block)
 }
 
-},{}],21:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -3167,7 +11925,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"buffer-xor":22}],22:[function(require,module,exports){
+},{"buffer":28,"buffer-xor":48}],48:[function(require,module,exports){
 (function (Buffer){
 module.exports = function xor (a, b) {
   var length = Math.min(a.length, b.length)
@@ -3181,7 +11939,7 @@ module.exports = function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],23:[function(require,module,exports){
+},{"buffer":28}],49:[function(require,module,exports){
 (function (Buffer){
 var Transform = require('stream').Transform
 var inherits = require('inherits')
@@ -3275,7 +12033,7 @@ CipherBase.prototype._toString = function (value, enc, fin) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"inherits":200,"stream":219,"string_decoder":220}],24:[function(require,module,exports){
+},{"buffer":28,"inherits":226,"stream":245,"string_decoder":246}],50:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -3304,7 +12062,7 @@ StreamCipher.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":8,"buffer":2,"cipher-base":23,"inherits":200}],25:[function(require,module,exports){
+},{"./aes":34,"buffer":28,"cipher-base":49,"inherits":226}],51:[function(require,module,exports){
 (function (Buffer){
 var CipherBase = require('cipher-base')
 var des = require('des.js')
@@ -3351,7 +12109,7 @@ DES.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"cipher-base":27,"des.js":28,"inherits":200}],26:[function(require,module,exports){
+},{"buffer":28,"cipher-base":53,"des.js":54,"inherits":226}],52:[function(require,module,exports){
 exports['des-ecb'] = {
   key: 8,
   iv: 0
@@ -3377,9 +12135,9 @@ exports['des-ede'] = {
   iv: 0
 }
 
-},{}],27:[function(require,module,exports){
-arguments[4][23][0].apply(exports,arguments)
-},{"buffer":2,"dup":23,"inherits":200,"stream":219,"string_decoder":220}],28:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
+arguments[4][49][0].apply(exports,arguments)
+},{"buffer":28,"dup":49,"inherits":226,"stream":245,"string_decoder":246}],54:[function(require,module,exports){
 'use strict';
 
 exports.utils = require('./des/utils');
@@ -3388,7 +12146,7 @@ exports.DES = require('./des/des');
 exports.CBC = require('./des/cbc');
 exports.EDE = require('./des/ede');
 
-},{"./des/cbc":29,"./des/cipher":30,"./des/des":31,"./des/ede":32,"./des/utils":33}],29:[function(require,module,exports){
+},{"./des/cbc":55,"./des/cipher":56,"./des/des":57,"./des/ede":58,"./des/utils":59}],55:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -3455,7 +12213,7 @@ proto._update = function _update(inp, inOff, out, outOff) {
   }
 };
 
-},{"inherits":200,"minimalistic-assert":34}],30:[function(require,module,exports){
+},{"inherits":226,"minimalistic-assert":60}],56:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -3598,7 +12356,7 @@ Cipher.prototype._finalDecrypt = function _finalDecrypt() {
   return this._unpad(out);
 };
 
-},{"minimalistic-assert":34}],31:[function(require,module,exports){
+},{"minimalistic-assert":60}],57:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -3743,7 +12501,7 @@ DES.prototype._decrypt = function _decrypt(state, lStart, rStart, out, off) {
   utils.rip(l, r, out, off);
 };
 
-},{"../des":28,"inherits":200,"minimalistic-assert":34}],32:[function(require,module,exports){
+},{"../des":54,"inherits":226,"minimalistic-assert":60}],58:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -3800,7 +12558,7 @@ EDE.prototype._update = function _update(inp, inOff, out, outOff) {
 EDE.prototype._pad = DES.prototype._pad;
 EDE.prototype._unpad = DES.prototype._unpad;
 
-},{"../des":28,"inherits":200,"minimalistic-assert":34}],33:[function(require,module,exports){
+},{"../des":54,"inherits":226,"minimalistic-assert":60}],59:[function(require,module,exports){
 'use strict';
 
 exports.readUInt32BE = function readUInt32BE(bytes, off) {
@@ -4058,7 +12816,7 @@ exports.padSplit = function padSplit(num, size, group) {
   return out.join(' ');
 };
 
-},{}],34:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 module.exports = assert;
 
 function assert(val, msg) {
@@ -4071,7 +12829,7 @@ assert.equal = function assertEqual(l, r, msg) {
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
 };
 
-},{}],35:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 (function (Buffer){
 var md5 = require('create-hash/md5')
 module.exports = EVP_BytesToKey
@@ -4143,7 +12901,7 @@ function EVP_BytesToKey (password, salt, keyLen, ivLen) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"create-hash/md5":132}],36:[function(require,module,exports){
+},{"buffer":28,"create-hash/md5":158}],62:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 exports['RSA-SHA224'] = exports.sha224WithRSAEncryption = {
@@ -4219,7 +12977,7 @@ exports['RSA-MD5'] = exports.md5WithRSAEncryption = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],37:[function(require,module,exports){
+},{"buffer":28}],63:[function(require,module,exports){
 (function (Buffer){
 var _algos = require('./algos')
 var createHash = require('create-hash')
@@ -4326,7 +13084,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./algos":36,"./sign":102,"./verify":103,"buffer":2,"create-hash":130,"inherits":200,"stream":219}],38:[function(require,module,exports){
+},{"./algos":62,"./sign":128,"./verify":129,"buffer":28,"create-hash":156,"inherits":226,"stream":245}],64:[function(require,module,exports){
 'use strict'
 exports['1.3.132.0.10'] = 'secp256k1'
 
@@ -4340,7 +13098,7 @@ exports['1.3.132.0.34'] = 'p384'
 
 exports['1.3.132.0.35'] = 'p521'
 
-},{}],39:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 (function (module, exports) {
   'use strict';
 
@@ -7769,7 +16527,7 @@ exports['1.3.132.0.35'] = 'p521'
   };
 })(typeof module === 'undefined' || module, this);
 
-},{}],40:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 var randomBytes = require('randombytes');
@@ -7813,7 +16571,7 @@ function getr(priv) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":39,"buffer":2,"randombytes":198}],41:[function(require,module,exports){
+},{"bn.js":65,"buffer":28,"randombytes":224}],67:[function(require,module,exports){
 'use strict';
 
 var elliptic = exports;
@@ -7829,7 +16587,7 @@ elliptic.curves = require('./elliptic/curves');
 elliptic.ec = require('./elliptic/ec');
 elliptic.eddsa = require('./elliptic/eddsa');
 
-},{"../package.json":64,"./elliptic/curve":44,"./elliptic/curves":47,"./elliptic/ec":48,"./elliptic/eddsa":51,"./elliptic/hmac-drbg":54,"./elliptic/utils":56,"brorand":57}],42:[function(require,module,exports){
+},{"../package.json":90,"./elliptic/curve":70,"./elliptic/curves":73,"./elliptic/ec":74,"./elliptic/eddsa":77,"./elliptic/hmac-drbg":80,"./elliptic/utils":82,"brorand":83}],68:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -8206,7 +16964,7 @@ BasePoint.prototype.dblp = function dblp(k) {
   return r;
 };
 
-},{"../../elliptic":41,"bn.js":39}],43:[function(require,module,exports){
+},{"../../elliptic":67,"bn.js":65}],69:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -8641,7 +17399,7 @@ Point.prototype.eqXToP = function eqXToP(x) {
 Point.prototype.toP = Point.prototype.normalize;
 Point.prototype.mixedAdd = Point.prototype.add;
 
-},{"../../elliptic":41,"../curve":44,"bn.js":39,"inherits":200}],44:[function(require,module,exports){
+},{"../../elliptic":67,"../curve":70,"bn.js":65,"inherits":226}],70:[function(require,module,exports){
 'use strict';
 
 var curve = exports;
@@ -8651,7 +17409,7 @@ curve.short = require('./short');
 curve.mont = require('./mont');
 curve.edwards = require('./edwards');
 
-},{"./base":42,"./edwards":43,"./mont":45,"./short":46}],45:[function(require,module,exports){
+},{"./base":68,"./edwards":69,"./mont":71,"./short":72}],71:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -8833,7 +17591,7 @@ Point.prototype.getX = function getX() {
   return this.x.fromRed();
 };
 
-},{"../../elliptic":41,"../curve":44,"bn.js":39,"inherits":200}],46:[function(require,module,exports){
+},{"../../elliptic":67,"../curve":70,"bn.js":65,"inherits":226}],72:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -9773,7 +18531,7 @@ JPoint.prototype.isInfinity = function isInfinity() {
   return this.z.cmpn(0) === 0;
 };
 
-},{"../../elliptic":41,"../curve":44,"bn.js":39,"inherits":200}],47:[function(require,module,exports){
+},{"../../elliptic":67,"../curve":70,"bn.js":65,"inherits":226}],73:[function(require,module,exports){
 'use strict';
 
 var curves = exports;
@@ -9980,7 +18738,7 @@ defineCurve('secp256k1', {
   ]
 });
 
-},{"../elliptic":41,"./precomputed/secp256k1":55,"hash.js":58}],48:[function(require,module,exports){
+},{"../elliptic":67,"./precomputed/secp256k1":81,"hash.js":84}],74:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -10219,7 +18977,7 @@ EC.prototype.getKeyRecoveryParam = function(e, signature, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-},{"../../elliptic":41,"./key":49,"./signature":50,"bn.js":39}],49:[function(require,module,exports){
+},{"../../elliptic":67,"./key":75,"./signature":76,"bn.js":65}],75:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -10328,7 +19086,7 @@ KeyPair.prototype.inspect = function inspect() {
          ' pub: ' + (this.pub && this.pub.inspect()) + ' >';
 };
 
-},{"bn.js":39}],50:[function(require,module,exports){
+},{"bn.js":65}],76:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -10465,7 +19223,7 @@ Signature.prototype.toDER = function toDER(enc) {
   return utils.encode(res, enc);
 };
 
-},{"../../elliptic":41,"bn.js":39}],51:[function(require,module,exports){
+},{"../../elliptic":67,"bn.js":65}],77:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -10585,7 +19343,7 @@ EDDSA.prototype.isPoint = function isPoint(val) {
   return val instanceof this.pointClass;
 };
 
-},{"../../elliptic":41,"./key":52,"./signature":53,"hash.js":58}],52:[function(require,module,exports){
+},{"../../elliptic":67,"./key":78,"./signature":79,"hash.js":84}],78:[function(require,module,exports){
 'use strict';
 
 var elliptic = require('../../elliptic');
@@ -10683,7 +19441,7 @@ KeyPair.prototype.getPublic = function getPublic(enc) {
 
 module.exports = KeyPair;
 
-},{"../../elliptic":41}],53:[function(require,module,exports){
+},{"../../elliptic":67}],79:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -10751,7 +19509,7 @@ Signature.prototype.toHex = function toHex() {
 
 module.exports = Signature;
 
-},{"../../elliptic":41,"bn.js":39}],54:[function(require,module,exports){
+},{"../../elliptic":67,"bn.js":65}],80:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -10867,7 +19625,7 @@ HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
   return utils.encode(res, enc);
 };
 
-},{"../elliptic":41,"hash.js":58}],55:[function(require,module,exports){
+},{"../elliptic":67,"hash.js":84}],81:[function(require,module,exports){
 module.exports = {
   doubles: {
     step: 4,
@@ -11649,7 +20407,7 @@ module.exports = {
   }
 };
 
-},{}],56:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -11823,7 +20581,7 @@ function intFromLE(bytes) {
 utils.intFromLE = intFromLE;
 
 
-},{"bn.js":39}],57:[function(require,module,exports){
+},{"bn.js":65}],83:[function(require,module,exports){
 var r;
 
 module.exports = function rand(len) {
@@ -11882,7 +20640,7 @@ if (typeof window === 'object') {
   }
 }
 
-},{"crypto":1}],58:[function(require,module,exports){
+},{"crypto":27}],84:[function(require,module,exports){
 var hash = exports;
 
 hash.utils = require('./hash/utils');
@@ -11899,7 +20657,7 @@ hash.sha384 = hash.sha.sha384;
 hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 
-},{"./hash/common":59,"./hash/hmac":60,"./hash/ripemd":61,"./hash/sha":62,"./hash/utils":63}],59:[function(require,module,exports){
+},{"./hash/common":85,"./hash/hmac":86,"./hash/ripemd":87,"./hash/sha":88,"./hash/utils":89}],85:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -11992,7 +20750,7 @@ BlockHash.prototype._pad = function pad() {
   return res;
 };
 
-},{"../hash":58}],60:[function(require,module,exports){
+},{"../hash":84}],86:[function(require,module,exports){
 var hmac = exports;
 
 var hash = require('../hash');
@@ -12042,7 +20800,7 @@ Hmac.prototype.digest = function digest(enc) {
   return this.outer.digest(enc);
 };
 
-},{"../hash":58}],61:[function(require,module,exports){
+},{"../hash":84}],87:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 
@@ -12188,7 +20946,7 @@ var sh = [
   8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
 ];
 
-},{"../hash":58}],62:[function(require,module,exports){
+},{"../hash":84}],88:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -12754,7 +21512,7 @@ function g1_512_lo(xh, xl) {
   return r;
 }
 
-},{"../hash":58}],63:[function(require,module,exports){
+},{"../hash":84}],89:[function(require,module,exports){
 var utils = exports;
 var inherits = require('inherits');
 
@@ -13013,7 +21771,7 @@ function shr64_lo(ah, al, num) {
 };
 exports.shr64_lo = shr64_lo;
 
-},{"inherits":200}],64:[function(require,module,exports){
+},{"inherits":226}],90:[function(require,module,exports){
 module.exports={
   "name": "elliptic",
   "version": "6.3.2",
@@ -13099,7 +21857,7 @@ module.exports={
   "readme": "ERROR: No README data found!"
 }
 
-},{}],65:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.2": "aes-128-cbc",
 "2.16.840.1.101.3.4.1.3": "aes-128-ofb",
@@ -13113,7 +21871,7 @@ module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.43": "aes-256-ofb",
 "2.16.840.1.101.3.4.1.44": "aes-256-cfb"
 }
-},{}],66:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 // from https://github.com/indutny/self-signed/blob/gh-pages/lib/asn1.js
 // Fedor, you are amazing.
 
@@ -13232,7 +21990,7 @@ exports.signature = asn1.define('signature', function () {
   )
 })
 
-},{"asn1.js":69}],67:[function(require,module,exports){
+},{"asn1.js":95}],93:[function(require,module,exports){
 (function (Buffer){
 // adapted from https://github.com/apatil/pemstrip
 var findProc = /Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: AES-((?:128)|(?:192)|(?:256))-CBC,([0-9A-H]+)\r?\n\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n/m
@@ -13266,7 +22024,7 @@ module.exports = function (okey, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"browserify-aes":86,"buffer":2,"evp_bytestokey":101}],68:[function(require,module,exports){
+},{"browserify-aes":112,"buffer":28,"evp_bytestokey":127}],94:[function(require,module,exports){
 (function (Buffer){
 var asn1 = require('./asn1')
 var aesid = require('./aesid.json')
@@ -13371,7 +22129,7 @@ function decrypt (data, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aesid.json":65,"./asn1":66,"./fixProc":67,"browserify-aes":86,"buffer":2,"pbkdf2":151}],69:[function(require,module,exports){
+},{"./aesid.json":91,"./asn1":92,"./fixProc":93,"browserify-aes":112,"buffer":28,"pbkdf2":177}],95:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
@@ -13382,7 +22140,7 @@ asn1.constants = require('./asn1/constants');
 asn1.decoders = require('./asn1/decoders');
 asn1.encoders = require('./asn1/encoders');
 
-},{"./asn1/api":70,"./asn1/base":72,"./asn1/constants":76,"./asn1/decoders":78,"./asn1/encoders":81,"bn.js":39}],70:[function(require,module,exports){
+},{"./asn1/api":96,"./asn1/base":98,"./asn1/constants":102,"./asn1/decoders":104,"./asn1/encoders":107,"bn.js":65}],96:[function(require,module,exports){
 var asn1 = require('../asn1');
 var inherits = require('inherits');
 
@@ -13445,7 +22203,7 @@ Entity.prototype.encode = function encode(data, enc, /* internal */ reporter) {
   return this._getEncoder(enc).encode(data, reporter);
 };
 
-},{"../asn1":69,"inherits":200,"vm":221}],71:[function(require,module,exports){
+},{"../asn1":95,"inherits":226,"vm":247}],97:[function(require,module,exports){
 var inherits = require('inherits');
 var Reporter = require('../base').Reporter;
 var Buffer = require('buffer').Buffer;
@@ -13563,7 +22321,7 @@ EncoderBuffer.prototype.join = function join(out, offset) {
   return out;
 };
 
-},{"../base":72,"buffer":2,"inherits":200}],72:[function(require,module,exports){
+},{"../base":98,"buffer":28,"inherits":226}],98:[function(require,module,exports){
 var base = exports;
 
 base.Reporter = require('./reporter').Reporter;
@@ -13571,7 +22329,7 @@ base.DecoderBuffer = require('./buffer').DecoderBuffer;
 base.EncoderBuffer = require('./buffer').EncoderBuffer;
 base.Node = require('./node');
 
-},{"./buffer":71,"./node":73,"./reporter":74}],73:[function(require,module,exports){
+},{"./buffer":97,"./node":99,"./reporter":100}],99:[function(require,module,exports){
 var Reporter = require('../base').Reporter;
 var EncoderBuffer = require('../base').EncoderBuffer;
 var DecoderBuffer = require('../base').DecoderBuffer;
@@ -14207,7 +22965,7 @@ Node.prototype._isPrintstr = function isPrintstr(str) {
   return /^[A-Za-z0-9 '\(\)\+,\-\.\/:=\?]*$/.test(str);
 };
 
-},{"../base":72,"minimalistic-assert":83}],74:[function(require,module,exports){
+},{"../base":98,"minimalistic-assert":109}],100:[function(require,module,exports){
 var inherits = require('inherits');
 
 function Reporter(options) {
@@ -14330,7 +23088,7 @@ ReporterError.prototype.rethrow = function rethrow(msg) {
   return this;
 };
 
-},{"inherits":200}],75:[function(require,module,exports){
+},{"inherits":226}],101:[function(require,module,exports){
 var constants = require('../constants');
 
 exports.tagClass = {
@@ -14374,7 +23132,7 @@ exports.tag = {
 };
 exports.tagByName = constants._reverse(exports.tag);
 
-},{"../constants":76}],76:[function(require,module,exports){
+},{"../constants":102}],102:[function(require,module,exports){
 var constants = exports;
 
 // Helper
@@ -14395,7 +23153,7 @@ constants._reverse = function reverse(map) {
 
 constants.der = require('./der');
 
-},{"./der":75}],77:[function(require,module,exports){
+},{"./der":101}],103:[function(require,module,exports){
 var inherits = require('inherits');
 
 var asn1 = require('../../asn1');
@@ -14721,13 +23479,13 @@ function derDecodeLen(buf, primitive, fail) {
   return len;
 }
 
-},{"../../asn1":69,"inherits":200}],78:[function(require,module,exports){
+},{"../../asn1":95,"inherits":226}],104:[function(require,module,exports){
 var decoders = exports;
 
 decoders.der = require('./der');
 decoders.pem = require('./pem');
 
-},{"./der":77,"./pem":79}],79:[function(require,module,exports){
+},{"./der":103,"./pem":105}],105:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -14778,7 +23536,7 @@ PEMDecoder.prototype.decode = function decode(data, options) {
   return DERDecoder.prototype.decode.call(this, input, options);
 };
 
-},{"./der":77,"buffer":2,"inherits":200}],80:[function(require,module,exports){
+},{"./der":103,"buffer":28,"inherits":226}],106:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -15075,13 +23833,13 @@ function encodeTag(tag, primitive, cls, reporter) {
   return res;
 }
 
-},{"../../asn1":69,"buffer":2,"inherits":200}],81:[function(require,module,exports){
+},{"../../asn1":95,"buffer":28,"inherits":226}],107:[function(require,module,exports){
 var encoders = exports;
 
 encoders.der = require('./der');
 encoders.pem = require('./pem');
 
-},{"./der":80,"./pem":82}],82:[function(require,module,exports){
+},{"./der":106,"./pem":108}],108:[function(require,module,exports){
 var inherits = require('inherits');
 
 var DEREncoder = require('./der');
@@ -15104,45 +23862,45 @@ PEMEncoder.prototype.encode = function encode(data, options) {
   return out.join('\n');
 };
 
-},{"./der":80,"inherits":200}],83:[function(require,module,exports){
+},{"./der":106,"inherits":226}],109:[function(require,module,exports){
+arguments[4][60][0].apply(exports,arguments)
+},{"dup":60}],110:[function(require,module,exports){
 arguments[4][34][0].apply(exports,arguments)
-},{"dup":34}],84:[function(require,module,exports){
-arguments[4][8][0].apply(exports,arguments)
-},{"buffer":2,"dup":8}],85:[function(require,module,exports){
-arguments[4][9][0].apply(exports,arguments)
-},{"./aes":84,"./ghash":89,"buffer":2,"buffer-xor":98,"cipher-base":99,"dup":9,"inherits":200}],86:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"./decrypter":87,"./encrypter":88,"./modes":90,"dup":10}],87:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"./aes":84,"./authCipher":85,"./modes":90,"./modes/cbc":91,"./modes/cfb":92,"./modes/cfb1":93,"./modes/cfb8":94,"./modes/ctr":95,"./modes/ecb":96,"./modes/ofb":97,"./streamCipher":100,"buffer":2,"cipher-base":99,"dup":11,"evp_bytestokey":101,"inherits":200}],88:[function(require,module,exports){
-arguments[4][12][0].apply(exports,arguments)
-},{"./aes":84,"./authCipher":85,"./modes":90,"./modes/cbc":91,"./modes/cfb":92,"./modes/cfb1":93,"./modes/cfb8":94,"./modes/ctr":95,"./modes/ecb":96,"./modes/ofb":97,"./streamCipher":100,"buffer":2,"cipher-base":99,"dup":12,"evp_bytestokey":101,"inherits":200}],89:[function(require,module,exports){
-arguments[4][13][0].apply(exports,arguments)
-},{"buffer":2,"dup":13}],90:[function(require,module,exports){
-arguments[4][14][0].apply(exports,arguments)
-},{"dup":14}],91:[function(require,module,exports){
-arguments[4][15][0].apply(exports,arguments)
-},{"buffer-xor":98,"dup":15}],92:[function(require,module,exports){
-arguments[4][16][0].apply(exports,arguments)
-},{"buffer":2,"buffer-xor":98,"dup":16}],93:[function(require,module,exports){
-arguments[4][17][0].apply(exports,arguments)
-},{"buffer":2,"dup":17}],94:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
-},{"buffer":2,"dup":18}],95:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"buffer":2,"buffer-xor":98,"dup":19}],96:[function(require,module,exports){
-arguments[4][20][0].apply(exports,arguments)
-},{"dup":20}],97:[function(require,module,exports){
-arguments[4][21][0].apply(exports,arguments)
-},{"buffer":2,"buffer-xor":98,"dup":21}],98:[function(require,module,exports){
-arguments[4][22][0].apply(exports,arguments)
-},{"buffer":2,"dup":22}],99:[function(require,module,exports){
-arguments[4][23][0].apply(exports,arguments)
-},{"buffer":2,"dup":23,"inherits":200,"stream":219,"string_decoder":220}],100:[function(require,module,exports){
-arguments[4][24][0].apply(exports,arguments)
-},{"./aes":84,"buffer":2,"cipher-base":99,"dup":24,"inherits":200}],101:[function(require,module,exports){
+},{"buffer":28,"dup":34}],111:[function(require,module,exports){
 arguments[4][35][0].apply(exports,arguments)
-},{"buffer":2,"create-hash/md5":132,"dup":35}],102:[function(require,module,exports){
+},{"./aes":110,"./ghash":115,"buffer":28,"buffer-xor":124,"cipher-base":125,"dup":35,"inherits":226}],112:[function(require,module,exports){
+arguments[4][36][0].apply(exports,arguments)
+},{"./decrypter":113,"./encrypter":114,"./modes":116,"dup":36}],113:[function(require,module,exports){
+arguments[4][37][0].apply(exports,arguments)
+},{"./aes":110,"./authCipher":111,"./modes":116,"./modes/cbc":117,"./modes/cfb":118,"./modes/cfb1":119,"./modes/cfb8":120,"./modes/ctr":121,"./modes/ecb":122,"./modes/ofb":123,"./streamCipher":126,"buffer":28,"cipher-base":125,"dup":37,"evp_bytestokey":127,"inherits":226}],114:[function(require,module,exports){
+arguments[4][38][0].apply(exports,arguments)
+},{"./aes":110,"./authCipher":111,"./modes":116,"./modes/cbc":117,"./modes/cfb":118,"./modes/cfb1":119,"./modes/cfb8":120,"./modes/ctr":121,"./modes/ecb":122,"./modes/ofb":123,"./streamCipher":126,"buffer":28,"cipher-base":125,"dup":38,"evp_bytestokey":127,"inherits":226}],115:[function(require,module,exports){
+arguments[4][39][0].apply(exports,arguments)
+},{"buffer":28,"dup":39}],116:[function(require,module,exports){
+arguments[4][40][0].apply(exports,arguments)
+},{"dup":40}],117:[function(require,module,exports){
+arguments[4][41][0].apply(exports,arguments)
+},{"buffer-xor":124,"dup":41}],118:[function(require,module,exports){
+arguments[4][42][0].apply(exports,arguments)
+},{"buffer":28,"buffer-xor":124,"dup":42}],119:[function(require,module,exports){
+arguments[4][43][0].apply(exports,arguments)
+},{"buffer":28,"dup":43}],120:[function(require,module,exports){
+arguments[4][44][0].apply(exports,arguments)
+},{"buffer":28,"dup":44}],121:[function(require,module,exports){
+arguments[4][45][0].apply(exports,arguments)
+},{"buffer":28,"buffer-xor":124,"dup":45}],122:[function(require,module,exports){
+arguments[4][46][0].apply(exports,arguments)
+},{"dup":46}],123:[function(require,module,exports){
+arguments[4][47][0].apply(exports,arguments)
+},{"buffer":28,"buffer-xor":124,"dup":47}],124:[function(require,module,exports){
+arguments[4][48][0].apply(exports,arguments)
+},{"buffer":28,"dup":48}],125:[function(require,module,exports){
+arguments[4][49][0].apply(exports,arguments)
+},{"buffer":28,"dup":49,"inherits":226,"stream":245,"string_decoder":246}],126:[function(require,module,exports){
+arguments[4][50][0].apply(exports,arguments)
+},{"./aes":110,"buffer":28,"cipher-base":125,"dup":50,"inherits":226}],127:[function(require,module,exports){
+arguments[4][61][0].apply(exports,arguments)
+},{"buffer":28,"create-hash/md5":158,"dup":61}],128:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var createHmac = require('create-hmac')
@@ -15331,7 +24089,7 @@ module.exports.getKey = getKey
 module.exports.makeKey = makeKey
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":38,"bn.js":39,"browserify-rsa":40,"buffer":2,"create-hmac":143,"elliptic":41,"parse-asn1":68}],103:[function(require,module,exports){
+},{"./curves":64,"bn.js":65,"browserify-rsa":66,"buffer":28,"create-hmac":169,"elliptic":67,"parse-asn1":94}],129:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var curves = require('./curves')
@@ -15438,7 +24196,7 @@ function checkValue (b, q) {
 module.exports = verify
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":38,"bn.js":39,"buffer":2,"elliptic":41,"parse-asn1":68}],104:[function(require,module,exports){
+},{"./curves":64,"bn.js":65,"buffer":28,"elliptic":67,"parse-asn1":94}],130:[function(require,module,exports){
 (function (Buffer){
 var elliptic = require('elliptic');
 var BN = require('bn.js');
@@ -15564,57 +24322,57 @@ function formatReturnValue(bn, enc, len) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":105,"buffer":2,"elliptic":106}],105:[function(require,module,exports){
-arguments[4][39][0].apply(exports,arguments)
-},{"dup":39}],106:[function(require,module,exports){
-arguments[4][41][0].apply(exports,arguments)
-},{"../package.json":129,"./elliptic/curve":109,"./elliptic/curves":112,"./elliptic/ec":113,"./elliptic/eddsa":116,"./elliptic/hmac-drbg":119,"./elliptic/utils":121,"brorand":122,"dup":41}],107:[function(require,module,exports){
-arguments[4][42][0].apply(exports,arguments)
-},{"../../elliptic":106,"bn.js":105,"dup":42}],108:[function(require,module,exports){
-arguments[4][43][0].apply(exports,arguments)
-},{"../../elliptic":106,"../curve":109,"bn.js":105,"dup":43,"inherits":200}],109:[function(require,module,exports){
-arguments[4][44][0].apply(exports,arguments)
-},{"./base":107,"./edwards":108,"./mont":110,"./short":111,"dup":44}],110:[function(require,module,exports){
-arguments[4][45][0].apply(exports,arguments)
-},{"../../elliptic":106,"../curve":109,"bn.js":105,"dup":45,"inherits":200}],111:[function(require,module,exports){
-arguments[4][46][0].apply(exports,arguments)
-},{"../../elliptic":106,"../curve":109,"bn.js":105,"dup":46,"inherits":200}],112:[function(require,module,exports){
-arguments[4][47][0].apply(exports,arguments)
-},{"../elliptic":106,"./precomputed/secp256k1":120,"dup":47,"hash.js":123}],113:[function(require,module,exports){
-arguments[4][48][0].apply(exports,arguments)
-},{"../../elliptic":106,"./key":114,"./signature":115,"bn.js":105,"dup":48}],114:[function(require,module,exports){
-arguments[4][49][0].apply(exports,arguments)
-},{"bn.js":105,"dup":49}],115:[function(require,module,exports){
-arguments[4][50][0].apply(exports,arguments)
-},{"../../elliptic":106,"bn.js":105,"dup":50}],116:[function(require,module,exports){
-arguments[4][51][0].apply(exports,arguments)
-},{"../../elliptic":106,"./key":117,"./signature":118,"dup":51,"hash.js":123}],117:[function(require,module,exports){
-arguments[4][52][0].apply(exports,arguments)
-},{"../../elliptic":106,"dup":52}],118:[function(require,module,exports){
-arguments[4][53][0].apply(exports,arguments)
-},{"../../elliptic":106,"bn.js":105,"dup":53}],119:[function(require,module,exports){
-arguments[4][54][0].apply(exports,arguments)
-},{"../elliptic":106,"dup":54,"hash.js":123}],120:[function(require,module,exports){
-arguments[4][55][0].apply(exports,arguments)
-},{"dup":55}],121:[function(require,module,exports){
-arguments[4][56][0].apply(exports,arguments)
-},{"bn.js":105,"dup":56}],122:[function(require,module,exports){
-arguments[4][57][0].apply(exports,arguments)
-},{"crypto":1,"dup":57}],123:[function(require,module,exports){
-arguments[4][58][0].apply(exports,arguments)
-},{"./hash/common":124,"./hash/hmac":125,"./hash/ripemd":126,"./hash/sha":127,"./hash/utils":128,"dup":58}],124:[function(require,module,exports){
-arguments[4][59][0].apply(exports,arguments)
-},{"../hash":123,"dup":59}],125:[function(require,module,exports){
-arguments[4][60][0].apply(exports,arguments)
-},{"../hash":123,"dup":60}],126:[function(require,module,exports){
-arguments[4][61][0].apply(exports,arguments)
-},{"../hash":123,"dup":61}],127:[function(require,module,exports){
-arguments[4][62][0].apply(exports,arguments)
-},{"../hash":123,"dup":62}],128:[function(require,module,exports){
-arguments[4][63][0].apply(exports,arguments)
-},{"dup":63,"inherits":200}],129:[function(require,module,exports){
-arguments[4][64][0].apply(exports,arguments)
-},{"dup":64}],130:[function(require,module,exports){
+},{"bn.js":131,"buffer":28,"elliptic":132}],131:[function(require,module,exports){
+arguments[4][65][0].apply(exports,arguments)
+},{"dup":65}],132:[function(require,module,exports){
+arguments[4][67][0].apply(exports,arguments)
+},{"../package.json":155,"./elliptic/curve":135,"./elliptic/curves":138,"./elliptic/ec":139,"./elliptic/eddsa":142,"./elliptic/hmac-drbg":145,"./elliptic/utils":147,"brorand":148,"dup":67}],133:[function(require,module,exports){
+arguments[4][68][0].apply(exports,arguments)
+},{"../../elliptic":132,"bn.js":131,"dup":68}],134:[function(require,module,exports){
+arguments[4][69][0].apply(exports,arguments)
+},{"../../elliptic":132,"../curve":135,"bn.js":131,"dup":69,"inherits":226}],135:[function(require,module,exports){
+arguments[4][70][0].apply(exports,arguments)
+},{"./base":133,"./edwards":134,"./mont":136,"./short":137,"dup":70}],136:[function(require,module,exports){
+arguments[4][71][0].apply(exports,arguments)
+},{"../../elliptic":132,"../curve":135,"bn.js":131,"dup":71,"inherits":226}],137:[function(require,module,exports){
+arguments[4][72][0].apply(exports,arguments)
+},{"../../elliptic":132,"../curve":135,"bn.js":131,"dup":72,"inherits":226}],138:[function(require,module,exports){
+arguments[4][73][0].apply(exports,arguments)
+},{"../elliptic":132,"./precomputed/secp256k1":146,"dup":73,"hash.js":149}],139:[function(require,module,exports){
+arguments[4][74][0].apply(exports,arguments)
+},{"../../elliptic":132,"./key":140,"./signature":141,"bn.js":131,"dup":74}],140:[function(require,module,exports){
+arguments[4][75][0].apply(exports,arguments)
+},{"bn.js":131,"dup":75}],141:[function(require,module,exports){
+arguments[4][76][0].apply(exports,arguments)
+},{"../../elliptic":132,"bn.js":131,"dup":76}],142:[function(require,module,exports){
+arguments[4][77][0].apply(exports,arguments)
+},{"../../elliptic":132,"./key":143,"./signature":144,"dup":77,"hash.js":149}],143:[function(require,module,exports){
+arguments[4][78][0].apply(exports,arguments)
+},{"../../elliptic":132,"dup":78}],144:[function(require,module,exports){
+arguments[4][79][0].apply(exports,arguments)
+},{"../../elliptic":132,"bn.js":131,"dup":79}],145:[function(require,module,exports){
+arguments[4][80][0].apply(exports,arguments)
+},{"../elliptic":132,"dup":80,"hash.js":149}],146:[function(require,module,exports){
+arguments[4][81][0].apply(exports,arguments)
+},{"dup":81}],147:[function(require,module,exports){
+arguments[4][82][0].apply(exports,arguments)
+},{"bn.js":131,"dup":82}],148:[function(require,module,exports){
+arguments[4][83][0].apply(exports,arguments)
+},{"crypto":27,"dup":83}],149:[function(require,module,exports){
+arguments[4][84][0].apply(exports,arguments)
+},{"./hash/common":150,"./hash/hmac":151,"./hash/ripemd":152,"./hash/sha":153,"./hash/utils":154,"dup":84}],150:[function(require,module,exports){
+arguments[4][85][0].apply(exports,arguments)
+},{"../hash":149,"dup":85}],151:[function(require,module,exports){
+arguments[4][86][0].apply(exports,arguments)
+},{"../hash":149,"dup":86}],152:[function(require,module,exports){
+arguments[4][87][0].apply(exports,arguments)
+},{"../hash":149,"dup":87}],153:[function(require,module,exports){
+arguments[4][88][0].apply(exports,arguments)
+},{"../hash":149,"dup":88}],154:[function(require,module,exports){
+arguments[4][89][0].apply(exports,arguments)
+},{"dup":89,"inherits":226}],155:[function(require,module,exports){
+arguments[4][90][0].apply(exports,arguments)
+},{"dup":90}],156:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var inherits = require('inherits')
@@ -15670,7 +24428,7 @@ module.exports = function createHash (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":132,"buffer":2,"cipher-base":133,"inherits":200,"ripemd160":134,"sha.js":136}],131:[function(require,module,exports){
+},{"./md5":158,"buffer":28,"cipher-base":159,"inherits":226,"ripemd160":160,"sha.js":162}],157:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var intSize = 4;
@@ -15707,7 +24465,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 }
 exports.hash = hash;
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],132:[function(require,module,exports){
+},{"buffer":28}],158:[function(require,module,exports){
 'use strict';
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
@@ -15864,9 +24622,9 @@ function bit_rol(num, cnt)
 module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
-},{"./helpers":131}],133:[function(require,module,exports){
-arguments[4][23][0].apply(exports,arguments)
-},{"buffer":2,"dup":23,"inherits":200,"stream":219,"string_decoder":220}],134:[function(require,module,exports){
+},{"./helpers":157}],159:[function(require,module,exports){
+arguments[4][49][0].apply(exports,arguments)
+},{"buffer":28,"dup":49,"inherits":226,"stream":245,"string_decoder":246}],160:[function(require,module,exports){
 (function (Buffer){
 /*
 CryptoJS v3.1.2
@@ -16080,7 +24838,7 @@ function ripemd160 (message) {
 module.exports = ripemd160
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],135:[function(require,module,exports){
+},{"buffer":28}],161:[function(require,module,exports){
 (function (Buffer){
 // prototype class for hash functions
 function Hash (blockSize, finalSize) {
@@ -16153,7 +24911,7 @@ Hash.prototype._update = function () {
 module.exports = Hash
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],136:[function(require,module,exports){
+},{"buffer":28}],162:[function(require,module,exports){
 var exports = module.exports = function SHA (algorithm) {
   algorithm = algorithm.toLowerCase()
 
@@ -16170,7 +24928,7 @@ exports.sha256 = require('./sha256')
 exports.sha384 = require('./sha384')
 exports.sha512 = require('./sha512')
 
-},{"./sha":137,"./sha1":138,"./sha224":139,"./sha256":140,"./sha384":141,"./sha512":142}],137:[function(require,module,exports){
+},{"./sha":163,"./sha1":164,"./sha224":165,"./sha256":166,"./sha384":167,"./sha512":168}],163:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-0, as defined
@@ -16267,7 +25025,7 @@ Sha.prototype._hash = function () {
 module.exports = Sha
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":2,"inherits":200}],138:[function(require,module,exports){
+},{"./hash":161,"buffer":28,"inherits":226}],164:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
@@ -16369,7 +25127,7 @@ Sha1.prototype._hash = function () {
 module.exports = Sha1
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":2,"inherits":200}],139:[function(require,module,exports){
+},{"./hash":161,"buffer":28,"inherits":226}],165:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -16425,7 +25183,7 @@ Sha224.prototype._hash = function () {
 module.exports = Sha224
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"./sha256":140,"buffer":2,"inherits":200}],140:[function(require,module,exports){
+},{"./hash":161,"./sha256":166,"buffer":28,"inherits":226}],166:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -16563,7 +25321,7 @@ Sha256.prototype._hash = function () {
 module.exports = Sha256
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":2,"inherits":200}],141:[function(require,module,exports){
+},{"./hash":161,"buffer":28,"inherits":226}],167:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var SHA512 = require('./sha512')
@@ -16623,7 +25381,7 @@ Sha384.prototype._hash = function () {
 module.exports = Sha384
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"./sha512":142,"buffer":2,"inherits":200}],142:[function(require,module,exports){
+},{"./hash":161,"./sha512":168,"buffer":28,"inherits":226}],168:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var Hash = require('./hash')
@@ -16886,7 +25644,7 @@ Sha512.prototype._hash = function () {
 module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":2,"inherits":200}],143:[function(require,module,exports){
+},{"./hash":161,"buffer":28,"inherits":226}],169:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var createHash = require('create-hash/browser');
@@ -16958,7 +25716,7 @@ module.exports = function createHmac(alg, key) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"create-hash/browser":130,"inherits":200,"stream":219}],144:[function(require,module,exports){
+},{"buffer":28,"create-hash/browser":156,"inherits":226,"stream":245}],170:[function(require,module,exports){
 (function (Buffer){
 var generatePrime = require('./lib/generatePrime')
 var primes = require('./lib/primes.json')
@@ -17004,7 +25762,7 @@ exports.DiffieHellmanGroup = exports.createDiffieHellmanGroup = exports.getDiffi
 exports.createDiffieHellman = exports.DiffieHellman = createDiffieHellman
 
 }).call(this,require("buffer").Buffer)
-},{"./lib/dh":145,"./lib/generatePrime":146,"./lib/primes.json":147,"buffer":2}],145:[function(require,module,exports){
+},{"./lib/dh":171,"./lib/generatePrime":172,"./lib/primes.json":173,"buffer":28}],171:[function(require,module,exports){
 (function (Buffer){
 var BN = require('bn.js');
 var MillerRabin = require('miller-rabin');
@@ -17172,7 +25930,7 @@ function formatReturnValue(bn, enc) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./generatePrime":146,"bn.js":148,"buffer":2,"miller-rabin":149,"randombytes":198}],146:[function(require,module,exports){
+},{"./generatePrime":172,"bn.js":174,"buffer":28,"miller-rabin":175,"randombytes":224}],172:[function(require,module,exports){
 var randomBytes = require('randombytes');
 module.exports = findPrime;
 findPrime.simpleSieve = simpleSieve;
@@ -17279,7 +26037,7 @@ function findPrime(bits, gen) {
 
 }
 
-},{"bn.js":148,"miller-rabin":149,"randombytes":198}],147:[function(require,module,exports){
+},{"bn.js":174,"miller-rabin":175,"randombytes":224}],173:[function(require,module,exports){
 module.exports={
     "modp1": {
         "gen": "02",
@@ -17314,9 +26072,9 @@ module.exports={
         "prime": "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c93402849236c3fab4d27c7026c1d4dcb2602646dec9751e763dba37bdf8ff9406ad9e530ee5db382f413001aeb06a53ed9027d831179727b0865a8918da3edbebcf9b14ed44ce6cbaced4bb1bdb7f1447e6cc254b332051512bd7af426fb8f401378cd2bf5983ca01c64b92ecf032ea15d1721d03f482d7ce6e74fef6d55e702f46980c82b5a84031900b1c9e59e7c97fbec7e8f323a97a7e36cc88be0f1d45b7ff585ac54bd407b22b4154aacc8f6d7ebf48e1d814cc5ed20f8037e0a79715eef29be32806a1d58bb7c5da76f550aa3d8a1fbff0eb19ccb1a313d55cda56c9ec2ef29632387fe8d76e3c0468043e8f663f4860ee12bf2d5b0b7474d6e694f91e6dbe115974a3926f12fee5e438777cb6a932df8cd8bec4d073b931ba3bc832b68d9dd300741fa7bf8afc47ed2576f6936ba424663aab639c5ae4f5683423b4742bf1c978238f16cbe39d652de3fdb8befc848ad922222e04a4037c0713eb57a81a23f0c73473fc646cea306b4bcbc8862f8385ddfa9d4b7fa2c087e879683303ed5bdd3a062b3cf5b3a278a66d2a13f83f44f82ddf310ee074ab6a364597e899a0255dc164f31cc50846851df9ab48195ded7ea1b1d510bd7ee74d73faf36bc31ecfa268359046f4eb879f924009438b481c6cd7889a002ed5ee382bc9190da6fc026e479558e4475677e9aa9e3050e2765694dfc81f56e880b96e7160c980dd98edd3dfffffffffffffffff"
     }
 }
-},{}],148:[function(require,module,exports){
-arguments[4][39][0].apply(exports,arguments)
-},{"dup":39}],149:[function(require,module,exports){
+},{}],174:[function(require,module,exports){
+arguments[4][65][0].apply(exports,arguments)
+},{"dup":65}],175:[function(require,module,exports){
 var bn = require('bn.js');
 var brorand = require('brorand');
 
@@ -17431,9 +26189,9 @@ MillerRabin.prototype.getDivisor = function getDivisor(n, k) {
   return false;
 };
 
-},{"bn.js":148,"brorand":150}],150:[function(require,module,exports){
-arguments[4][57][0].apply(exports,arguments)
-},{"crypto":1,"dup":57}],151:[function(require,module,exports){
+},{"bn.js":174,"brorand":176}],176:[function(require,module,exports){
+arguments[4][83][0].apply(exports,arguments)
+},{"crypto":27,"dup":83}],177:[function(require,module,exports){
 (function (process,Buffer){
 var createHmac = require('create-hmac')
 var checkParameters = require('./precondition')
@@ -17505,7 +26263,7 @@ exports.pbkdf2Sync = function (password, salt, iterations, keylen, digest) {
 }
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"./precondition":152,"_process":202,"buffer":2,"create-hmac":143}],152:[function(require,module,exports){
+},{"./precondition":178,"_process":228,"buffer":28,"create-hmac":169}],178:[function(require,module,exports){
 var MAX_ALLOC = Math.pow(2, 30) - 1 // default in iojs
 module.exports = function (iterations, keylen) {
   if (typeof iterations !== 'number') {
@@ -17525,7 +26283,7 @@ module.exports = function (iterations, keylen) {
   }
 }
 
-},{}],153:[function(require,module,exports){
+},{}],179:[function(require,module,exports){
 exports.publicEncrypt = require('./publicEncrypt');
 exports.privateDecrypt = require('./privateDecrypt');
 
@@ -17536,7 +26294,7 @@ exports.privateEncrypt = function privateEncrypt(key, buf) {
 exports.publicDecrypt = function publicDecrypt(key, buf) {
   return exports.privateDecrypt(key, buf, true);
 };
-},{"./privateDecrypt":194,"./publicEncrypt":195}],154:[function(require,module,exports){
+},{"./privateDecrypt":220,"./publicEncrypt":221}],180:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash');
 module.exports = function (seed, len) {
@@ -17555,85 +26313,85 @@ function i2ops(c) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"create-hash":130}],155:[function(require,module,exports){
-arguments[4][39][0].apply(exports,arguments)
-},{"dup":39}],156:[function(require,module,exports){
-arguments[4][40][0].apply(exports,arguments)
-},{"bn.js":155,"buffer":2,"dup":40,"randombytes":198}],157:[function(require,module,exports){
+},{"buffer":28,"create-hash":156}],181:[function(require,module,exports){
 arguments[4][65][0].apply(exports,arguments)
-},{"dup":65}],158:[function(require,module,exports){
+},{"dup":65}],182:[function(require,module,exports){
 arguments[4][66][0].apply(exports,arguments)
-},{"asn1.js":161,"dup":66}],159:[function(require,module,exports){
-arguments[4][67][0].apply(exports,arguments)
-},{"browserify-aes":178,"buffer":2,"dup":67,"evp_bytestokey":193}],160:[function(require,module,exports){
-arguments[4][68][0].apply(exports,arguments)
-},{"./aesid.json":157,"./asn1":158,"./fixProc":159,"browserify-aes":178,"buffer":2,"dup":68,"pbkdf2":151}],161:[function(require,module,exports){
-arguments[4][69][0].apply(exports,arguments)
-},{"./asn1/api":162,"./asn1/base":164,"./asn1/constants":168,"./asn1/decoders":170,"./asn1/encoders":173,"bn.js":155,"dup":69}],162:[function(require,module,exports){
-arguments[4][70][0].apply(exports,arguments)
-},{"../asn1":161,"dup":70,"inherits":200,"vm":221}],163:[function(require,module,exports){
-arguments[4][71][0].apply(exports,arguments)
-},{"../base":164,"buffer":2,"dup":71,"inherits":200}],164:[function(require,module,exports){
-arguments[4][72][0].apply(exports,arguments)
-},{"./buffer":163,"./node":165,"./reporter":166,"dup":72}],165:[function(require,module,exports){
-arguments[4][73][0].apply(exports,arguments)
-},{"../base":164,"dup":73,"minimalistic-assert":175}],166:[function(require,module,exports){
-arguments[4][74][0].apply(exports,arguments)
-},{"dup":74,"inherits":200}],167:[function(require,module,exports){
-arguments[4][75][0].apply(exports,arguments)
-},{"../constants":168,"dup":75}],168:[function(require,module,exports){
-arguments[4][76][0].apply(exports,arguments)
-},{"./der":167,"dup":76}],169:[function(require,module,exports){
-arguments[4][77][0].apply(exports,arguments)
-},{"../../asn1":161,"dup":77,"inherits":200}],170:[function(require,module,exports){
-arguments[4][78][0].apply(exports,arguments)
-},{"./der":169,"./pem":171,"dup":78}],171:[function(require,module,exports){
-arguments[4][79][0].apply(exports,arguments)
-},{"./der":169,"buffer":2,"dup":79,"inherits":200}],172:[function(require,module,exports){
-arguments[4][80][0].apply(exports,arguments)
-},{"../../asn1":161,"buffer":2,"dup":80,"inherits":200}],173:[function(require,module,exports){
-arguments[4][81][0].apply(exports,arguments)
-},{"./der":172,"./pem":174,"dup":81}],174:[function(require,module,exports){
-arguments[4][82][0].apply(exports,arguments)
-},{"./der":172,"dup":82,"inherits":200}],175:[function(require,module,exports){
+},{"bn.js":181,"buffer":28,"dup":66,"randombytes":224}],183:[function(require,module,exports){
+arguments[4][91][0].apply(exports,arguments)
+},{"dup":91}],184:[function(require,module,exports){
+arguments[4][92][0].apply(exports,arguments)
+},{"asn1.js":187,"dup":92}],185:[function(require,module,exports){
+arguments[4][93][0].apply(exports,arguments)
+},{"browserify-aes":204,"buffer":28,"dup":93,"evp_bytestokey":219}],186:[function(require,module,exports){
+arguments[4][94][0].apply(exports,arguments)
+},{"./aesid.json":183,"./asn1":184,"./fixProc":185,"browserify-aes":204,"buffer":28,"dup":94,"pbkdf2":177}],187:[function(require,module,exports){
+arguments[4][95][0].apply(exports,arguments)
+},{"./asn1/api":188,"./asn1/base":190,"./asn1/constants":194,"./asn1/decoders":196,"./asn1/encoders":199,"bn.js":181,"dup":95}],188:[function(require,module,exports){
+arguments[4][96][0].apply(exports,arguments)
+},{"../asn1":187,"dup":96,"inherits":226,"vm":247}],189:[function(require,module,exports){
+arguments[4][97][0].apply(exports,arguments)
+},{"../base":190,"buffer":28,"dup":97,"inherits":226}],190:[function(require,module,exports){
+arguments[4][98][0].apply(exports,arguments)
+},{"./buffer":189,"./node":191,"./reporter":192,"dup":98}],191:[function(require,module,exports){
+arguments[4][99][0].apply(exports,arguments)
+},{"../base":190,"dup":99,"minimalistic-assert":201}],192:[function(require,module,exports){
+arguments[4][100][0].apply(exports,arguments)
+},{"dup":100,"inherits":226}],193:[function(require,module,exports){
+arguments[4][101][0].apply(exports,arguments)
+},{"../constants":194,"dup":101}],194:[function(require,module,exports){
+arguments[4][102][0].apply(exports,arguments)
+},{"./der":193,"dup":102}],195:[function(require,module,exports){
+arguments[4][103][0].apply(exports,arguments)
+},{"../../asn1":187,"dup":103,"inherits":226}],196:[function(require,module,exports){
+arguments[4][104][0].apply(exports,arguments)
+},{"./der":195,"./pem":197,"dup":104}],197:[function(require,module,exports){
+arguments[4][105][0].apply(exports,arguments)
+},{"./der":195,"buffer":28,"dup":105,"inherits":226}],198:[function(require,module,exports){
+arguments[4][106][0].apply(exports,arguments)
+},{"../../asn1":187,"buffer":28,"dup":106,"inherits":226}],199:[function(require,module,exports){
+arguments[4][107][0].apply(exports,arguments)
+},{"./der":198,"./pem":200,"dup":107}],200:[function(require,module,exports){
+arguments[4][108][0].apply(exports,arguments)
+},{"./der":198,"dup":108,"inherits":226}],201:[function(require,module,exports){
+arguments[4][60][0].apply(exports,arguments)
+},{"dup":60}],202:[function(require,module,exports){
 arguments[4][34][0].apply(exports,arguments)
-},{"dup":34}],176:[function(require,module,exports){
-arguments[4][8][0].apply(exports,arguments)
-},{"buffer":2,"dup":8}],177:[function(require,module,exports){
-arguments[4][9][0].apply(exports,arguments)
-},{"./aes":176,"./ghash":181,"buffer":2,"buffer-xor":190,"cipher-base":191,"dup":9,"inherits":200}],178:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"./decrypter":179,"./encrypter":180,"./modes":182,"dup":10}],179:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"./aes":176,"./authCipher":177,"./modes":182,"./modes/cbc":183,"./modes/cfb":184,"./modes/cfb1":185,"./modes/cfb8":186,"./modes/ctr":187,"./modes/ecb":188,"./modes/ofb":189,"./streamCipher":192,"buffer":2,"cipher-base":191,"dup":11,"evp_bytestokey":193,"inherits":200}],180:[function(require,module,exports){
-arguments[4][12][0].apply(exports,arguments)
-},{"./aes":176,"./authCipher":177,"./modes":182,"./modes/cbc":183,"./modes/cfb":184,"./modes/cfb1":185,"./modes/cfb8":186,"./modes/ctr":187,"./modes/ecb":188,"./modes/ofb":189,"./streamCipher":192,"buffer":2,"cipher-base":191,"dup":12,"evp_bytestokey":193,"inherits":200}],181:[function(require,module,exports){
-arguments[4][13][0].apply(exports,arguments)
-},{"buffer":2,"dup":13}],182:[function(require,module,exports){
-arguments[4][14][0].apply(exports,arguments)
-},{"dup":14}],183:[function(require,module,exports){
-arguments[4][15][0].apply(exports,arguments)
-},{"buffer-xor":190,"dup":15}],184:[function(require,module,exports){
-arguments[4][16][0].apply(exports,arguments)
-},{"buffer":2,"buffer-xor":190,"dup":16}],185:[function(require,module,exports){
-arguments[4][17][0].apply(exports,arguments)
-},{"buffer":2,"dup":17}],186:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
-},{"buffer":2,"dup":18}],187:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"buffer":2,"buffer-xor":190,"dup":19}],188:[function(require,module,exports){
-arguments[4][20][0].apply(exports,arguments)
-},{"dup":20}],189:[function(require,module,exports){
-arguments[4][21][0].apply(exports,arguments)
-},{"buffer":2,"buffer-xor":190,"dup":21}],190:[function(require,module,exports){
-arguments[4][22][0].apply(exports,arguments)
-},{"buffer":2,"dup":22}],191:[function(require,module,exports){
-arguments[4][23][0].apply(exports,arguments)
-},{"buffer":2,"dup":23,"inherits":200,"stream":219,"string_decoder":220}],192:[function(require,module,exports){
-arguments[4][24][0].apply(exports,arguments)
-},{"./aes":176,"buffer":2,"cipher-base":191,"dup":24,"inherits":200}],193:[function(require,module,exports){
+},{"buffer":28,"dup":34}],203:[function(require,module,exports){
 arguments[4][35][0].apply(exports,arguments)
-},{"buffer":2,"create-hash/md5":132,"dup":35}],194:[function(require,module,exports){
+},{"./aes":202,"./ghash":207,"buffer":28,"buffer-xor":216,"cipher-base":217,"dup":35,"inherits":226}],204:[function(require,module,exports){
+arguments[4][36][0].apply(exports,arguments)
+},{"./decrypter":205,"./encrypter":206,"./modes":208,"dup":36}],205:[function(require,module,exports){
+arguments[4][37][0].apply(exports,arguments)
+},{"./aes":202,"./authCipher":203,"./modes":208,"./modes/cbc":209,"./modes/cfb":210,"./modes/cfb1":211,"./modes/cfb8":212,"./modes/ctr":213,"./modes/ecb":214,"./modes/ofb":215,"./streamCipher":218,"buffer":28,"cipher-base":217,"dup":37,"evp_bytestokey":219,"inherits":226}],206:[function(require,module,exports){
+arguments[4][38][0].apply(exports,arguments)
+},{"./aes":202,"./authCipher":203,"./modes":208,"./modes/cbc":209,"./modes/cfb":210,"./modes/cfb1":211,"./modes/cfb8":212,"./modes/ctr":213,"./modes/ecb":214,"./modes/ofb":215,"./streamCipher":218,"buffer":28,"cipher-base":217,"dup":38,"evp_bytestokey":219,"inherits":226}],207:[function(require,module,exports){
+arguments[4][39][0].apply(exports,arguments)
+},{"buffer":28,"dup":39}],208:[function(require,module,exports){
+arguments[4][40][0].apply(exports,arguments)
+},{"dup":40}],209:[function(require,module,exports){
+arguments[4][41][0].apply(exports,arguments)
+},{"buffer-xor":216,"dup":41}],210:[function(require,module,exports){
+arguments[4][42][0].apply(exports,arguments)
+},{"buffer":28,"buffer-xor":216,"dup":42}],211:[function(require,module,exports){
+arguments[4][43][0].apply(exports,arguments)
+},{"buffer":28,"dup":43}],212:[function(require,module,exports){
+arguments[4][44][0].apply(exports,arguments)
+},{"buffer":28,"dup":44}],213:[function(require,module,exports){
+arguments[4][45][0].apply(exports,arguments)
+},{"buffer":28,"buffer-xor":216,"dup":45}],214:[function(require,module,exports){
+arguments[4][46][0].apply(exports,arguments)
+},{"dup":46}],215:[function(require,module,exports){
+arguments[4][47][0].apply(exports,arguments)
+},{"buffer":28,"buffer-xor":216,"dup":47}],216:[function(require,module,exports){
+arguments[4][48][0].apply(exports,arguments)
+},{"buffer":28,"dup":48}],217:[function(require,module,exports){
+arguments[4][49][0].apply(exports,arguments)
+},{"buffer":28,"dup":49,"inherits":226,"stream":245,"string_decoder":246}],218:[function(require,module,exports){
+arguments[4][50][0].apply(exports,arguments)
+},{"./aes":202,"buffer":28,"cipher-base":217,"dup":50,"inherits":226}],219:[function(require,module,exports){
+arguments[4][61][0].apply(exports,arguments)
+},{"buffer":28,"create-hash/md5":158,"dup":61}],220:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var mgf = require('./mgf');
@@ -17744,7 +26502,7 @@ function compare(a, b){
   return dif;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":154,"./withPublic":196,"./xor":197,"bn.js":155,"browserify-rsa":156,"buffer":2,"create-hash":130,"parse-asn1":160}],195:[function(require,module,exports){
+},{"./mgf":180,"./withPublic":222,"./xor":223,"bn.js":181,"browserify-rsa":182,"buffer":28,"create-hash":156,"parse-asn1":186}],221:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var randomBytes = require('randombytes');
@@ -17842,7 +26600,7 @@ function nonZero(len, crypto) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":154,"./withPublic":196,"./xor":197,"bn.js":155,"browserify-rsa":156,"buffer":2,"create-hash":130,"parse-asn1":160,"randombytes":198}],196:[function(require,module,exports){
+},{"./mgf":180,"./withPublic":222,"./xor":223,"bn.js":181,"browserify-rsa":182,"buffer":28,"create-hash":156,"parse-asn1":186,"randombytes":224}],222:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 function withPublic(paddedMsg, key) {
@@ -17855,7 +26613,7 @@ function withPublic(paddedMsg, key) {
 
 module.exports = withPublic;
 }).call(this,require("buffer").Buffer)
-},{"bn.js":155,"buffer":2}],197:[function(require,module,exports){
+},{"bn.js":181,"buffer":28}],223:[function(require,module,exports){
 module.exports = function xor(a, b) {
   var len = a.length;
   var i = -1;
@@ -17864,7 +26622,7 @@ module.exports = function xor(a, b) {
   }
   return a
 };
-},{}],198:[function(require,module,exports){
+},{}],224:[function(require,module,exports){
 (function (process,global,Buffer){
 'use strict'
 
@@ -17904,7 +26662,7 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"_process":202,"buffer":2}],199:[function(require,module,exports){
+},{"_process":228,"buffer":28}],225:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -18208,7 +26966,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],200:[function(require,module,exports){
+},{}],226:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -18233,7 +26991,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],201:[function(require,module,exports){
+},{}],227:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -18256,7 +27014,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],202:[function(require,module,exports){
+},{}],228:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -18438,10 +27196,10 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],203:[function(require,module,exports){
+},{}],229:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":204}],204:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":230}],230:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -18517,7 +27275,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":206,"./_stream_writable":208,"core-util-is":211,"inherits":200,"process-nextick-args":213}],205:[function(require,module,exports){
+},{"./_stream_readable":232,"./_stream_writable":234,"core-util-is":237,"inherits":226,"process-nextick-args":239}],231:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -18544,7 +27302,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":207,"core-util-is":211,"inherits":200}],206:[function(require,module,exports){
+},{"./_stream_transform":233,"core-util-is":237,"inherits":226}],232:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -19488,7 +28246,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":204,"./internal/streams/BufferList":209,"_process":202,"buffer":2,"buffer-shims":210,"core-util-is":211,"events":199,"inherits":200,"isarray":212,"process-nextick-args":213,"string_decoder/":220,"util":1}],207:[function(require,module,exports){
+},{"./_stream_duplex":230,"./internal/streams/BufferList":235,"_process":228,"buffer":28,"buffer-shims":236,"core-util-is":237,"events":225,"inherits":226,"isarray":238,"process-nextick-args":239,"string_decoder/":246,"util":27}],233:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -19671,7 +28429,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":204,"core-util-is":211,"inherits":200}],208:[function(require,module,exports){
+},{"./_stream_duplex":230,"core-util-is":237,"inherits":226}],234:[function(require,module,exports){
 (function (process){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, encoding, cb), and it'll handle all
@@ -20228,7 +28986,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":204,"_process":202,"buffer":2,"buffer-shims":210,"core-util-is":211,"events":199,"inherits":200,"process-nextick-args":213,"util-deprecate":214}],209:[function(require,module,exports){
+},{"./_stream_duplex":230,"_process":228,"buffer":28,"buffer-shims":236,"core-util-is":237,"events":225,"inherits":226,"process-nextick-args":239,"util-deprecate":240}],235:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('buffer').Buffer;
@@ -20293,7 +29051,7 @@ BufferList.prototype.concat = function (n) {
   }
   return ret;
 };
-},{"buffer":2,"buffer-shims":210}],210:[function(require,module,exports){
+},{"buffer":28,"buffer-shims":236}],236:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -20405,7 +29163,7 @@ exports.allocUnsafeSlow = function allocUnsafeSlow(size) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"buffer":2}],211:[function(require,module,exports){
+},{"buffer":28}],237:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -20516,9 +29274,9 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../../../insert-module-globals/node_modules/is-buffer/index.js")})
-},{"../../../../insert-module-globals/node_modules/is-buffer/index.js":201}],212:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],213:[function(require,module,exports){
+},{"../../../../insert-module-globals/node_modules/is-buffer/index.js":227}],238:[function(require,module,exports){
+arguments[4][31][0].apply(exports,arguments)
+},{"dup":31}],239:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -20565,7 +29323,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":202}],214:[function(require,module,exports){
+},{"_process":228}],240:[function(require,module,exports){
 (function (global){
 
 /**
@@ -20636,10 +29394,10 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],215:[function(require,module,exports){
+},{}],241:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":205}],216:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":231}],242:[function(require,module,exports){
 (function (process){
 var Stream = (function (){
   try {
@@ -20659,13 +29417,13 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/_stream_duplex.js":204,"./lib/_stream_passthrough.js":205,"./lib/_stream_readable.js":206,"./lib/_stream_transform.js":207,"./lib/_stream_writable.js":208,"_process":202}],217:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":230,"./lib/_stream_passthrough.js":231,"./lib/_stream_readable.js":232,"./lib/_stream_transform.js":233,"./lib/_stream_writable.js":234,"_process":228}],243:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":207}],218:[function(require,module,exports){
+},{"./lib/_stream_transform.js":233}],244:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":208}],219:[function(require,module,exports){
+},{"./lib/_stream_writable.js":234}],245:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -20794,7 +29552,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":199,"inherits":200,"readable-stream/duplex.js":203,"readable-stream/passthrough.js":215,"readable-stream/readable.js":216,"readable-stream/transform.js":217,"readable-stream/writable.js":218}],220:[function(require,module,exports){
+},{"events":225,"inherits":226,"readable-stream/duplex.js":229,"readable-stream/passthrough.js":241,"readable-stream/readable.js":242,"readable-stream/transform.js":243,"readable-stream/writable.js":244}],246:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -21017,7 +29775,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":2}],221:[function(require,module,exports){
+},{"buffer":28}],247:[function(require,module,exports){
 var indexOf = require('indexof');
 
 var Object_keys = function (obj) {
@@ -21157,7 +29915,7 @@ exports.createContext = Script.createContext = function (context) {
     return copy;
 };
 
-},{"indexof":222}],222:[function(require,module,exports){
+},{"indexof":248}],248:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -21168,10399 +29926,4 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],223:[function(require,module,exports){
-'use strict';
-
-var _convert = require('./convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-var _Network = require('./Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/** @module utils/Address */
-
-var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-/**
-* Encode a string to base32
-*
-* @param {string} s - A string
-*
-* @return {string} - The encoded string
-*/
-var b32encode = function b32encode(s) {
-    var parts = [];
-    var quanta = Math.floor(s.length / 5);
-    var leftover = s.length % 5;
-
-    if (leftover != 0) {
-        for (var i = 0; i < 5 - leftover; i++) {
-            s += '\x00';
-        }
-        quanta += 1;
-    }
-
-    for (var _i = 0; _i < quanta; _i++) {
-        parts.push(alphabet.charAt(s.charCodeAt(_i * 5) >> 3));
-        parts.push(alphabet.charAt((s.charCodeAt(_i * 5) & 0x07) << 2 | s.charCodeAt(_i * 5 + 1) >> 6));
-        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 1) & 0x3F) >> 1));
-        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 1) & 0x01) << 4 | s.charCodeAt(_i * 5 + 2) >> 4));
-        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 2) & 0x0F) << 1 | s.charCodeAt(_i * 5 + 3) >> 7));
-        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 3) & 0x7F) >> 2));
-        parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 3) & 0x03) << 3 | s.charCodeAt(_i * 5 + 4) >> 5));
-        parts.push(alphabet.charAt(s.charCodeAt(_i * 5 + 4) & 0x1F));
-    }
-
-    var replace = 0;
-    if (leftover == 1) replace = 6;else if (leftover == 2) replace = 4;else if (leftover == 3) replace = 3;else if (leftover == 4) replace = 1;
-
-    for (var _i2 = 0; _i2 < replace; _i2++) {
-        parts.pop();
-    }for (var _i3 = 0; _i3 < replace; _i3++) {
-        parts.push("=");
-    }return parts.join("");
-};
-
-/**
-* Decode a base32 string.
-* This is made specifically for our use, deals only with proper strings
-*
-* @param {string} s - A base32 string
-*
-* @return {Uint8Array} - The decoded string
-*/
-var b32decode = function b32decode(s) {
-    var r = new ArrayBuffer(s.length * 5 / 8);
-    var b = new Uint8Array(r);
-    for (var j = 0; j < s.length / 8; j++) {
-        var v = [0, 0, 0, 0, 0, 0, 0, 0];
-        for (var _i4 = 0; _i4 < 8; ++_i4) {
-            v[_i4] = alphabet.indexOf(s[j * 8 + _i4]);
-        }
-        var i = 0;
-        b[j * 5 + 0] = v[i + 0] << 3 | v[i + 1] >> 2;
-        b[j * 5 + 1] = (v[i + 1] & 0x3) << 6 | v[i + 2] << 1 | v[i + 3] >> 4;
-        b[j * 5 + 2] = (v[i + 3] & 0xf) << 4 | v[i + 4] >> 1;
-        b[j * 5 + 3] = (v[i + 4] & 0x1) << 7 | v[i + 5] << 2 | v[i + 6] >> 3;
-        b[j * 5 + 4] = (v[i + 6] & 0x7) << 5 | v[i + 7];
-    }
-    return b;
-};
-
-/**
-* Convert a public key to a NEM address
-*
-* @param {string} publicKey - A public key
-* @param {number} networkId - A network id
-*
-* @return {string} - The NEM address
-*/
-var toAddress = function toAddress(publicKey, networkId) {
-    var binPubKey = CryptoJS.enc.Hex.parse(publicKey);
-    var hash = CryptoJS.SHA3(binPubKey, {
-        outputLength: 256
-    });
-    var hash2 = CryptoJS.RIPEMD160(hash);
-    // 98 is for testnet
-    var networkPrefix = _Network2.default.id2Prefix(networkId);
-    var versionPrefixedRipemd160Hash = networkPrefix + CryptoJS.enc.Hex.stringify(hash2);
-    var tempHash = CryptoJS.SHA3(CryptoJS.enc.Hex.parse(versionPrefixedRipemd160Hash), {
-        outputLength: 256
-    });
-    var stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0, 8);
-    var concatStepThreeAndStepSix = _convert2.default.hex2a(versionPrefixedRipemd160Hash + stepThreeChecksum);
-    var ret = b32encode(concatStepThreeAndStepSix);
-    return ret;
-};
-
-/**
-* Check if an address is from a specified network
-*
-* @param {string} _address - An address
-* @param {number} networkId - A network id
-*
-* @return {boolean} - True if address is from network, false otherwise
-*/
-var isFromNetwork = function isFromNetwork(_address, networkId) {
-    var address = _address.toString().toUpperCase().replace(/-/g, '');
-    var a = address[0];
-    return _Network2.default.id2Char(networkId) === a;
-};
-
-/**
-* Check if an address is valid
-*
-* @param {string} _address - An address
-*
-* @return {boolean} - True if address is valid, false otherwise
-*/
-var isValid = function isValid(_address) {
-    var address = _address.toString().toUpperCase().replace(/-/g, '');
-    if (!address || address.length !== 40) {
-        return false;
-    }
-    var decoded = _convert2.default.ua2hex(b32decode(address));
-    var versionPrefixedRipemd160Hash = CryptoJS.enc.Hex.parse(decoded.slice(0, 42));
-    var tempHash = CryptoJS.SHA3(versionPrefixedRipemd160Hash, {
-        outputLength: 256
-    });
-    var stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0, 8);
-
-    return stepThreeChecksum === decoded.slice(42);
-};
-
-module.exports = {
-    b32encode: b32encode,
-    b32decode: b32decode,
-    toAddress: toAddress,
-    isFromNetwork: isFromNetwork,
-    isValid: isValid
-};
-
-},{"./Network":226,"./convert":229}],224:[function(require,module,exports){
-'use strict';
-
-var _KeyPair = require('./KeyPair');
-
-var _KeyPair2 = _interopRequireDefault(_KeyPair);
-
-var _convert = require('./convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-var _Address = require('./Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-var _bip = require('./bip32');
-
-var _bip2 = _interopRequireDefault(_bip);
-
-var _naclFast = require('./nacl-fast');
-
-var _naclFast2 = _interopRequireDefault(_naclFast);
-
-var _Network = require('./Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * Encrypt a private key for mobile apps
- *
- * @param {string} password - A wallet password
- * @param {string} privateKey - An account private key
- *
- * @return {object} - The encrypted data
- */
-/** @module utils/CryptoHelpers */
-
-var AES_PBKF2_encryption = function AES_PBKF2_encryption(password, privateKey) {
-    var salt = CryptoJS.lib.WordArray.random(256 / 8);
-    var key = CryptoJS.PBKDF2(password, salt, {
-        keySize: 256 / 32,
-        iterations: 2000
-    });
-    var iv = new Uint8Array(16);
-    window.crypto.getRandomValues(iv);
-    var encIv = {
-        iv: _convert2.default.ua2words(iv, 16)
-    };
-    var encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(privateKey), key, encIv);
-    return {
-        encrypted: _convert2.default.ua2hex(iv) + encrypted.ciphertext,
-        salt: salt.toString()
-    };
-};
-
-/**
- * Derive a private key from a password using count iterations of SHA3-256
- *
- * @param {string} password - A wallet password
- * @param {number} count - A number of iterations
- *
- * @return {object} - The derived private key
- */
-var derivePassSha = function derivePassSha(password, count) {
-    var data = password;
-    console.time('sha3^n generation time');
-    for (var i = 0; i < count; ++i) {
-        data = CryptoJS.SHA3(data, {
-            outputLength: 256
-        });
-    }
-    console.timeEnd('sha3^n generation time');
-    return {
-        'priv': CryptoJS.enc.Hex.stringify(data)
-    };
-};
-
-/**
- * Reveal the private key of an account or derive it from the wallet password
- *
- * @param {object} commonData- An object containing password and privateKey field
- * @param {object} walletAccount - A wallet account object
- * @param {string} algo - A wallet algorithm
- * @param {boolean} doClear - True to clean password after operation, false otherwise
- *
- * @return {object|boolean} - The account private key or false
- */
-var passwordToPrivatekeyClear = function passwordToPrivatekeyClear(commonData, walletAccount, algo, doClear) {
-    if (commonData.password) {
-        var r = undefined;
-        if (algo === "pass:6k") {
-            // Brain wallets
-            if (!walletAccount.encrypted && !walletAccount.iv) {
-                // Base account private key is generated simply using a passphrase so it has no encrypted and iv
-                r = derivePassSha(commonData.password, 6000);
-            } else if (!walletAccount.encrypted || !walletAccount.iv) {
-                // Else if one is missing there is a problem
-                alert("Account might be compromised, missing encrypted or iv");
-                return false;
-            } else {
-                // Else child accounts have encrypted and iv so we decrypt
-                var pass = derivePassSha(commonData.password, 20);
-                var obj = {
-                    ciphertext: CryptoJS.enc.Hex.parse(walletAccount.encrypted),
-                    iv: _convert2.default.hex2ua(walletAccount.iv),
-                    key: _convert2.default.hex2ua(pass.priv)
-                };
-                var d = decrypt(obj);
-                r = {
-                    'priv': d
-                };
-            }
-        } else if (algo === "pass:bip32") {
-            // Wallets from PRNG
-            var _pass = derivePassSha(commonData.password, 20);
-            var _obj = {
-                ciphertext: CryptoJS.enc.Hex.parse(walletAccount.encrypted),
-                iv: _convert2.default.hex2ua(walletAccount.iv),
-                key: _convert2.default.hex2ua(_pass.priv)
-            };
-            var _d = decrypt(_obj);
-            r = {
-                'priv': _d
-            };
-        } else if (algo === "pass:enc") {
-            // Private Key wallets
-            var _pass2 = derivePassSha(commonData.password, 20);
-            var _obj2 = {
-                ciphertext: CryptoJS.enc.Hex.parse(walletAccount.encrypted),
-                iv: _convert2.default.hex2ua(walletAccount.iv),
-                key: _convert2.default.hex2ua(_pass2.priv)
-            };
-            var _d2 = decrypt(_obj2);
-            r = {
-                'priv': _d2
-            };
-        } else {
-            alert("Unknown wallet encryption method");
-            return false;
-        }
-        if (doClear) {
-            delete commonData.password;
-        }
-        commonData.privateKey = r.priv;
-        return true;
-    } else {
-        return false;
-    }
-};
-
-/**
- * Check if a private key correspond to an account address
- *
- * @param {string} priv - An account private key
- * @param {number} network - A network id
- * @param {string} _expectedAddress - The expected NEM address
- *
- * @return {boolean} - True if valid, false otherwise
- */
-var checkAddress = function checkAddress(priv, network, _expectedAddress) {
-    if (priv.length === 64 || priv.length === 66) {
-        var expectedAddress = _expectedAddress.toUpperCase().replace(/-/g, '');
-        var kp = _KeyPair2.default.create(priv);
-        var address = _Address2.default.toAddress(kp.publicKey.toString(), network);
-        return address === expectedAddress;
-    } else {
-        return false;
-    }
-};
-
-function hashfunc(dest, data, dataLength) {
-    var convertedData = _convert2.default.ua2words(data, dataLength);
-    var hash = CryptoJS.SHA3(convertedData, {
-        outputLength: 512
-    });
-    _convert2.default.words2ua(dest, hash);
-}
-
-function key_derive(shared, salt, sk, pk) {
-    _naclFast2.default.lowlevel.crypto_shared_key_hash(shared, pk, sk, hashfunc);
-    for (var i = 0; i < salt.length; i++) {
-        shared[i] ^= salt[i];
-    }
-    var hash = CryptoJS.SHA3(_convert2.default.ua2words(shared, 32), {
-        outputLength: 256
-    });
-    return hash;
-}
-
-/**
- * Generate a random key
- *
- * @return {Uint8Array} - A random key
- */
-var randomKey = function randomKey() {
-    var rkey = new Uint8Array(32);
-    window.crypto.getRandomValues(rkey);
-    return rkey;
-};
-
-/**
- * encrypt() Encrypt hex data using a key
- *
- * @param {string} data - An hex string
- * @param {Uint8Array} key - An Uint8Array key
- *
- * @return {object} - The encrypted data
- */
-var encrypt = function encrypt(data, key) {
-    var iv = new Uint8Array(16);
-    window.crypto.getRandomValues(iv);
-
-    var encKey = _convert2.default.ua2words(key, 32);
-    var encIv = {
-        iv: _convert2.default.ua2words(iv, 16)
-    };
-    var encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(data), encKey, encIv);
-    return {
-        ciphertext: encrypted.ciphertext,
-        iv: iv,
-        key: key
-    };
-};
-
-/**
- * Decrypt data
- *
- * @param {object} data - An encrypted data object
- *
- * @return {string} - The decrypted hex string
- */
-var decrypt = function decrypt(data) {
-    var encKey = _convert2.default.ua2words(data.key, 32);
-    var encIv = {
-        iv: _convert2.default.ua2words(data.iv, 16)
-    };
-    return CryptoJS.enc.Hex.stringify(CryptoJS.AES.decrypt(data, encKey, encIv));
-};
-
-/**
- * Encode a private key using a password
- *
- * @param {string} privateKey - An hex private key
- * @param {string} password - A password
- *
- * @return {object} - The encoded data
- */
-var encodePrivKey = function encodePrivKey(privateKey, password) {
-    if (!password) {
-        throw new Error("No password provided");
-    } else if (!privateKey) {
-        throw new Error("No private key provided");
-    } else {
-        var pass = derivePassSha(password, 20);
-        var r = encrypt(privateKey, _convert2.default.hex2ua(pass.priv));
-        var ret = {
-            ciphertext: CryptoJS.enc.Hex.stringify(r.ciphertext),
-            iv: _convert2.default.ua2hex(r.iv)
-        };
-        return ret;
-    }
-};
-
-/***
- * Encode a message, separated from encode() to help testing
- *
- * @param {string} senderPriv - A sender private key
- * @param {string} recipientPub - A recipient public key
- * @param {string} msg - A text message
- * @param {Uint8Array} iv - An initialization vector
- * @param {Uint8Array} salt - A salt
- *
- * @return {string} - The encoded message
- */
-var _encode = function _encode(senderPriv, recipientPub, msg, iv, salt) {
-    var sk = _convert2.default.hex2ua_reversed(senderPriv);
-    var pk = _convert2.default.hex2ua(recipientPub);
-
-    var shared = new Uint8Array(32);
-    var r = key_derive(shared, salt, sk, pk);
-
-    var encKey = r;
-    var encIv = {
-        iv: _convert2.default.ua2words(iv, 16)
-    };
-    var encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(_convert2.default.utf8ToHex(msg)), encKey, encIv);
-    var result = _convert2.default.ua2hex(salt) + _convert2.default.ua2hex(iv) + CryptoJS.enc.Hex.stringify(encrypted.ciphertext);
-    return result;
-};
-
-/**
- * Encode a message
- *
- * @param {string} senderPriv - A sender private key
- * @param {string} recipientPub - A recipient public key
- * @param {string} msg - A text message
- *
- * @return {string} - The encoded message
- */
-var encode = function encode(senderPriv, recipientPub, msg) {
-    if (!recipientPub) {
-        throw new Error("No recipient public key");
-    } else if (!msg) {
-        throw new Error("No message to encode");
-    } else if (!senderPriv) {
-        throw new Error("No sender private key");
-    } else {
-        var iv = new Uint8Array(16);
-        window.crypto.getRandomValues(iv);
-        //console.log("IV:", convert.ua2hex(iv));
-
-        var salt = new Uint8Array(32);
-        window.crypto.getRandomValues(salt);
-
-        var encoded = _encode(senderPriv, recipientPub, msg, iv, salt);
-
-        return encoded;
-    }
-};
-
-/**
- * Decode an encrypted message payload
- *
- * @param {string} recipientPrivate - A recipient private key
- * @param {string} senderPublic - A sender public key
- * @param {string} _payload - An encrypted message payload
- *
- * @return {string} - The decoded payload as hex
- */
-var decode = function decode(recipientPrivate, senderPublic, _payload) {
-    if (!senderPublic) {
-        throw new Error("No sender public key");
-    } else if (!_payload) {
-        throw new Error("No payload to decode");
-    } else if (!recipientPrivate) {
-        throw new Error("No recipient private key");
-    } else {
-        var binPayload = _convert2.default.hex2ua(_payload);
-        var salt = new Uint8Array(binPayload.buffer, 0, 32);
-        var iv = new Uint8Array(binPayload.buffer, 32, 16);
-        var payload = new Uint8Array(binPayload.buffer, 48);
-
-        var sk = _convert2.default.hex2ua_reversed(recipientPrivate);
-        var pk = _convert2.default.hex2ua(senderPublic);
-        var shared = new Uint8Array(32);
-        var r = key_derive(shared, salt, sk, pk);
-
-        var encKey = r;
-        var encIv = {
-            iv: _convert2.default.ua2words(iv, 16)
-        };
-
-        var encrypted = {
-            'ciphertext': _convert2.default.ua2words(payload, payload.length)
-        };
-        var plain = CryptoJS.AES.decrypt(encrypted, encKey, encIv);
-        var hexplain = CryptoJS.enc.Hex.stringify(plain);
-        return hexplain;
-    }
-};
-
-/**
- * Generate bip32 data
- *
- * @param {string} r - A private key
- * @param {string} password - A wallet password
- * @param {number} index - A derivation index
- * @param {number} network - A network id
- *
- * @return {object|promise} - The bip32 data or promise error
- */
-var generateBIP32Data = function generateBIP32Data(r, password, index, network) {
-    return new Promise(function (resolve, reject) {
-
-        if (!r) {
-            return reject("No private key");
-        }
-        if (!password) {
-            return reject("No password");
-        }
-        if (!network) {
-            return reject("No network");
-        }
-
-        // 25000 rounds of SHA3
-        var pk_SHA3_25000 = void 0;
-        for (var i = 0; i < 25000; ++i) {
-            pk_SHA3_25000 = CryptoJS.SHA3(r, {
-                outputLength: 256
-            });
-        }
-        var hmac = CryptoJS.algo.HMAC.create(CryptoJS.algo.SHA3, password);
-        hmac.update(pk_SHA3_25000);
-        var hash = hmac.finalize();
-
-        // Split into equal parts of 32 bytes
-        var il = Crypto.util.hexToBytes(hash.toString().slice(0, 64));
-        var ir = Crypto.util.hexToBytes(hash.toString().slice(64, 128));
-
-        /*console.log("Private: " + r.toString());
-        console.log("Hash: " + hash.toString());
-        console.log("il: " + il.toString());
-        console.log("ir: " + ir.toString());*/
-
-        // Create BIP32 object
-        var gen_bip32 = new _bip2.default.BIP32();
-        try {
-            // Set BIP32 object properties
-            gen_bip32.eckey = new Bitcoin.ECKey(il);
-            gen_bip32.eckey.pub = gen_bip32.eckey.getPubPoint();
-            gen_bip32.eckey.setCompressed(true);
-            gen_bip32.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(gen_bip32.eckey.pub.getEncoded(true));
-            gen_bip32.has_private_key = true;
-
-            gen_bip32.chain_code = ir;
-            gen_bip32.child_index = 0;
-            gen_bip32.parent_fingerprint = Bitcoin.Util.hexToBytes("00000000");
-            // BIP32 version by wallet network
-            if (network === _Network2.default.data.Mainnet.id) {
-                gen_bip32.version = 0x68000000;
-            } else if (network === _Network2.default.data.Mijin.id) {
-                gen_bip32.version = 0x60000000;
-            } else {
-                gen_bip32.version = 0x98000000;
-            }
-            gen_bip32.depth = 99;
-
-            gen_bip32.build_extended_public_key();
-            gen_bip32.build_extended_private_key();
-        } catch (err) {
-            return reject(err);
-        }
-
-        //console.log('BIP32 Extended Key: ' + gen_bip32.extended_private_key_string("base58"));
-
-        updateDerivationPath(gen_bip32, index, network, resolve, reject);
-    });
-};
-
-function updateDerivationPath(bip32_source_key, index, network, resolve, reject) {
-    var bip32_derivation_path = "m/i"; //Simple
-
-    //k set to 0, only using the i'th KeyPair
-    updateResult(bip32_source_key, bip32_derivation_path, 0, index, network, resolve, reject);
-}
-
-function updateResult(bip32_source_key, bip32_derivation_path, k_index, i_index, network, resolve, reject) {
-    var p = '' + bip32_derivation_path;
-    var k = parseInt(k_index);
-    var i = parseInt(i_index);
-
-    p = p.replace('i', i).replace('k', k);
-
-    var result = void 0;
-    try {
-        if (bip32_source_key == null) {
-            // if this is the case then there's an error state set on the source key
-            return reject("Error state set on the source key");
-        }
-        console.log("Deriving: " + p);
-        result = bip32_source_key.derive(p);
-    } catch (err) {
-        return reject(err);
-    }
-
-    if (result.has_private_key) {
-        console.log('Derived private key: ' + result.extended_private_key_string("base58"));
-        console.log('Derived private key HEX: ' + Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()));
-        var privkeyBytes = result.eckey.priv.toByteArrayUnsigned();
-        while (privkeyBytes.length < 32) {
-            privkeyBytes.unshift(0);
-        };
-    } else {
-        return reject("No private key available");
-    }
-
-    var account = _KeyPair2.default.create(Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()));
-    var address = _Address2.default.toAddress(account.publicKey.toString(), network);
-    console.log('BIP32 account generated: ' + address);
-
-    return resolve({
-        seed: bip32_source_key.extended_private_key_string("base58"),
-        address: address,
-        privateKey: Crypto.util.bytesToHex(result.eckey.priv.toByteArrayUnsigned()),
-        publicKey: account.publicKey.toString()
-    });
-}
-
-/**
- * Derive a bip32 account from seed
- *
- * @param {string} bip32Key - A bip32 seed
- * @param {number} index - A derivation index
- * @param {number} network - A network id
- *
- * @return {object|promise} - The bip32 data or promise error
- */
-var BIP32derivation = function BIP32derivation(bip32Key, index, network) {
-    return new Promise(function (resolve, reject) {
-
-        if (!bip32Key) {
-            return reject("No seed to derivate account from");
-        }
-
-        var bip32_source_key = void 0;
-        try {
-            // Create bip32 object from seed
-            var source_key_str = bip32Key;
-            if (source_key_str.length == 0) return;
-            bip32_source_key = new _bip2.default.BIP32(source_key_str);
-        } catch (err) {
-            bip32_source_key = null;
-            return reject(err);
-        }
-
-        updateDerivationPath(bip32_source_key, index, network, resolve, reject);
-    });
-};
-
-module.exports = {
-    AES_PBKF2_encryption: AES_PBKF2_encryption,
-    derivePassSha: derivePassSha,
-    passwordToPrivatekeyClear: passwordToPrivatekeyClear,
-    checkAddress: checkAddress,
-    randomKey: randomKey,
-    decrypt: decrypt,
-    encrypt: encrypt,
-    encodePrivKey: encodePrivKey,
-    _encode: _encode,
-    encode: encode,
-    decode: decode,
-    generateBIP32Data: generateBIP32Data,
-    BIP32derivation: BIP32derivation
-};
-
-},{"./Address":223,"./KeyPair":225,"./Network":226,"./bip32":228,"./convert":229,"./nacl-fast":231}],225:[function(require,module,exports){
-'use strict';
-
-var _naclFast = require('./nacl-fast');
-
-var _naclFast2 = _interopRequireDefault(_naclFast);
-
-var _convert = require('./convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/***
-* Create a BinaryKey object
-*
-* @param {Uint8Array} keyData - A key data
-*/
-/** @module utils/KeyPair */
-
-var BinaryKey = function BinaryKey(keyData) {
-    this.data = keyData;
-    this.toString = function () {
-        return _convert2.default.ua2hex(this.data);
-    };
-};
-
-var hashfunc = function hashfunc(dest, data, dataLength) {
-    var convertedData = _convert2.default.ua2words(data, dataLength);
-    var hash = CryptoJS.SHA3(convertedData, {
-        outputLength: 512
-    });
-    _convert2.default.words2ua(dest, hash);
-};
-
-/***
-* Create an hasher object
-*/
-var hashobj = function hashobj() {
-    this.sha3 = CryptoJS.algo.SHA3.create({
-        outputLength: 512
-    });
-    this.reset = function () {
-        this.sha3 = CryptoJS.algo.SHA3.create({
-            outputLength: 512
-        });
-    };
-
-    this.update = function (data) {
-        if (data instanceof BinaryKey) {
-            var converted = _convert2.default.ua2words(data.data, data.data.length);
-            var result = CryptoJS.enc.Hex.stringify(converted);
-            this.sha3.update(converted);
-        } else if (data instanceof Uint8Array) {
-            var _converted = _convert2.default.ua2words(data, data.length);
-            this.sha3.update(_converted);
-        } else if (typeof data === "string") {
-            var _converted2 = CryptoJS.enc.Hex.parse(data);
-            this.sha3.update(_converted2);
-        } else {
-            throw new Error("unhandled argument");
-        }
-    };
-
-    this.finalize = function (result) {
-        var hash = this.sha3.finalize();
-        _convert2.default.words2ua(result, hash);
-    };
-};
-
-/***
-* Create a KeyPair Object 
-*
-* @param {string} privkey - An hex private key
-*/
-var KeyPair = function KeyPair(privkey) {
-    var _this = this;
-
-    this.publicKey = new BinaryKey(new Uint8Array(_naclFast2.default.lowlevel.crypto_sign_PUBLICKEYBYTES));
-    this.secretKey = _convert2.default.hex2ua_reversed(privkey);
-    _naclFast2.default.lowlevel.crypto_sign_keypair_hash(this.publicKey.data, this.secretKey, hashfunc);
-
-    // Signature
-    this.sign = function (data) {
-        var sig = new Uint8Array(64);
-        var hasher = new hashobj();
-        var r = _naclFast2.default.lowlevel.crypto_sign_hash(sig, _this, data, hasher);
-        if (!r) {
-            alert("Couldn't sign the tx, generated invalid signature");
-            throw new Error("Couldn't sign the tx, generated invalid signature");
-        }
-        return new BinaryKey(sig);
-    };
-};
-
-/**
-* Create a NEM KeyPair
-*
-* @param {string} hexdata - An hex private key
-*
-* @return {object} - The NEM KeyPair object
-*/
-var create = function create(hexdata) {
-    var r = new KeyPair(hexdata);
-    return r;
-};
-
-module.exports = {
-    create: create
-};
-
-},{"./convert":229,"./nacl-fast":231}],226:[function(require,module,exports){
-"use strict";
-
-/** @module utils/Network */
-
-/**
-* Networks info data
-*
-* @type {object}
-*/
-var data = {
-    "Mainnet": {
-        "id": 104,
-        "prefix": "68",
-        "char": "N"
-    },
-    "Testnet": {
-        "id": -104,
-        "prefix": "98",
-        "char": "T"
-    },
-    "Mijin": {
-        "id": 96,
-        "prefix": "60",
-        "char": "M"
-    }
-};
-
-/**
- * Gets a network prefix from network id
- *
- * @param {number} id - A network id
- *
- * @return {string} - The network prefix
- */
-var id2Prefix = function id2Prefix(id) {
-    if (id === 104) {
-        return "68";
-    } else if (id === -104) {
-        return "98";
-    } else {
-        return "60";
-    }
-};
-
-/**
- * Gets the starting char of the addresses of a network id
- *
- * @param {number} id - A network id
- *
- * @return {string} - The starting char of addresses
- */
-var id2Char = function id2Char(id) {
-    if (id === 104) {
-        return "N";
-    } else if (id === -104) {
-        return "T";
-    } else {
-        return "M";
-    }
-};
-
-/**
- * Gets the network id from the starting char of an address
- *
- * @param {string} startChar - A starting char from an address
- *
- * @return {number} - The network id
- */
-var char2Id = function char2Id(startChar) {
-    if (startChar === "N") {
-        return 104;
-    } else if (startChar === "T") {
-        return -104;
-    } else {
-        return 96;
-    }
-};
-
-module.exports = {
-    data: data,
-    id2Prefix: id2Prefix,
-    id2Char: id2Char,
-    char2Id: char2Id
-};
-
-},{}],227:[function(require,module,exports){
-"use strict";
-
-/** @module utils/TransactionTypes */
-
-/**
- * The transfer transaction type
- *
- * @type {string}
- *
- * @default
- */
-var Transfer = 0x101; // 257
-
-/**
- * The importance transfer type
- *
- * @type {string}
- *
- * @default
- */
-var ImportanceTransfer = 0x801; // 2049
-
-/**
- * The aggregate modification transaction type
- *
- * @type {string}
- *
- * @default
- */
-var MultisigModification = 0x1001; // 4097
-
-/**
- * The multisignature signature transaction type
- *
- * @type {string}
- *
- * @default
- */
-var MultisigSignature = 0x1002; // 4098
-
-/**
- * The multisignature transaction type
- *
- * @type {string}
- *
- * @default
- */
-var MultisigTransaction = 0x1004; // 4100
-
-/**
- * The provision namespace transaction type
- *
- * @type {string}
- *
- * @default
- */
-var ProvisionNamespace = 0x2001; // 8193
-
-/**
- * The mosaic definition transaction type
- *
- * @type {string}
- *
- * @default
- */
-var MosaicDefinition = 0x4001; // 16385
-
-/**
- * The mosaic supply change transaction type
- *
- * @type {string}
- *
- * @default
- */
-var MosaicSupply = 0x4002; // 16386
-
-module.exports = {
-  Transfer: Transfer,
-  ImportanceTransfer: ImportanceTransfer,
-  MultisigModification: MultisigModification,
-  MultisigSignature: MultisigSignature,
-  MultisigTransaction: MultisigTransaction,
-  ProvisionNamespace: ProvisionNamespace,
-  MosaicDefinition: MosaicDefinition,
-  MosaicSupply: MosaicSupply
-};
-
-},{}],228:[function(require,module,exports){
-'use strict';
-
-var _KeyPair = require('./KeyPair');
-
-var _KeyPair2 = _interopRequireDefault(_KeyPair);
-
-var _Address = require('./Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var NEM_MAINNET_PUBLIC = 0x68000000;
-var NEM_MAINNET_PRIVATE = 0x68000000;
-var NEM_TESTNET_PUBLIC = 0x98000000;
-var NEM_TESTNET_PRIVATE = 0x98000000;
-var NEM_MIJIN_PUBLIC = 0x60000000;
-var NEM_MIJIN_PRIVATE = 0x60000000;
-
-var BIP32 = function BIP32(bytes) {
-    // decode base58
-    if (typeof bytes === "string") {
-        var decoded = Bitcoin.Base58.decode(bytes);
-        if (decoded.length != 82) throw new Error("Not enough data");
-        var checksum = decoded.slice(78, 82);
-        bytes = decoded.slice(0, 78);
-
-        var hash = Crypto.SHA256(Crypto.SHA256(bytes, {
-            asBytes: true
-        }), {
-            asBytes: true
-        });
-
-        if (hash[0] != checksum[0] || hash[1] != checksum[1] || hash[2] != checksum[2] || hash[3] != checksum[3]) {
-            throw new Error("Invalid checksum");
-        }
-    }
-
-    if (bytes !== undefined) this.init_from_bytes(bytes);
-};
-
-BIP32.prototype.init_from_bytes = function (bytes) {
-    // Both pub and private extended keys are 78 bytes
-    if (bytes.length != 78) throw new Error("not enough data");
-
-    this.version = u32(bytes.slice(0, 4));
-    this.depth = u8(bytes.slice(4, 5));
-    this.parent_fingerprint = bytes.slice(5, 9);
-    this.child_index = u32(bytes.slice(9, 13));
-    this.chain_code = bytes.slice(13, 45);
-
-    var key_bytes = bytes.slice(45, 78);
-
-    var is_private = this.version == NEM_MAINNET_PRIVATE || this.version == NEM_TESTNET_PRIVATE || this.version == NEM_MIJIN_PRIVATE;
-
-    var is_public = this.version == NEM_MAINNET_PUBLIC || this.version == NEM_TESTNET_PUBLIC || this.version == NEM_MIJIN_PUBLIC;
-
-    if (is_private && key_bytes[0] == 0) {
-        this.eckey = new Bitcoin.ECKey(key_bytes.slice(1, 33));
-        this.eckey.setCompressed(true);
-
-        var ecparams = getSECCurveByName("secp256k1");
-        var pt = ecparams.getG().multiply(this.eckey.priv);
-        this.eckey.pub = pt;
-        this.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(this.eckey.pub.getEncoded(true));
-        this.has_private_key = true;
-    } else if (is_public && (key_bytes[0] == 0x02 || key_bytes[0] == 0x03)) {
-        this.eckey = new Bitcoin.ECKey();
-        this.eckey.pub = decompress_pubkey(key_bytes);
-        this.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(this.eckey.pub.getEncoded(true));
-        this.eckey.setCompressed(true);
-        this.has_private_key = false;
-    } else {
-        throw new Error("Invalid key");
-    }
-
-    this.build_extended_public_key();
-    this.build_extended_private_key();
-};
-
-BIP32.prototype.build_extended_public_key = function () {
-    this.extended_public_key = [];
-
-    var v = null;
-    switch (this.version) {
-        case NEM_MAINNET_PUBLIC:
-        case NEM_MAINNET_PRIVATE:
-            v = NEM_MAINNET_PUBLIC;
-            break;
-        case NEM_TESTNET_PUBLIC:
-        case NEM_TESTNET_PRIVATE:
-            v = NEM_TESTNET_PUBLIC;
-            break;
-        case NEM_MIJIN_PUBLIC:
-        case NEM_MIJIN_PRIVATE:
-            v = NEM_MIJIN_PUBLIC;
-            break;
-        default:
-            throw new Error("Unknown version");
-    }
-
-    // Version
-    this.extended_public_key.push(v >> 24);
-    this.extended_public_key.push(v >> 16 & 0xff);
-    this.extended_public_key.push(v >> 8 & 0xff);
-    this.extended_public_key.push(v & 0xff);
-
-    // Depth
-    this.extended_public_key.push(this.depth);
-
-    // Parent fingerprint
-    this.extended_public_key = this.extended_public_key.concat(this.parent_fingerprint);
-
-    // Child index
-    this.extended_public_key.push(this.child_index >>> 24);
-    this.extended_public_key.push(this.child_index >>> 16 & 0xff);
-    this.extended_public_key.push(this.child_index >>> 8 & 0xff);
-    this.extended_public_key.push(this.child_index & 0xff);
-
-    // Chain code
-    this.extended_public_key = this.extended_public_key.concat(this.chain_code);
-
-    // Public key
-    this.extended_public_key = this.extended_public_key.concat(this.eckey.pub.getEncoded(true));
-};
-
-BIP32.prototype.extended_public_key_string = function (format) {
-    if (format === undefined || format === "base58") {
-        var hash = Crypto.SHA256(Crypto.SHA256(this.extended_public_key, {
-            asBytes: true
-        }), {
-            asBytes: true
-        });
-        var checksum = hash.slice(0, 4);
-        var data = this.extended_public_key.concat(checksum);
-        return Bitcoin.Base58.encode(data);
-    } else if (format === "hex") {
-        return Crypto.util.bytesToHex(this.extended_public_key);
-    } else {
-        throw new Error("bad format");
-    }
-};
-
-BIP32.prototype.build_extended_private_key = function () {
-    if (!this.has_private_key) return;
-    this.extended_private_key = [];
-
-    var v = this.version;
-
-    // Version
-    this.extended_private_key.push(v >> 24);
-    this.extended_private_key.push(v >> 16 & 0xff);
-    this.extended_private_key.push(v >> 8 & 0xff);
-    this.extended_private_key.push(v & 0xff);
-
-    // Depth
-    this.extended_private_key.push(this.depth);
-
-    // Parent fingerprint
-    this.extended_private_key = this.extended_private_key.concat(this.parent_fingerprint);
-
-    // Child index
-    this.extended_private_key.push(this.child_index >>> 24);
-    this.extended_private_key.push(this.child_index >>> 16 & 0xff);
-    this.extended_private_key.push(this.child_index >>> 8 & 0xff);
-    this.extended_private_key.push(this.child_index & 0xff);
-
-    // Chain code
-    this.extended_private_key = this.extended_private_key.concat(this.chain_code);
-
-    // Private key
-    this.extended_private_key.push(0);
-    var k = this.eckey.priv.toByteArrayUnsigned();
-    while (k.length < 32) {
-        k.unshift(0);
-    }
-    this.extended_private_key = this.extended_private_key.concat(k);
-};
-
-BIP32.prototype.extended_private_key_string = function (format) {
-    if (format === undefined || format === "base58") {
-        var hash = Crypto.SHA256(Crypto.SHA256(this.extended_private_key, {
-            asBytes: true
-        }), {
-            asBytes: true
-        });
-        var checksum = hash.slice(0, 4);
-        var data = this.extended_private_key.concat(checksum);
-        return Bitcoin.Base58.encode(data);
-    } else if (format === "hex") {
-        return Crypto.util.bytesToHex(this.extended_private_key);
-    } else {
-        throw new Error("bad format");
-    }
-};
-
-BIP32.prototype.derive = function (path) {
-    var e = path.split('/');
-
-    // Special cases:
-    if (path == 'm' || path == 'M' || path == 'm\'' || path == 'M\'') return this;
-
-    var bip32 = this;
-    for (var i in e) {
-        var c = e[i];
-
-        if (i == 0) {
-            if (c != 'm') throw new Error("invalid path");
-            continue;
-        }
-
-        var use_private = c.length > 1 && c[c.length - 1] == '\'';
-        var child_index = parseInt(use_private ? c.slice(0, c.length - 1) : c) & 0x7fffffff;
-
-        if (use_private) child_index += 0x80000000;
-
-        bip32 = bip32.derive_child(child_index);
-    }
-
-    return bip32;
-};
-
-BIP32.prototype.derive_child = function (i) {
-    var ib = [];
-    ib.push(i >> 24 & 0xff);
-    ib.push(i >> 16 & 0xff);
-    ib.push(i >> 8 & 0xff);
-    ib.push(i & 0xff);
-
-    var use_private = (i & 0x80000000) != 0;
-    var ecparams = getSECCurveByName("secp256k1");
-
-    var is_private = this.version == NEM_MAINNET_PRIVATE || this.version == NEM_TESTNET_PRIVATE || this.version == NEM_MIJIN_PRIVATE;
-
-    if (use_private && (!this.has_private_key || !is_private)) throw new Error("Cannot do private key derivation without private key");
-
-    var ret = null;
-    if (this.has_private_key) {
-        var data = null;
-
-        if (use_private) {
-            var k = this.eckey.priv.toByteArrayUnsigned();
-            while (k.length < 32) {
-                k.unshift(0);
-            }
-            data = [0].concat(k).concat(ib);
-        } else {
-            data = this.eckey.pub.getEncoded(true).concat(ib);
-        }
-
-        var j = new jsSHA(Crypto.util.bytesToHex(data), 'HEX');
-        var hash = j.getHMAC(Crypto.util.bytesToHex(this.chain_code), "HEX", "SHA-256", "HEX");
-        var il = new BigInteger(hash.slice(0, 64), 16);
-        var ir = Crypto.util.bytesToHex(hash.slice(64, 128));
-
-        // ki = IL + kpar (mod n).
-        var curve = ecparams.getCurve();
-        var k = il.add(this.eckey.priv).mod(ecparams.getN());
-
-        ret = new BIP32();
-        ret.chain_code = ir;
-
-        ret.eckey = new Bitcoin.ECKey(k.toByteArrayUnsigned());
-        ret.eckey.pub = ret.eckey.getPubPoint();
-        ret.has_private_key = true;
-    } else {
-        var data = this.eckey.pub.getEncoded(true).concat(ib);
-        var j = new jsSHA(Crypto.util.bytesToHex(data), 'HEX');
-        var hash = j.getHMAC(Crypto.util.bytesToHex(this.chain_code), "HEX", "SHA-256", "HEX");
-        var il = new BigInteger(hash.slice(0, 64), 16);
-        var ir = Crypto.util.bytesToHex(hash.slice(64, 128));
-
-        // Ki = (IL + kpar)*G = IL*G + Kpar
-        var k = ecparams.getG().multiply(il).add(this.eckey.pub);
-
-        ret = new BIP32();
-        ret.chain_code = ir;
-
-        ret.eckey = new Bitcoin.ECKey();
-        ret.eckey.pub = k;
-        ret.has_private_key = false;
-    }
-
-    ret.child_index = i;
-    ret.parent_fingerprint = this.eckey.pubKeyHash.slice(0, 4);
-    ret.version = this.version;
-    ret.depth = this.depth + 1;
-
-    ret.eckey.setCompressed(true);
-    ret.eckey.pubKeyHash = Bitcoin.Util.sha256ripe160(ret.eckey.pub.getEncoded(true));
-
-    ret.build_extended_public_key();
-    ret.build_extended_private_key();
-
-    return ret;
-};
-
-function uint(f, size) {
-    if (f.length < size) throw new Error("not enough data");
-    var n = 0;
-    for (var i = 0; i < size; i++) {
-        n *= 256;
-        n += f[i];
-    }
-    return n;
-}
-
-function u8(f) {
-    return uint(f, 1);
-}
-
-function u16(f) {
-    return uint(f, 2);
-}
-
-function u32(f) {
-    return uint(f, 4);
-}
-
-function u64(f) {
-    return uint(f, 8);
-}
-
-function decompress_pubkey(key_bytes) {
-    var y_bit = u8(key_bytes.slice(0, 1)) & 0x01;
-    var ecparams = getSECCurveByName("secp256k1");
-
-    // build X
-    var x = BigInteger.ZERO.clone();
-    x.fromString(Crypto.util.bytesToHex(key_bytes.slice(1, 33)), 16);
-
-    // get curve
-    var curve = ecparams.getCurve();
-    var a = curve.getA().toBigInteger();
-    var b = curve.getB().toBigInteger();
-    var p = curve.getQ();
-
-    // compute y^2 = x^3 + a*x + b
-    var tmp = x.multiply(x).multiply(x).add(a.multiply(x)).add(b).mod(p);
-
-    // compute modular square root of y (mod p)
-    var y = tmp.modSqrt(p);
-
-    // flip sign if we need to
-    if ((y[0] & 0x01) != y_bit) {
-        y = y.multiply(new BigInteger("-1")).mod(p);
-    }
-
-    return new ECPointFp(curve, curve.fromBigInteger(x), curve.fromBigInteger(y));
-}
-
-module.exports = {
-    BIP32: BIP32
-};
-
-},{"./Address":223,"./KeyPair":225}],229:[function(require,module,exports){
-'use strict';
-
-/** @module utils/convert */
-
-var _hexEncodeArray = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
-
-/**
-* Reversed convertion of hex to Uint8Array
-*
-* @param {string} hexx - An hex string
-*
-* @return {Uint8Array}
-*/
-var hex2ua_reversed = function hex2ua_reversed(hexx) {
-    var hex = hexx.toString(); //force conversion
-    var ua = new Uint8Array(hex.length / 2);
-    for (var i = 0; i < hex.length; i += 2) {
-        ua[ua.length - 1 - i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return ua;
-};
-
-/**
-* Convert hex to Uint8Array
-*
-* @param {string} hexx - An hex string
-*
-* @return {Uint8Array}
-*/
-var hex2ua = function hex2ua(hexx) {
-    var hex = hexx.toString(); //force conversion
-    var ua = new Uint8Array(hex.length / 2);
-    for (var i = 0; i < hex.length; i += 2) {
-        ua[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return ua;
-};
-
-/**
-* Convert an Uint8Array to hex
-*
-* @param {Uint8Array} ua - An Uint8Array
-*
-* @return {string}
-*/
-var ua2hex = function ua2hex(ua) {
-    var s = '';
-    for (var i = 0; i < ua.length; i++) {
-        var code = ua[i];
-        s += _hexEncodeArray[code >>> 4];
-        s += _hexEncodeArray[code & 0x0F];
-    }
-    return s;
-};
-
-/**
-* Convert hex to string
-*
-* @param {string} hexx - An hex string
-*
-* @return {string}
-*/
-var hex2a = function hex2a(hexx) {
-    var hex = hexx.toString();
-    var str = '';
-    for (var i = 0; i < hex.length; i += 2) {
-        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-    }return str;
-};
-
-/**
-* Convert UTF-8 to hex
-*
-* @param {string} str - An UTF-8 string
-*
-* @return {string}
-*/
-var utf8ToHex = function utf8ToHex(str) {
-    var rawString = rstr2utf8(str);
-    var hex = "";
-    for (var i = 0; i < rawString.length; i++) {
-        hex += strlpad(rawString.charCodeAt(i).toString(16), "0", 2);
-    }
-    return hex;
-};
-
-// Padding helper for above function
-var strlpad = function strlpad(str, pad, len) {
-    while (str.length < len) {
-        str = pad + str;
-    }
-    return str;
-};
-
-/**
-* Convert an Uint8Array to WordArray
-*
-* @param {Uint8Array} ua - An Uint8Array
-* @param {number} uaLength - The Uint8Array length
-*
-* @return {WordArray}
-*/
-var ua2words = function ua2words(ua, uaLength) {
-    var temp = [];
-    for (var i = 0; i < uaLength; i += 4) {
-        var x = ua[i] * 0x1000000 + (ua[i + 1] || 0) * 0x10000 + (ua[i + 2] || 0) * 0x100 + (ua[i + 3] || 0);
-        temp.push(x > 0x7fffffff ? x - 0x100000000 : x);
-    }
-    return CryptoJS.lib.WordArray.create(temp, uaLength);
-};
-
-/**
-* Convert a wordArray to Uint8Array
-*
-* @param {Uint8Array} destUa - A destination Uint8Array
-* @param {WordArray} cryptowords - A wordArray
-*
-* @return {Uint8Array}
-*/
-var words2ua = function words2ua(destUa, cryptowords) {
-    for (var i = 0; i < destUa.length; i += 4) {
-        var v = cryptowords.words[i / 4];
-        if (v < 0) v += 0x100000000;
-        destUa[i] = v >>> 24;
-        destUa[i + 1] = v >>> 16 & 0xff;
-        destUa[i + 2] = v >>> 8 & 0xff;
-        destUa[i + 3] = v & 0xff;
-    }
-    return destUa;
-};
-
-/**
-* Converts a raw javascript string into a string of single byte characters using utf8 encoding.
-* This makes it easier to perform other encoding operations on the string.
-*
-* @param {string} input - A raw string
-*
-* @return {string} - UTF-8 string
-*/
-var rstr2utf8 = function rstr2utf8(input) {
-    var output = "";
-
-    for (var n = 0; n < input.length; n++) {
-        var c = input.charCodeAt(n);
-
-        if (c < 128) {
-            output += String.fromCharCode(c);
-        } else if (c > 127 && c < 2048) {
-            output += String.fromCharCode(c >> 6 | 192);
-            output += String.fromCharCode(c & 63 | 128);
-        } else {
-            output += String.fromCharCode(c >> 12 | 224);
-            output += String.fromCharCode(c >> 6 & 63 | 128);
-            output += String.fromCharCode(c & 63 | 128);
-        }
-    }
-
-    return output;
-};
-
-// Does the reverse of rstr2utf8.
-var utf82rstr = function utf82rstr(input) {
-    var output = "",
-        i = 0,
-        c = 0,
-        c1 = 0,
-        c2 = 0,
-        c3 = 0;
-
-    while (i < input.length) {
-        c = input.charCodeAt(i);
-
-        if (c < 128) {
-            output += String.fromCharCode(c);
-            i++;
-        } else if (c > 191 && c < 224) {
-            c2 = input.charCodeAt(i + 1);
-            output += String.fromCharCode((c & 31) << 6 | c2 & 63);
-            i += 2;
-        } else {
-            c2 = input.charCodeAt(i + 1);
-            c3 = input.charCodeAt(i + 2);
-            output += String.fromCharCode((c & 15) << 12 | (c2 & 63) << 6 | c3 & 63);
-            i += 3;
-        }
-    }
-
-    return output;
-};
-
-module.exports = {
-    hex2ua_reversed: hex2ua_reversed,
-    hex2ua: hex2ua,
-    ua2hex: ua2hex,
-    hex2a: hex2a,
-    utf8ToHex: utf8ToHex,
-    ua2words: ua2words,
-    words2ua: words2ua,
-    rstr2utf8: rstr2utf8,
-    utf82rstr: utf82rstr
-};
-
-},{}],230:[function(require,module,exports){
-'use strict';
-
-var _convert = require('./convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-var _CryptoHelpers = require('./CryptoHelpers');
-
-var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
-
-var _TransactionTypes = require('./TransactionTypes');
-
-var _TransactionTypes2 = _interopRequireDefault(_TransactionTypes);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * Check if wallet already present in an array
- *
- * @param {string} walletName - A wallet name
- * @param {array} array - A wallets array
- *
- * @return {boolean} - True if present, false otherwise
- */
-var haveWallet = function haveWallet(walletName, array) {
-    var i = null;
-    for (i = 0; array.length > i; i++) {
-        if (array[i].name === walletName) {
-            return true;
-        }
-    }
-    return false;
-};
-
-/**
- * Check if a multisig transaction needs signature
- *
- * @param {object} multisigTransaction - A multisig transaction
- * @param {object} data - An account data
- *
- * @return {boolean} - True if it needs signature, false otherwise
- */
-/** @module utils/helpers */
-
-var needsSignature = function needsSignature(multisigTransaction, data) {
-    if (multisigTransaction.transaction.signer === data.account.publicKey) {
-        return false;
-    }
-    if (multisigTransaction.transaction.otherTrans.signer === data.account.publicKey) {
-        return false;
-    }
-    // Check if we're already on list of signatures
-    for (var i = 0; i < multisigTransaction.transaction.signatures.length; i++) {
-        if (multisigTransaction.transaction.signatures[i].signer === data.account.publicKey) {
-            return false;
-        }
-    }
-
-    if (!data.meta.cosignatoryOf.length) {
-        return false;
-    } else {
-        for (var k = 0; k < data.meta.cosignatoryOf.length; k++) {
-            if (data.meta.cosignatoryOf[k].publicKey === multisigTransaction.transaction.otherTrans.signer) {
-                return true;
-            } else if (k === data.meta.cosignatoryOf.length - 1) {
-                return false;
-            }
-        }
-    }
-    return true;
-};
-
-/**
- * Return the name of a transaction type id
- *
- * @param {number} id - A transaction type id
- *
- * @return {string} - The transaction type name
- */
-var txTypeToName = function txTypeToName(id) {
-    switch (id) {
-        case _TransactionTypes2.default.Transfer:
-            return 'Transfer';
-        case _TransactionTypes2.default.ImportanceTransfer:
-            return 'ImportanceTransfer';
-        case _TransactionTypes2.default.MultisigModification:
-            return 'MultisigModification';
-        case _TransactionTypes2.default.ProvisionNamespace:
-            return 'ProvisionNamespace';
-        case _TransactionTypes2.default.MosaicDefinition:
-            return 'MosaicDefinition';
-        case _TransactionTypes2.default.MosaicSupply:
-            return 'MosaicSupply';
-        default:
-            return 'Unknown_' + id;
-    }
-};
-
-/**
- * Check if a transaction is already present in an array of transactions
- *
- * @param {string} hash - A transaction hash
- * @param {array} array - An array of transactions
- *
- * @return {boolean} - True if present, false otherwise
- */
-var haveTx = function haveTx(hash, array) {
-    var i = null;
-    for (i = 0; array.length > i; i++) {
-        if (array[i].meta.hash.data === hash) {
-            return true;
-        }
-    }
-    return false;
-};
-
-/**
- * Gets the index of a transaction in an array of transactions.
- * It must be present in the array.
- *
- * @param {string} hash - A transaction hash
- * @param {array} array - An array of transactions
- *
- * @return {number} - The index of the transaction
- */
-var getTransactionIndex = function getTransactionIndex(hash, array) {
-    var i = null;
-    for (i = 0; array.length > i; i++) {
-        if (array[i].meta.hash.data === hash) {
-            return i;
-        }
-    }
-    return 0;
-};
-
-/**
- * Return mosaic name from mosaicId object
- *
- * @param {object} mosaicId - A mosaicId object
- *
- * @return {string} - The mosaic name
- */
-var mosaicIdToName = function mosaicIdToName(mosaicId) {
-    if (!mosaicId) return mosaicId;
-    return mosaicId.namespaceId + ":" + mosaicId.name;
-};
-
-/**
- * Parse uri to get hostname
- *
- * @param {string} uri - An uri string
- *
- * @return {string} - The uri hostname
- */
-var getHostname = function getHostname(uri) {
-    var _uriParser = document.createElement('a');
-    _uriParser.href = uri;
-    return _uriParser.hostname;
-};
-
-/**
- * Check if a cosignatory is already present in modifications array
- *
- * @param {string} address - A cosignatory address
- * @param {string} pubKey - A cosignatory public key
- * @param {array} array - A modifications array
- *
- * @return {boolean} - True if present, false otherwise
- */
-var haveCosig = function haveCosig(address, pubKey, array) {
-    var i = null;
-    for (i = 0; array.length > i; i++) {
-        if (array[i].address === address || array[i].pubKey === pubKey) {
-            return true;
-        }
-    }
-    return false;
-};
-
-/**
- * Remove extension of a file name
- *
- * @param {string} filename - A file name with extension
- *
- * @return {string} - The file name without extension
- */
-var getFileName = function getFileName(filename) {
-    return filename.replace(/\.[^/.]+$/, "");
-};
-
-/**
- * Gets extension of a file name
- *
- * @param {string} filename - A file name with extension
- *
- * @return {string} - The file name extension
- */
-var getExtension = function getExtension(filename) {
-    return filename.split('.').pop();
-};
-
-/***
- * NEM epoch time
- *
- * @type {number}
- */
-var NEM_EPOCH = Date.UTC(2015, 2, 29, 0, 6, 25, 0);
-
-/**
- * Create a time stamp for a NEM transaction
- *
- * @return {number} - The NEM transaction time stamp in milliseconds
- */
-var createNEMTimeStamp = function createNEMTimeStamp() {
-    return Math.floor(Date.now() / 1000 - NEM_EPOCH / 1000);
-};
-
-/**
- * Fix a private key
- *
- * @param {string} privatekey - An hex private key
- *
- * @return {string} - The fixed hex private key
- */
-var fixPrivateKey = function fixPrivateKey(privatekey) {
-    return ("0000000000000000000000000000000000000000000000000000000000000000" + privatekey.replace(/^00/, '')).slice(-64);
-};
-
-/**
- * Calculate minimum fees from an amount of XEM
- *
- * @param {number} numNem - An amount of XEM
- *
- * @return {number} - The minimum fee
- */
-var calcMinFee = function calcMinFee(numNem) {
-    var fee = Math.floor(Math.max(1, numNem / 10000));
-    return fee > 25 ? 25 : fee;
-};
-
-/**
- * Calculate mosaic quantity equivalent in XEM
- *
- * @param {number} multiplier - A mosaic multiplier
- * @param {number} q - A mosaic quantity
- * @param {number} sup - A mosaic supply
- * @param {number} divisibility - A mosaic divisibility
- *
- * @return {number} - The XEM equivalent of a mosaic quantity
- */
-var calcXemEquivalent = function calcXemEquivalent(multiplier, q, sup, divisibility) {
-    if (sup === 0) {
-        return 0;
-    }
-    // TODO: can this go out of JS (2^54) bounds? (possible BUG)
-    return 8999999999 * q * multiplier / sup / Math.pow(10, divisibility + 6);
-};
-
-/**
- * Build a message object
- *
- * @param {object} common - An object containing wallet private key
- * @param {object} tx - A transaction object containing the message
- *
- * @return {object} - The message object
- */
-var prepareMessage = function prepareMessage(common, tx) {
-    if (tx.encryptMessage && common.privateKey) {
-        return {
-            'type': 2,
-            'payload': _CryptoHelpers2.default.encode(common.privateKey, tx.recipientPubKey, tx.message.toString())
-        };
-    } else {
-        return {
-            'type': 1,
-            'payload': _convert2.default.utf8ToHex(tx.message.toString())
-        };
-    }
-};
-
-/**
- * Check and format an url
- *
- * @param {string} node - A custom node from user input
- * @param {number} defaultWebsocketPort - A default websocket port
- *
- * @return {string|number} - The formatted node as string or 1
- */
-var checkAndFormatUrl = function checkAndFormatUrl(node, defaultWebsocketPort) {
-    // Detect if custom node doesn't begin with "http://"
-    var pattern = /^((http):\/\/)/;
-    if (!pattern.test(node)) {
-        node = "http://" + node;
-        var _uriParser = document.createElement('a');
-        _uriParser.href = node;
-        // If no port we add it
-        if (!_uriParser.port) {
-            node = node + ":" + defaultWebsocketPort;
-        } else if (_uriParser.port !== defaultWebsocketPort) {
-            // Port is not default websocket port
-            return 1;
-        }
-    } else {
-        // Start with "http://""
-        var _uriParser2 = document.createElement('a');
-        _uriParser2.href = node;
-        // If no port we add it
-        if (!_uriParser2.port) {
-            node = node + ":" + defaultWebsocketPort;
-        } else if (_uriParser2.port !== defaultWebsocketPort) {
-            // Port is not default websocket port
-            return 1;
-        }
-    }
-    return node;
-};
-
-/**
- * Create a time stamp
- *
- * @return {object} - A date object
- */
-var createTimeStamp = function createTimeStamp() {
-    return new Date();
-};
-
-/**
- * Date object to YYYY-MM-DD format
- *
- * @param {object} date - A date object
- *
- * @return {string} - The short date
- */
-var getTimestampShort = function getTimestampShort(date) {
-    var dd = date.getDate();
-    var mm = date.getMonth() + 1; //January is 0!
-    var yyyy = date.getFullYear();
-
-    if (dd < 10) {
-        dd = '0' + dd;
-    }
-
-    if (mm < 10) {
-        mm = '0' + mm;
-    }
-
-    return yyyy + '-' + mm + '-' + dd;
-};
-
-/**
- * Date object to date string
- *
- * @param {object} date - A date object
- *
- * @return {string} - The date string
- */
-var convertDateToString = function convertDateToString(date) {
-    return date.toDateString();
-};
-
-module.exports = {
-    haveWallet: haveWallet,
-    needsSignature: needsSignature,
-    txTypeToName: txTypeToName,
-    haveTx: haveTx,
-    getTransactionIndex: getTransactionIndex,
-    mosaicIdToName: mosaicIdToName,
-    getHostname: getHostname,
-    haveCosig: haveCosig,
-    getFileName: getFileName,
-    getExtension: getExtension,
-    createNEMTimeStamp: createNEMTimeStamp,
-    fixPrivateKey: fixPrivateKey,
-    calcMinFee: calcMinFee,
-    calcXemEquivalent: calcXemEquivalent,
-    prepareMessage: prepareMessage,
-    checkAndFormatUrl: checkAndFormatUrl,
-    createTimeStamp: createTimeStamp,
-    getTimestampShort: getTimestampShort,
-    convertDateToString: convertDateToString
-};
-
-},{"./CryptoHelpers":224,"./TransactionTypes":227,"./convert":229}],231:[function(require,module,exports){
-'use strict';
-
-(function (nacl) {
-  'use strict';
-
-  // polyfill for TypedArray.prototype.slice()
-
-  Uint8Array.prototype.slice = function (start, end) {
-    var len = this.length;
-    var relativeStart = start;
-    var k = relativeStart < 0 ? max(len + relativeStart, 0) : Math.min(relativeStart, len);
-    var relativeEnd = end === undefined ? len : end;
-    var final = relativeEnd < 0 ? max(len + relativeEnd, 0) : Math.min(relativeEnd, len);
-    var count = final - k;
-    var c = this.constructor;
-    var a = new c(count);
-    var n = 0;
-    while (k < final) {
-      a[n] = JSON.parse(JSON.stringify(this[k]));
-      k++;
-      n++;
-    }
-    return a;
-  };
-
-  Float64Array.prototype.slice = function (start, end) {
-    var len = this.length;
-    var relativeStart = start;
-    var k = relativeStart < 0 ? max(len + relativeStart, 0) : Math.min(relativeStart, len);
-    var relativeEnd = end === undefined ? len : end;
-    var final = relativeEnd < 0 ? max(len + relativeEnd, 0) : Math.min(relativeEnd, len);
-    var count = final - k;
-    var c = this.constructor;
-    var a = new c(count);
-    var n = 0;
-    while (k < final) {
-      a[n] = JSON.parse(JSON.stringify(this[k]));
-      k++;
-      n++;
-    }
-    return a;
-  };
-
-  // Ported in 2014 by Dmitry Chestnykh and Devi Mandiri.
-  // Public domain.
-  //
-  // Implementation derived from TweetNaCl version 20140427.
-  // See for details: http://tweetnacl.cr.yp.to/
-
-  var gf = function gf(init) {
-    var i,
-        r = new Float64Array(16);
-    if (init) for (i = 0; i < init.length; i++) {
-      r[i] = init[i];
-    }return r;
-  };
-
-  //  Pluggable, initialized in high-level API below.
-  var randombytes = function randombytes() /* x, n */{
-    throw new Error('no PRNG');
-  };
-
-  var _0 = new Uint8Array(16);
-  var _9 = new Uint8Array(32);_9[0] = 9;
-
-  var gf0 = gf(),
-      gf1 = gf([1]),
-      _121665 = gf([0xdb41, 1]),
-      D = gf([0x78a3, 0x1359, 0x4dca, 0x75eb, 0xd8ab, 0x4141, 0x0a4d, 0x0070, 0xe898, 0x7779, 0x4079, 0x8cc7, 0xfe73, 0x2b6f, 0x6cee, 0x5203]),
-      D2 = gf([0xf159, 0x26b2, 0x9b94, 0xebd6, 0xb156, 0x8283, 0x149a, 0x00e0, 0xd130, 0xeef3, 0x80f2, 0x198e, 0xfce7, 0x56df, 0xd9dc, 0x2406]),
-      X = gf([0xd51a, 0x8f25, 0x2d60, 0xc956, 0xa7b2, 0x9525, 0xc760, 0x692c, 0xdc5c, 0xfdd6, 0xe231, 0xc0a4, 0x53fe, 0xcd6e, 0x36d3, 0x2169]),
-      Y = gf([0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666]),
-      I = gf([0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7, 0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83]);
-
-  function vn(x, xi, y, yi, n) {
-    var i,
-        d = 0;
-    for (i = 0; i < n; i++) {
-      d |= x[xi + i] ^ y[yi + i];
-    }return (1 & d - 1 >>> 8) - 1;
-  }
-
-  function crypto_verify_32(x, xi, y, yi) {
-    return vn(x, xi, y, yi, 32);
-  }
-
-  function set25519(r, a) {
-    var i;
-    for (i = 0; i < 16; i++) {
-      r[i] = a[i] | 0;
-    }
-  }
-
-  function car25519(o) {
-    var i,
-        v,
-        c = 1;
-    for (i = 0; i < 16; i++) {
-      v = o[i] + c + 65535;
-      c = Math.floor(v / 65536);
-      o[i] = v - c * 65536;
-    }
-    o[0] += c - 1 + 37 * (c - 1);
-  }
-
-  function sel25519(p, q, b) {
-    var t,
-        c = ~(b - 1);
-    for (var i = 0; i < 16; i++) {
-      t = c & (p[i] ^ q[i]);
-      p[i] ^= t;
-      q[i] ^= t;
-    }
-  }
-
-  function pack25519(o, n) {
-    var i, j, b;
-    var m = gf(),
-        t = gf();
-    for (i = 0; i < 16; i++) {
-      t[i] = n[i];
-    }car25519(t);
-    car25519(t);
-    car25519(t);
-    for (j = 0; j < 2; j++) {
-      m[0] = t[0] - 0xffed;
-      for (i = 1; i < 15; i++) {
-        m[i] = t[i] - 0xffff - (m[i - 1] >> 16 & 1);
-        m[i - 1] &= 0xffff;
-      }
-      m[15] = t[15] - 0x7fff - (m[14] >> 16 & 1);
-      b = m[15] >> 16 & 1;
-      m[14] &= 0xffff;
-      sel25519(t, m, 1 - b);
-    }
-    for (i = 0; i < 16; i++) {
-      o[2 * i] = t[i] & 0xff;
-      o[2 * i + 1] = t[i] >> 8;
-    }
-  }
-
-  function neq25519(a, b) {
-    var c = new Uint8Array(32),
-        d = new Uint8Array(32);
-    pack25519(c, a);
-    pack25519(d, b);
-    return crypto_verify_32(c, 0, d, 0);
-  }
-
-  function par25519(a) {
-    var d = new Uint8Array(32);
-    pack25519(d, a);
-    return d[0] & 1;
-  }
-
-  function unpack25519(o, n) {
-    var i;
-    for (i = 0; i < 16; i++) {
-      o[i] = n[2 * i] + (n[2 * i + 1] << 8);
-    }o[15] &= 0x7fff;
-  }
-
-  function A(o, a, b) {
-    for (var i = 0; i < 16; i++) {
-      o[i] = a[i] + b[i];
-    }
-  }
-
-  function Z(o, a, b) {
-    for (var i = 0; i < 16; i++) {
-      o[i] = a[i] - b[i];
-    }
-  }
-
-  function M(o, a, b) {
-    var v,
-        c,
-        t0 = 0,
-        t1 = 0,
-        t2 = 0,
-        t3 = 0,
-        t4 = 0,
-        t5 = 0,
-        t6 = 0,
-        t7 = 0,
-        t8 = 0,
-        t9 = 0,
-        t10 = 0,
-        t11 = 0,
-        t12 = 0,
-        t13 = 0,
-        t14 = 0,
-        t15 = 0,
-        t16 = 0,
-        t17 = 0,
-        t18 = 0,
-        t19 = 0,
-        t20 = 0,
-        t21 = 0,
-        t22 = 0,
-        t23 = 0,
-        t24 = 0,
-        t25 = 0,
-        t26 = 0,
-        t27 = 0,
-        t28 = 0,
-        t29 = 0,
-        t30 = 0,
-        b0 = b[0],
-        b1 = b[1],
-        b2 = b[2],
-        b3 = b[3],
-        b4 = b[4],
-        b5 = b[5],
-        b6 = b[6],
-        b7 = b[7],
-        b8 = b[8],
-        b9 = b[9],
-        b10 = b[10],
-        b11 = b[11],
-        b12 = b[12],
-        b13 = b[13],
-        b14 = b[14],
-        b15 = b[15];
-
-    v = a[0];
-    t0 += v * b0;
-    t1 += v * b1;
-    t2 += v * b2;
-    t3 += v * b3;
-    t4 += v * b4;
-    t5 += v * b5;
-    t6 += v * b6;
-    t7 += v * b7;
-    t8 += v * b8;
-    t9 += v * b9;
-    t10 += v * b10;
-    t11 += v * b11;
-    t12 += v * b12;
-    t13 += v * b13;
-    t14 += v * b14;
-    t15 += v * b15;
-    v = a[1];
-    t1 += v * b0;
-    t2 += v * b1;
-    t3 += v * b2;
-    t4 += v * b3;
-    t5 += v * b4;
-    t6 += v * b5;
-    t7 += v * b6;
-    t8 += v * b7;
-    t9 += v * b8;
-    t10 += v * b9;
-    t11 += v * b10;
-    t12 += v * b11;
-    t13 += v * b12;
-    t14 += v * b13;
-    t15 += v * b14;
-    t16 += v * b15;
-    v = a[2];
-    t2 += v * b0;
-    t3 += v * b1;
-    t4 += v * b2;
-    t5 += v * b3;
-    t6 += v * b4;
-    t7 += v * b5;
-    t8 += v * b6;
-    t9 += v * b7;
-    t10 += v * b8;
-    t11 += v * b9;
-    t12 += v * b10;
-    t13 += v * b11;
-    t14 += v * b12;
-    t15 += v * b13;
-    t16 += v * b14;
-    t17 += v * b15;
-    v = a[3];
-    t3 += v * b0;
-    t4 += v * b1;
-    t5 += v * b2;
-    t6 += v * b3;
-    t7 += v * b4;
-    t8 += v * b5;
-    t9 += v * b6;
-    t10 += v * b7;
-    t11 += v * b8;
-    t12 += v * b9;
-    t13 += v * b10;
-    t14 += v * b11;
-    t15 += v * b12;
-    t16 += v * b13;
-    t17 += v * b14;
-    t18 += v * b15;
-    v = a[4];
-    t4 += v * b0;
-    t5 += v * b1;
-    t6 += v * b2;
-    t7 += v * b3;
-    t8 += v * b4;
-    t9 += v * b5;
-    t10 += v * b6;
-    t11 += v * b7;
-    t12 += v * b8;
-    t13 += v * b9;
-    t14 += v * b10;
-    t15 += v * b11;
-    t16 += v * b12;
-    t17 += v * b13;
-    t18 += v * b14;
-    t19 += v * b15;
-    v = a[5];
-    t5 += v * b0;
-    t6 += v * b1;
-    t7 += v * b2;
-    t8 += v * b3;
-    t9 += v * b4;
-    t10 += v * b5;
-    t11 += v * b6;
-    t12 += v * b7;
-    t13 += v * b8;
-    t14 += v * b9;
-    t15 += v * b10;
-    t16 += v * b11;
-    t17 += v * b12;
-    t18 += v * b13;
-    t19 += v * b14;
-    t20 += v * b15;
-    v = a[6];
-    t6 += v * b0;
-    t7 += v * b1;
-    t8 += v * b2;
-    t9 += v * b3;
-    t10 += v * b4;
-    t11 += v * b5;
-    t12 += v * b6;
-    t13 += v * b7;
-    t14 += v * b8;
-    t15 += v * b9;
-    t16 += v * b10;
-    t17 += v * b11;
-    t18 += v * b12;
-    t19 += v * b13;
-    t20 += v * b14;
-    t21 += v * b15;
-    v = a[7];
-    t7 += v * b0;
-    t8 += v * b1;
-    t9 += v * b2;
-    t10 += v * b3;
-    t11 += v * b4;
-    t12 += v * b5;
-    t13 += v * b6;
-    t14 += v * b7;
-    t15 += v * b8;
-    t16 += v * b9;
-    t17 += v * b10;
-    t18 += v * b11;
-    t19 += v * b12;
-    t20 += v * b13;
-    t21 += v * b14;
-    t22 += v * b15;
-    v = a[8];
-    t8 += v * b0;
-    t9 += v * b1;
-    t10 += v * b2;
-    t11 += v * b3;
-    t12 += v * b4;
-    t13 += v * b5;
-    t14 += v * b6;
-    t15 += v * b7;
-    t16 += v * b8;
-    t17 += v * b9;
-    t18 += v * b10;
-    t19 += v * b11;
-    t20 += v * b12;
-    t21 += v * b13;
-    t22 += v * b14;
-    t23 += v * b15;
-    v = a[9];
-    t9 += v * b0;
-    t10 += v * b1;
-    t11 += v * b2;
-    t12 += v * b3;
-    t13 += v * b4;
-    t14 += v * b5;
-    t15 += v * b6;
-    t16 += v * b7;
-    t17 += v * b8;
-    t18 += v * b9;
-    t19 += v * b10;
-    t20 += v * b11;
-    t21 += v * b12;
-    t22 += v * b13;
-    t23 += v * b14;
-    t24 += v * b15;
-    v = a[10];
-    t10 += v * b0;
-    t11 += v * b1;
-    t12 += v * b2;
-    t13 += v * b3;
-    t14 += v * b4;
-    t15 += v * b5;
-    t16 += v * b6;
-    t17 += v * b7;
-    t18 += v * b8;
-    t19 += v * b9;
-    t20 += v * b10;
-    t21 += v * b11;
-    t22 += v * b12;
-    t23 += v * b13;
-    t24 += v * b14;
-    t25 += v * b15;
-    v = a[11];
-    t11 += v * b0;
-    t12 += v * b1;
-    t13 += v * b2;
-    t14 += v * b3;
-    t15 += v * b4;
-    t16 += v * b5;
-    t17 += v * b6;
-    t18 += v * b7;
-    t19 += v * b8;
-    t20 += v * b9;
-    t21 += v * b10;
-    t22 += v * b11;
-    t23 += v * b12;
-    t24 += v * b13;
-    t25 += v * b14;
-    t26 += v * b15;
-    v = a[12];
-    t12 += v * b0;
-    t13 += v * b1;
-    t14 += v * b2;
-    t15 += v * b3;
-    t16 += v * b4;
-    t17 += v * b5;
-    t18 += v * b6;
-    t19 += v * b7;
-    t20 += v * b8;
-    t21 += v * b9;
-    t22 += v * b10;
-    t23 += v * b11;
-    t24 += v * b12;
-    t25 += v * b13;
-    t26 += v * b14;
-    t27 += v * b15;
-    v = a[13];
-    t13 += v * b0;
-    t14 += v * b1;
-    t15 += v * b2;
-    t16 += v * b3;
-    t17 += v * b4;
-    t18 += v * b5;
-    t19 += v * b6;
-    t20 += v * b7;
-    t21 += v * b8;
-    t22 += v * b9;
-    t23 += v * b10;
-    t24 += v * b11;
-    t25 += v * b12;
-    t26 += v * b13;
-    t27 += v * b14;
-    t28 += v * b15;
-    v = a[14];
-    t14 += v * b0;
-    t15 += v * b1;
-    t16 += v * b2;
-    t17 += v * b3;
-    t18 += v * b4;
-    t19 += v * b5;
-    t20 += v * b6;
-    t21 += v * b7;
-    t22 += v * b8;
-    t23 += v * b9;
-    t24 += v * b10;
-    t25 += v * b11;
-    t26 += v * b12;
-    t27 += v * b13;
-    t28 += v * b14;
-    t29 += v * b15;
-    v = a[15];
-    t15 += v * b0;
-    t16 += v * b1;
-    t17 += v * b2;
-    t18 += v * b3;
-    t19 += v * b4;
-    t20 += v * b5;
-    t21 += v * b6;
-    t22 += v * b7;
-    t23 += v * b8;
-    t24 += v * b9;
-    t25 += v * b10;
-    t26 += v * b11;
-    t27 += v * b12;
-    t28 += v * b13;
-    t29 += v * b14;
-    t30 += v * b15;
-
-    t0 += 38 * t16;
-    t1 += 38 * t17;
-    t2 += 38 * t18;
-    t3 += 38 * t19;
-    t4 += 38 * t20;
-    t5 += 38 * t21;
-    t6 += 38 * t22;
-    t7 += 38 * t23;
-    t8 += 38 * t24;
-    t9 += 38 * t25;
-    t10 += 38 * t26;
-    t11 += 38 * t27;
-    t12 += 38 * t28;
-    t13 += 38 * t29;
-    t14 += 38 * t30;
-    // t15 left as is
-
-    // first car
-    c = 1;
-    v = t0 + c + 65535;c = Math.floor(v / 65536);t0 = v - c * 65536;
-    v = t1 + c + 65535;c = Math.floor(v / 65536);t1 = v - c * 65536;
-    v = t2 + c + 65535;c = Math.floor(v / 65536);t2 = v - c * 65536;
-    v = t3 + c + 65535;c = Math.floor(v / 65536);t3 = v - c * 65536;
-    v = t4 + c + 65535;c = Math.floor(v / 65536);t4 = v - c * 65536;
-    v = t5 + c + 65535;c = Math.floor(v / 65536);t5 = v - c * 65536;
-    v = t6 + c + 65535;c = Math.floor(v / 65536);t6 = v - c * 65536;
-    v = t7 + c + 65535;c = Math.floor(v / 65536);t7 = v - c * 65536;
-    v = t8 + c + 65535;c = Math.floor(v / 65536);t8 = v - c * 65536;
-    v = t9 + c + 65535;c = Math.floor(v / 65536);t9 = v - c * 65536;
-    v = t10 + c + 65535;c = Math.floor(v / 65536);t10 = v - c * 65536;
-    v = t11 + c + 65535;c = Math.floor(v / 65536);t11 = v - c * 65536;
-    v = t12 + c + 65535;c = Math.floor(v / 65536);t12 = v - c * 65536;
-    v = t13 + c + 65535;c = Math.floor(v / 65536);t13 = v - c * 65536;
-    v = t14 + c + 65535;c = Math.floor(v / 65536);t14 = v - c * 65536;
-    v = t15 + c + 65535;c = Math.floor(v / 65536);t15 = v - c * 65536;
-    t0 += c - 1 + 37 * (c - 1);
-
-    // second car
-    c = 1;
-    v = t0 + c + 65535;c = Math.floor(v / 65536);t0 = v - c * 65536;
-    v = t1 + c + 65535;c = Math.floor(v / 65536);t1 = v - c * 65536;
-    v = t2 + c + 65535;c = Math.floor(v / 65536);t2 = v - c * 65536;
-    v = t3 + c + 65535;c = Math.floor(v / 65536);t3 = v - c * 65536;
-    v = t4 + c + 65535;c = Math.floor(v / 65536);t4 = v - c * 65536;
-    v = t5 + c + 65535;c = Math.floor(v / 65536);t5 = v - c * 65536;
-    v = t6 + c + 65535;c = Math.floor(v / 65536);t6 = v - c * 65536;
-    v = t7 + c + 65535;c = Math.floor(v / 65536);t7 = v - c * 65536;
-    v = t8 + c + 65535;c = Math.floor(v / 65536);t8 = v - c * 65536;
-    v = t9 + c + 65535;c = Math.floor(v / 65536);t9 = v - c * 65536;
-    v = t10 + c + 65535;c = Math.floor(v / 65536);t10 = v - c * 65536;
-    v = t11 + c + 65535;c = Math.floor(v / 65536);t11 = v - c * 65536;
-    v = t12 + c + 65535;c = Math.floor(v / 65536);t12 = v - c * 65536;
-    v = t13 + c + 65535;c = Math.floor(v / 65536);t13 = v - c * 65536;
-    v = t14 + c + 65535;c = Math.floor(v / 65536);t14 = v - c * 65536;
-    v = t15 + c + 65535;c = Math.floor(v / 65536);t15 = v - c * 65536;
-    t0 += c - 1 + 37 * (c - 1);
-
-    o[0] = t0;
-    o[1] = t1;
-    o[2] = t2;
-    o[3] = t3;
-    o[4] = t4;
-    o[5] = t5;
-    o[6] = t6;
-    o[7] = t7;
-    o[8] = t8;
-    o[9] = t9;
-    o[10] = t10;
-    o[11] = t11;
-    o[12] = t12;
-    o[13] = t13;
-    o[14] = t14;
-    o[15] = t15;
-  }
-
-  function S(o, a) {
-    M(o, a, a);
-  }
-
-  function inv25519(o, i) {
-    var c = gf();
-    var a;
-    for (a = 0; a < 16; a++) {
-      c[a] = i[a];
-    }for (a = 253; a >= 0; a--) {
-      S(c, c);
-      if (a !== 2 && a !== 4) M(c, c, i);
-    }
-    for (a = 0; a < 16; a++) {
-      o[a] = c[a];
-    }
-  }
-
-  function pow2523(o, i) {
-    var c = gf();
-    var a;
-    for (a = 0; a < 16; a++) {
-      c[a] = i[a];
-    }for (a = 250; a >= 0; a--) {
-      S(c, c);
-      if (a !== 1) M(c, c, i);
-    }
-    for (a = 0; a < 16; a++) {
-      o[a] = c[a];
-    }
-  }
-
-  function crypto_scalarmult(q, n, p) {
-    var z = new Uint8Array(32);
-    var x = new Float64Array(80),
-        r,
-        i;
-    var a = gf(),
-        b = gf(),
-        c = gf(),
-        d = gf(),
-        e = gf(),
-        f = gf();
-    for (i = 0; i < 31; i++) {
-      z[i] = n[i];
-    }z[31] = n[31] & 127 | 64;
-    z[0] &= 248;
-    unpack25519(x, p);
-    for (i = 0; i < 16; i++) {
-      b[i] = x[i];
-      d[i] = a[i] = c[i] = 0;
-    }
-    a[0] = d[0] = 1;
-    for (i = 254; i >= 0; --i) {
-      r = z[i >>> 3] >>> (i & 7) & 1;
-      sel25519(a, b, r);
-      sel25519(c, d, r);
-      A(e, a, c);
-      Z(a, a, c);
-      A(c, b, d);
-      Z(b, b, d);
-      S(d, e);
-      S(f, a);
-      M(a, c, a);
-      M(c, b, e);
-      A(e, a, c);
-      Z(a, a, c);
-      S(b, a);
-      Z(c, d, f);
-      M(a, c, _121665);
-      A(a, a, d);
-      M(c, c, a);
-      M(a, d, f);
-      M(d, b, x);
-      S(b, e);
-      sel25519(a, b, r);
-      sel25519(c, d, r);
-    }
-    for (i = 0; i < 16; i++) {
-      x[i + 16] = a[i];
-      x[i + 32] = c[i];
-      x[i + 48] = b[i];
-      x[i + 64] = d[i];
-    }
-    var x32 = x.subarray(32);
-    var x16 = x.subarray(16);
-    inv25519(x32, x32);
-    M(x16, x16, x32);
-    pack25519(q, x16);
-    return 0;
-  }
-
-  function crypto_scalarmult_base(q, n) {
-    return crypto_scalarmult(q, n, _9);
-  }
-
-  function add(p, q) {
-    var a = gf(),
-        b = gf(),
-        c = gf(),
-        d = gf(),
-        e = gf(),
-        f = gf(),
-        g = gf(),
-        h = gf(),
-        t = gf();
-
-    Z(a, p[1], p[0]);
-    Z(t, q[1], q[0]);
-    M(a, a, t);
-    A(b, p[0], p[1]);
-    A(t, q[0], q[1]);
-    M(b, b, t);
-    M(c, p[3], q[3]);
-    M(c, c, D2);
-    M(d, p[2], q[2]);
-    A(d, d, d);
-    Z(e, b, a);
-    Z(f, d, c);
-    A(g, d, c);
-    A(h, b, a);
-
-    M(p[0], e, f);
-    M(p[1], h, g);
-    M(p[2], g, f);
-    M(p[3], e, h);
-  }
-
-  function cswap(p, q, b) {
-    var i;
-    for (i = 0; i < 4; i++) {
-      sel25519(p[i], q[i], b);
-    }
-  }
-
-  function pack(r, p) {
-    var tx = gf(),
-        ty = gf(),
-        zi = gf();
-    inv25519(zi, p[2]);
-    M(tx, p[0], zi);
-    M(ty, p[1], zi);
-    pack25519(r, ty);
-    r[31] ^= par25519(tx) << 7;
-  }
-
-  function scalarmult(p, q, s) {
-    var b, i;
-    set25519(p[0], gf0);
-    set25519(p[1], gf1);
-    set25519(p[2], gf1);
-    set25519(p[3], gf0);
-    for (i = 255; i >= 0; --i) {
-      b = s[i / 8 | 0] >> (i & 7) & 1;
-      cswap(p, q, b);
-      add(q, p);
-      add(p, p);
-      cswap(p, q, b);
-    }
-  }
-
-  function scalarbase(p, s) {
-    var q = [gf(), gf(), gf(), gf()];
-    set25519(q[0], X);
-    set25519(q[1], Y);
-    set25519(q[2], gf1);
-    M(q[3], X, Y);
-    scalarmult(p, q, s);
-  }
-
-  function crypto_sign_keypair_hash(pk, sk, hashfunc) {
-    var d = new Uint8Array(64);
-    var p = [gf(), gf(), gf(), gf()];
-    var i;
-
-    hashfunc(d, sk, 32);
-    d[0] &= 248;
-    d[31] &= 127;
-    d[31] |= 64;
-
-    scalarbase(p, d);
-    pack(pk, p);
-
-    for (i = 0; i < 32; i++) {
-      sk[i + 32] = pk[i];
-    }return 0;
-  }
-
-  function crypto_shared_key_hash(shared, pk, sk, hashfunc) {
-    var d = new Uint8Array(64);
-    var p = [gf(), gf(), gf(), gf()];
-
-    hashfunc(d, sk, 32);
-    d[0] &= 248;
-    d[31] &= 127;
-    d[31] |= 64;
-
-    var q = [gf(), gf(), gf(), gf()];
-    unpack(q, pk);
-    scalarmult(p, q, d);
-    pack(shared, p);
-  }
-
-  function crypto_sign_hash(sm, keypair, data, hasher) {
-    var privHash = new Uint8Array(64);
-    var seededHash = new Uint8Array(64);
-    var result = new Uint8Array(64);
-    var p = [gf(), gf(), gf(), gf()];
-    var i;
-
-    hasher.update(keypair.secretKey);
-    hasher.finalize(privHash);
-
-    privHash[0] &= 248;
-    privHash[31] &= 127;
-    privHash[31] |= 64;
-
-    hasher.reset();
-    hasher.update(privHash.slice(32));
-    hasher.update(data);
-    hasher.finalize(seededHash);
-
-    reduce(seededHash);
-    scalarbase(p, seededHash);
-    pack(sm, p);
-
-    hasher.reset();
-    hasher.update(sm.slice(0, 32));
-    hasher.update(keypair.publicKey);
-    hasher.update(data);
-    hasher.finalize(result);
-
-    reduce(result);
-
-    // muladd - this is from original tweetnacl-js
-    var x = new Float64Array(64);
-    for (var i = 0; i < 64; i++) {
-      x[i] = 0;
-    }for (var i = 0; i < 32; i++) {
-      x[i] = seededHash[i];
-    }for (var i = 0; i < 32; i++) {
-      for (var j = 0; j < 32; j++) {
-        x[i + j] += result[i] * privHash[j];
-      }
-    }
-    modL(sm.subarray(32), x);
-
-    // check if zero
-    var isZero = 0;
-    for (var i = 0; i < 32; i++) {
-      isZero |= sm[32 + i] ^ 0;
-      result[i] = sm[32 + i];
-    }
-
-    if (isZero == 0) return false;
-
-    reduce(result);
-
-    // check if canonical
-    isZero = 0;
-    for (var i = 0; i < 32; i++) {
-      isZero |= sm[32 + i] ^ result[i];
-    }
-    return isZero == 0;
-  }
-
-  var L = new Float64Array([0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10]);
-
-  function modL(r, x) {
-    var carry, i, j, k;
-    for (i = 63; i >= 32; --i) {
-      carry = 0;
-      for (j = i - 32, k = i - 12; j < k; ++j) {
-        x[j] += carry - 16 * x[i] * L[j - (i - 32)];
-        carry = x[j] + 128 >> 8;
-        x[j] -= carry * 256;
-      }
-      x[j] += carry;
-      x[i] = 0;
-    }
-    carry = 0;
-    for (j = 0; j < 32; j++) {
-      x[j] += carry - (x[31] >> 4) * L[j];
-      carry = x[j] >> 8;
-      x[j] &= 255;
-    }
-    for (j = 0; j < 32; j++) {
-      x[j] -= carry * L[j];
-    }for (i = 0; i < 32; i++) {
-      x[i + 1] += x[i] >> 8;
-      r[i] = x[i] & 255;
-    }
-  }
-
-  function reduce(r) {
-    var x = new Float64Array(64),
-        i;
-    for (i = 0; i < 64; i++) {
-      x[i] = r[i];
-    }for (i = 0; i < 64; i++) {
-      r[i] = 0;
-    }modL(r, x);
-  }
-
-  function unpackneg(r, p) {
-    var t = gf(),
-        chk = gf(),
-        num = gf(),
-        den = gf(),
-        den2 = gf(),
-        den4 = gf(),
-        den6 = gf();
-
-    set25519(r[2], gf1);
-    unpack25519(r[1], p);
-
-    // num = u = y^2 - 1
-    // den = v = d * y^2 + 1
-    S(num, r[1]);
-    M(den, num, D);
-    Z(num, num, r[2]);
-    A(den, r[2], den);
-
-    // r[0] = x = sqrt(u / v)
-    S(den2, den);
-    S(den4, den2);
-    M(den6, den4, den2);
-    M(t, den6, num);
-    M(t, t, den);
-
-    pow2523(t, t);
-    M(t, t, num);
-    M(t, t, den);
-    M(t, t, den);
-    M(r[0], t, den);
-
-    S(chk, r[0]);
-    M(chk, chk, den);
-    if (neq25519(chk, num)) {
-      M(r[0], r[0], I);
-    }
-
-    S(chk, r[0]);
-    M(chk, chk, den);
-    if (neq25519(chk, num)) {
-      return -1;
-    }
-
-    if (par25519(r[0]) === p[31] >> 7) {
-      Z(r[0], gf0, r[0]);
-    }
-
-    M(r[3], r[0], r[1]);
-    return 0;
-  }
-
-  function unpack(r, p) {
-    var t = gf(),
-        chk = gf(),
-        num = gf(),
-        den = gf(),
-        den2 = gf(),
-        den4 = gf(),
-        den6 = gf();
-
-    set25519(r[2], gf1);
-    unpack25519(r[1], p);
-
-    // num = u = y^2 - 1
-    // den = v = d * y^2 + 1
-    S(num, r[1]);
-    M(den, num, D);
-    Z(num, num, r[2]);
-    A(den, r[2], den);
-
-    // r[0] = x = sqrt(u / v)
-    S(den2, den);
-    S(den4, den2);
-    M(den6, den4, den2);
-    M(t, den6, num);
-    M(t, t, den);
-
-    pow2523(t, t);
-    M(t, t, num);
-    M(t, t, den);
-    M(t, t, den);
-    M(r[0], t, den);
-
-    S(chk, r[0]);
-    M(chk, chk, den);
-    if (neq25519(chk, num)) {
-      M(r[0], r[0], I);
-    }
-
-    S(chk, r[0]);
-    M(chk, chk, den);
-    if (neq25519(chk, num)) {
-      console.log("not a valid Ed25519EncodedGroupElement.");
-      return -1;
-    }
-
-    if (par25519(r[0]) !== p[31] >> 7) {
-      Z(r[0], gf0, r[0]);
-    }
-
-    M(r[3], r[0], r[1]);
-    return 0;
-  }
-  var crypto_scalarmult_BYTES = 32,
-      crypto_scalarmult_SCALARBYTES = 32,
-      crypto_sign_BYTES = 64,
-      crypto_sign_PUBLICKEYBYTES = 32,
-      crypto_sign_SECRETKEYBYTES = 64,
-      crypto_sign_SEEDBYTES = 32,
-      crypto_hash_BYTES = 64;
-
-  function crypto_sign_open(m, sm, n, pk) {
-    var i, mlen;
-    var t = new Uint8Array(32),
-        h = new Uint8Array(64);
-    var p = [gf(), gf(), gf(), gf()],
-        q = [gf(), gf(), gf(), gf()];
-
-    mlen = -1;
-    if (n < 64) return -1;
-
-    if (unpackneg(q, pk)) return -1;
-
-    for (i = 0; i < n; i++) {
-      m[i] = sm[i];
-    }for (i = 0; i < 32; i++) {
-      m[i + 32] = pk[i];
-    }crypto_hash(h, m, n);
-    reduce(h);
-    scalarmult(p, q, h);
-
-    scalarbase(q, sm.subarray(32));
-    add(p, q);
-    pack(t, p);
-
-    n -= 64;
-    if (crypto_verify_32(sm, 0, t, 0)) {
-      for (i = 0; i < n; i++) {
-        m[i] = 0;
-      }return -1;
-    }
-
-    for (i = 0; i < n; i++) {
-      m[i] = sm[i + 64];
-    }mlen = n;
-    return mlen;
-  };
-
-  nacl.lowlevel = {
-    crypto_verify_32: crypto_verify_32,
-    crypto_scalarmult: crypto_scalarmult,
-    crypto_scalarmult_base: crypto_scalarmult_base,
-    crypto_sign_keypair_hash: crypto_sign_keypair_hash,
-    crypto_shared_key_hash: crypto_shared_key_hash,
-    crypto_sign_hash: crypto_sign_hash,
-
-    crypto_scalarmult_BYTES: crypto_scalarmult_BYTES,
-    crypto_scalarmult_SCALARBYTES: crypto_scalarmult_SCALARBYTES,
-    crypto_sign_BYTES: crypto_sign_BYTES,
-    crypto_sign_PUBLICKEYBYTES: crypto_sign_PUBLICKEYBYTES,
-    crypto_sign_SECRETKEYBYTES: crypto_sign_SECRETKEYBYTES,
-    crypto_sign_SEEDBYTES: crypto_sign_SEEDBYTES,
-    crypto_hash_BYTES: crypto_hash_BYTES
-  };
-
-  /*/////////////////////////////////////////////// High-level API ///////////////////////////////////////// */
-
-  function checkArrayTypes() {
-    var t, i;
-    for (i = 0; i < arguments.length; i++) {
-      if ((t = Object.prototype.toString.call(arguments[i])) !== '[object Uint8Array]') throw new TypeError('unexpected type ' + t + ', use Uint8Array');
-    }
-  }
-
-  nacl.verifySIgnature = function (msg, sig, publicKey) {
-    checkArrayTypes(msg, sig, publicKey);
-    if (sig.length !== crypto_sign_BYTES) console.log(sig.length);
-    throw new Error('bad signature size');
-    if (publicKey.length !== crypto_sign_PUBLICKEYBYTES) throw new Error('bad public key size');
-    var sm = new Uint8Array(crypto_sign_BYTES + msg.length);
-    var m = new Uint8Array(crypto_sign_BYTES + msg.length);
-    var i;
-    for (i = 0; i < crypto_sign_BYTES; i++) {
-      sm[i] = sig[i];
-    }for (i = 0; i < msg.length; i++) {
-      sm[i + crypto_sign_BYTES] = msg[i];
-    }return crypto_sign_open(m, sm, sm.length, publicKey) >= 0;
-  };
-
-  function cleanup(arr) {
-    for (var i = 0; i < arr.length; i++) {
-      arr[i] = 0;
-    }
-  }
-
-  nacl.randomBytes = function (n) {
-    var b = new Uint8Array(n);
-    randombytes(b, n);
-    return b;
-  };
-
-  nacl.scalarMult = function (n, p) {
-    checkArrayTypes(n, p);
-    if (n.length !== crypto_scalarmult_SCALARBYTES) throw new Error('bad n size');
-    if (p.length !== crypto_scalarmult_BYTES) throw new Error('bad p size');
-    var q = new Uint8Array(crypto_scalarmult_BYTES);
-    crypto_scalarmult(q, n, p);
-    return q;
-  };
-
-  nacl.scalarMult.base = function (n) {
-    checkArrayTypes(n);
-    if (n.length !== crypto_scalarmult_SCALARBYTES) throw new Error('bad n size');
-    var q = new Uint8Array(crypto_scalarmult_BYTES);
-    crypto_scalarmult_base(q, n);
-    return q;
-  };
-
-  nacl.scalarMult.scalarLength = crypto_scalarmult_SCALARBYTES;
-  nacl.scalarMult.groupElementLength = crypto_scalarmult_BYTES;
-
-  nacl.verify = function (x, y) {
-    checkArrayTypes(x, y);
-    // Zero length arguments are considered not equal.
-    if (x.length === 0 || y.length === 0) return false;
-    if (x.length !== y.length) return false;
-    return vn(x, 0, y, 0, x.length) === 0 ? true : false;
-  };
-
-  nacl.setPRNG = function (fn) {
-    randombytes = fn;
-  };
-
-  (function () {
-    // Initialize PRNG if environment provides CSPRNG.
-    // If not, methods calling randombytes will throw.
-    var crypto;
-    if (typeof window !== 'undefined') {
-      // Browser.
-      if (window.crypto && window.crypto.getRandomValues) {
-        crypto = window.crypto; // Standard
-      } else if (window.msCrypto && window.msCrypto.getRandomValues) {
-        crypto = window.msCrypto; // Internet Explorer 11+
-      }
-      if (crypto) {
-        nacl.setPRNG(function (x, n) {
-          var i,
-              v = new Uint8Array(n);
-          crypto.getRandomValues(v);
-          for (i = 0; i < n; i++) {
-            x[i] = v[i];
-          }cleanup(v);
-        });
-      }
-    } else if (typeof require !== 'undefined') {
-      // Node.js.
-      crypto = require('crypto');
-      if (crypto) {
-        nacl.setPRNG(function (x, n) {
-          var i,
-              v = crypto.randomBytes(n);
-          for (i = 0; i < n; i++) {
-            x[i] = v[i];
-          }cleanup(v);
-        });
-      }
-    }
-  })();
-})(typeof module !== 'undefined' && module.exports ? module.exports : window.nacl = window.nacl || {});
-
-},{"crypto":6}],232:[function(require,module,exports){
-'use strict';
-
-/** @module utils/nodes */
-
-/**
- * The default testnet node
- *
- * @type {string}
- */
-var defaultTestnetNode = 'http://bob.nem.ninja:7778';
-
-/**
- * The default mainnet node
- *
- * @type {string}
- */
-var defaultMainnetNode = 'http://alice6.nem.ninja:7778';
-
-/**
- * The default mijin node
- *
- * @type {string}
- */
-var defaultMijinNode = '';
-
-/**
- * The default mainnet block explorer
- *
- * @type {string}
- */
-var defaultMainnetExplorer = 'http://chain.nem.ninja/#/transfer/';
-
-/**
- * The default testnet block explorer
- *
- * @type {string}
- */
-var defaultTestnetExplorer = 'http://bob.nem.ninja:8765/#/transfer/';
-
-/**
- * The default mijin block explorer
- *
- * @type {string}
- */
-var defaultMijinExplorer = '';
-
-/**
- * The nodes allowing search by transaction hash on testnet
- *
- * @type {array}
- */
-var testnetSearchNodes = [{
-  'uri': 'http://bigalice2.nem.ninja:7890',
-  'location': 'America / New_York'
-}, {
-  'uri': 'http://192.3.61.243:7890',
-  'location': 'America / Los_Angeles'
-}, {
-  'uri': 'http://23.228.67.85:7890',
-  'location': 'America / Los_Angeles'
-}];
-
-/**
- * The nodes allowing search by transaction hash on mainnet
- *
- * @type {array}
- */
-var mainnetSearchNodes = [{
-  'uri': 'http://62.75.171.41:7890',
-  'location': 'Germany'
-}, {
-  'uri': 'http://104.251.212.131:7890',
-  'location': 'USA'
-}, {
-  'uri': 'http://45.124.65.125:7890',
-  'location': 'Hong Kong'
-}, {
-  'uri': 'http://185.53.131.101:7890',
-  'location': 'Netherlands'
-}, {
-  'uri': 'http://sz.nemchina.com:7890',
-  'location': 'China'
-}];
-
-/**
- * The nodes allowing search by transaction hash on mijin
- *
- * @type {array}
- */
-var mijinSearchNodes = [{
-  'uri': '',
-  'location': ''
-}];
-
-/**
- * The testnet nodes
- *
- * @type {array}
- */
-var testnetNodes = [{
-  uri: 'http://bob.nem.ninja:7778'
-}, {
-  uri: 'http://104.128.226.60:7778'
-}, {
-  uri: 'http://23.228.67.85:7778'
-}, {
-  uri: 'http://192.3.61.243:7778'
-}, {
-  uri: 'http://50.3.87.123:7778'
-}, {
-  uri: 'http://localhost:7778'
-}];
-
-/**
- * The mainnet nodes
- *
- * @type {array}
- */
-var mainnetNodes = [{
-  uri: 'http://62.75.171.41:7778'
-}, {
-  uri: 'http://san.nem.ninja:7778'
-}, {
-  uri: 'http://go.nem.ninja:7778'
-}, {
-  uri: 'http://hachi.nem.ninja:7778'
-}, {
-  uri: 'http://jusan.nem.ninja:7778'
-}, {
-  uri: 'http://nijuichi.nem.ninja:7778'
-}, {
-  uri: 'http://alice2.nem.ninja:7778'
-}, {
-  uri: 'http://alice3.nem.ninja:7778'
-}, {
-  uri: 'http://alice4.nem.ninja:7778'
-}, {
-  uri: 'http://alice5.nem.ninja:7778'
-}, {
-  uri: 'http://alice6.nem.ninja:7778'
-}, {
-  uri: 'http://alice7.nem.ninja:7778'
-}, {
-  uri: 'http://localhost:7778'
-}];
-
-/**
- * The mijin nodes
- *
- * @type {array}
- */
-var mijinNodes = [{
-  uri: ''
-}];
-
-/**
- * The server verifying signed apostilles
- *
- * @type {string}
- */
-var apostilleAuditServer = 'http://185.117.22.58:4567/verify';
-
-module.exports = {
-  defaultTestnetNode: defaultTestnetNode,
-  defaultMainnetNode: defaultMainnetNode,
-  defaultMijinNode: defaultMijinNode,
-  defaultMainnetExplorer: defaultMainnetExplorer,
-  defaultTestnetExplorer: defaultTestnetExplorer,
-  defaultMijinExplorer: defaultMijinExplorer,
-  testnetSearchNodes: testnetSearchNodes,
-  mainnetSearchNodes: mainnetSearchNodes,
-  mijinSearchNodes: mijinSearchNodes,
-  testnetNodes: testnetNodes,
-  mainnetNodes: mainnetNodes,
-  mijinNodes: mijinNodes,
-  apostilleAuditServer: apostilleAuditServer
-};
-
-},{}],233:[function(require,module,exports){
-'use strict';
-
-/** @module utils/sinks */
-
-/**
- * The namespace, mosaic and apostille sink accounts
- *
- * @type {object}
- */
-var sinks = {
-    namespace: {
-        '-104': 'TAMESP-ACEWH4-MKFMBC-VFERDP-OOP4FK-7MTDJE-YP35',
-        '104': 'NAMESP-ACEWH4-MKFMBC-VFERDP-OOP4FK-7MTBXD-PZZA',
-        '96': 'MAMESP-ACEWH4-MKFMBC-VFERDP-OOP4FK-7MTCZT-G5E7'
-    },
-    mosaic: {
-        '-104': 'TBMOSA-ICOD4F-54EE5C-DMR23C-CBGOAM-2XSJBR-5OLC',
-        '104': 'NBMOSA-ICOD4F-54EE5C-DMR23C-CBGOAM-2XSIUX-6TRS',
-        '96': 'MBMOSA-ICOD4F-54EE5C-DMR23C-CBGOAM-2XSKYH-TOJD'
-    },
-    apostille: {
-        '-104': 'TC7MCY-5AGJQX-ZQ4BN3-BOPNXU-VIGDJC-OHBPGU-M2GE',
-        '104': 'NCZSJH-LTIMES-ERVBVK-OW6US6-4YDZG2-PFGQCS-V23J',
-        '96': 'MCGDK2-J46BOD-GGKMPI-KCBGTB-BIWL6A-L5ZKLK-Q56A'
-    }
-};
-
-module.exports = {
-    sinks: sinks
-};
-
-},{}],234:[function(require,module,exports){
-"use strict";
-
-var testnetAccountData = {
-    "meta": {
-        "cosignatories": [],
-        "cosignatoryOf": [{
-            "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
-            "harvestedBlocks": 0,
-            "balance": 16000000,
-            "importance": 0,
-            "vestedBalance": 0,
-            "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
-            "label": null,
-            "multisigInfo": {
-                "cosignatoriesCount": 1,
-                "minCosignatories": 1
-            }
-        }],
-        "status": "LOCKED",
-        "remoteStatus": "INACTIVE"
-    },
-    "account": {
-        "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-        "harvestedBlocks": 0,
-        "balance": 54500000,
-        "importance": 0,
-        "vestedBalance": 28432820,
-        "publicKey": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-        "label": null,
-        "multisigInfo": {}
-    }
-};
-
-var testnetNamespaceOwned = {
-    "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO": {
-        "nano": {
-            "owner": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-            "fqn": "nano",
-            "height": 547741
-        }
-    }
-};
-
-var testnetMosaicOwned = {
-    "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO": {
-        "nano:points": {
-            "quantity": 9999,
-            "mosaicId": {
-                "namespaceId": "nano",
-                "name": "points"
-            }
-        },
-        "nem:xem": {
-            "quantity": 14514500000,
-            "mosaicId": {
-                "namespaceId": "nem",
-                "name": "xem"
-            }
-        }
-    },
-    "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X": {
-        "nem:xem": {
-            "quantity": 16000000,
-            "mosaicId": {
-                "namespaceId": "nem",
-                "name": "xem"
-            }
-        }
-    }
-};
-
-var testnetMosaicDefinitionMetaDataPair = {
-    "nano:points": {
-        "mosaicDefinition": {
-            "creator": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "description": "Test",
-            "id": {
-                "namespaceId": "nano2",
-                "name": "points"
-            },
-            "properties": [{
-                "name": "divisibility",
-                "value": "3"
-            }, {
-                "name": "initialSupply",
-                "value": "1000000"
-            }, {
-                "name": "supplyMutable",
-                "value": "true"
-            }, {
-                "name": "transferable",
-                "value": "true"
-            }],
-            "levy": {}
-        },
-        "supply": 1000000
-    },
-    "nem:xem": {
-        "mosaicDefinition": {
-            "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-            "description": "reserved xem mosaic",
-            "id": {
-                "namespaceId": "nem",
-                "name": "xem"
-            },
-            "properties": [{
-                "name": "divisibility",
-                "value": "6"
-            }, {
-                "name": "initialSupply",
-                "value": "8999999999"
-            }, {
-                "name": "supplyMutable",
-                "value": "false"
-            }, {
-                "name": "transferable",
-                "value": "true"
-            }],
-            "levy": {}
-        },
-        "supply": 8999999999
-    }
-};
-
-var mainnetAccountData = {
-    "meta": {
-        "cosignatories": [],
-        "cosignatoryOf": [],
-        "status": "LOCKED",
-        "remoteStatus": "INACTIVE"
-    },
-    "account": {
-        "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
-        "harvestedBlocks": 0,
-        "balance": 0,
-        "importance": 0,
-        "vestedBalance": 0,
-        "publicKey": null,
-        "label": null,
-        "multisigInfo": {}
-    }
-};
-
-var mainnetNamespaceOwned = {
-    "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6": {
-        "nano": {
-            "owner": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
-            "fqn": "nano",
-            "height": 547741
-        }
-    }
-};
-
-var mainnetMosaicOwned = {
-    "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6": {
-        "nano:points": {
-            "quantity": 9999,
-            "mosaicId": {
-                "namespaceId": "nano",
-                "name": "points"
-            }
-        },
-        "nem:xem": {
-            "quantity": 0,
-            "mosaicId": {
-                "namespaceId": "nem",
-                "name": "xem"
-            }
-        }
-    }
-};
-
-var mainnetMosaicDefinitionMetaDataPair = {
-    "nano:points": {
-        "mosaicDefinition": {
-            "creator": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "description": "Test",
-            "id": {
-                "namespaceId": "nano2",
-                "name": "points"
-            },
-            "properties": [{
-                "name": "divisibility",
-                "value": "3"
-            }, {
-                "name": "initialSupply",
-                "value": "1000000"
-            }, {
-                "name": "supplyMutable",
-                "value": "true"
-            }, {
-                "name": "transferable",
-                "value": "true"
-            }],
-            "levy": {}
-        },
-        "supply": 1000000
-    },
-    "nem:xem": {
-        "mosaicDefinition": {
-            "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-            "description": "reserved xem mosaic",
-            "id": {
-                "namespaceId": "nem",
-                "name": "xem"
-            },
-            "properties": [{
-                "name": "divisibility",
-                "value": "6"
-            }, {
-                "name": "initialSupply",
-                "value": "8999999999"
-            }, {
-                "name": "supplyMutable",
-                "value": "false"
-            }, {
-                "name": "transferable",
-                "value": "true"
-            }],
-            "levy": {}
-        },
-        "supply": 8999999999
-    }
-};
-
-module.exports = {
-    testnetAccountData: testnetAccountData,
-    testnetNamespaceOwned: testnetNamespaceOwned,
-    testnetMosaicOwned: testnetMosaicOwned,
-    testnetMosaicDefinitionMetaDataPair: testnetMosaicDefinitionMetaDataPair,
-    mainnetAccountData: mainnetAccountData,
-    mainnetNamespaceOwned: mainnetNamespaceOwned,
-    mainnetMosaicOwned: mainnetMosaicOwned,
-    mainnetMosaicDefinitionMetaDataPair: mainnetMosaicDefinitionMetaDataPair
-};
-
-},{}],235:[function(require,module,exports){
-"use strict";
-
-var testnetWallet = {
-    "privateKey": "",
-    "name": "TestnetSpec",
-    "accounts": {
-        "0": {
-            "brain": true,
-            "algo": "pass:bip32",
-            "encrypted": "c6dcbc8a538c9e2ec9e9be115aa6a1349d1a8a27e574136b4e603f0549474053e026e0771bf8d86a392fccce5b543d0b",
-            "iv": "4c637775236d5a3698c973b9ba67459e",
-            "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-            "network": -104,
-            "child": "e6683b4b03722d0a049a9a21861d90c48e843f421d6ccb587f809d41a4af14c5"
-        }
-    }
-};
-
-var mainnetWallet = {
-    "privateKey": "",
-    "name": "QM",
-    "accounts": {
-        "0": {
-            "brain": true,
-            "algo": "pass:6k",
-            "encrypted": "",
-            "iv": "",
-            "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
-            "network": 104,
-            "child": "NCC7KUVPQYBTPBABABR5D724CJAOMIA2RJERW3N7"
-        }
-    }
-};
-
-var mainnetWalletDoubleAccounts = {
-    "privateKey": "",
-    "name": "Quantum_Mechanics",
-    "accounts": {
-        "0": {
-            "brain": true,
-            "algo": "pass:6k",
-            "encrypted": "",
-            "iv": "",
-            "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
-            "network": 104,
-            "child": "NCC7KUVPQYBTPBABABR5D724CJAOMIA2RJERW3N7"
-        },
-        "1": {
-            "encrypted": "",
-            "iv": "",
-            "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIWRE",
-            "child": "NCC7KUVPQYBTPBABABR5D724CJAOMIA2RJERFRTO"
-        }
-    }
-};
-
-module.exports = {
-    testnetWallet: testnetWallet,
-    mainnetWallet: mainnetWallet,
-    mainnetWalletDoubleAccounts: mainnetWalletDoubleAccounts
-};
-
-},{}],236:[function(require,module,exports){
-'use strict';
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-var _accountData = require('../data/accountData');
-
-var _accountData2 = _interopRequireDefault(_accountData);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Importance transfer module tests', function () {
-    var $controller = void 0,
-        $rootScope = void 0,
-        Wallet = void 0,
-        DataBridge = void 0,
-        $q = void 0,
-        $filter = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _$rootScope_, _Wallet_, _DataBridge_, _$q_) {
-        $controller = _$controller_;
-        $rootScope = _$rootScope_;
-        Wallet = _Wallet_;
-        DataBridge = _DataBridge_;
-        $q = _$q_;
-        $filter = _$filter_;
-    }));
-
-    function createDummyWalletContextTestnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.testnetWallet);
-        Wallet.setDefaultNode();
-        DataBridge.accountData = _accountData2.default.testnetAccountData;
-    }
-
-    it("Default properties initialized", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('ImportanceTransferCtrl', {
-            $scope: scope
-        });
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            remoteAccount: Wallet.currentAccount.child,
-            mode: 1,
-            fee: 6000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: ''
-        });
-        expect(ctrl.modes).toEqual([{
-            name: "Activate",
-            key: 1
-        }, {
-            name: "Deactivate",
-            key: 2
-        }]);
-        expect(ctrl.okPressed).toBe(false);
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-    });
-
-    it("Can update remote account if custom key enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('ImportanceTransferCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.customKey = true;
-        ctrl.updateRemoteAccount();
-
-        // Assert
-        expect(ctrl.formData.remoteAccount).toEqual('');
-    });
-
-    it("Can update remote account if custom key enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('ImportanceTransferCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.customKey = true;
-        ctrl.updateRemoteAccount();
-        ctrl.customKey = false;
-        ctrl.updateRemoteAccount();
-
-        // Assert
-        expect(ctrl.formData.remoteAccount).toEqual(Wallet.currentAccount.child);
-    });
-
-    it("Can set mode to deactivate", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('ImportanceTransferCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.mode = 2;
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            remoteAccount: Wallet.currentAccount.child,
-            mode: 2,
-            fee: 6000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: ''
-        });
-    });
-
-    it("Can set mode to 'activate' after 'deactivate'", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('ImportanceTransferCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.mode = 2;
-        ctrl.formData.mode = 1;
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            remoteAccount: Wallet.currentAccount.child,
-            mode: 1,
-            fee: 6000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: ''
-        });
-    });
-
-    describe('Importance transfer module delegation tests', function () {
-
-        it("Pass right parameters to prepareImportanceTransfer in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('ImportanceTransferCtrl', {
-                $scope: scope
-            });
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareImportanceTransfer from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareImportanceTransfer').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareImportanceTransfer).toHaveBeenCalledWith(ctrl.common, ctrl.formData);
-        });
-
-        it("Can't call prepareImportanceTransfer in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('ImportanceTransferCtrl', {
-                $scope: scope
-            });
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareImportanceTransfer from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareImportanceTransfer').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareImportanceTransfer).not.toHaveBeenCalled();
-        });
-
-        it("Pass right parameters to serializeAndAnnounceTransaction in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('ImportanceTransferCtrl', {
-                $scope: scope
-            });
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).toHaveBeenCalledWith(jasmine.any(Object), ctrl.common);
-        });
-
-        it("Can't call serializeAndAnnounceTransaction in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('ImportanceTransferCtrl', {
-                $scope: scope
-            });
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).not.toHaveBeenCalled();
-        });
-    });
-});
-
-},{"../data/accountData":234,"../data/wallet":235}],237:[function(require,module,exports){
-'use strict';
-
-var _Address = require('../../src/app/utils/Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-var _convert = require('../../src/app/utils/convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Address util tests', function () {
-
-    function generateRandomKey() {
-        var rawPublicKey = new Uint8Array(32);
-        window.crypto.getRandomValues(rawPublicKey);
-        return _convert2.default.ua2hex(rawPublicKey);
-    }
-
-    it("Can create mainnet address", function () {
-        // Arrange:
-        var publicKey = generateRandomKey();
-
-        // Act:
-        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
-
-        // Assert:
-        expect(address[0]).toEqual(_Network2.default.data.Mainnet.char);
-        expect(address.length).toBe(40);
-    });
-
-    it("Can create testnet address", function () {
-        // Arrange:
-        var publicKey = generateRandomKey();
-
-        // Act:
-        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
-
-        // Assert:
-        expect(address[0]).toEqual(_Network2.default.data.Testnet.char);
-        expect(address.length).toBe(40);
-    });
-
-    it("Same public key yields same address", function () {
-        // Arrange:
-        var publicKey = generateRandomKey();
-
-        // Act:
-        var address1 = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
-        var address2 = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
-
-        // Assert:
-        expect(address1).toEqual(address2);
-        expect(address1.length).toBe(40);
-    });
-
-    it("Different network yields different address", function () {
-        // Arrange:
-        var publicKey = generateRandomKey();
-
-        // Act:
-        var address1 = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
-        var address2 = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
-
-        // Assert:
-        expect(address1.slice(1)).not.toEqual(address2.slice(1));
-        expect(address1.length).toBe(40);
-    });
-
-    it("Generated address is valid", function () {
-        // Arrange:
-        var publicKey = generateRandomKey();
-
-        // Act:
-        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
-
-        // Assert:
-        expect(_Address2.default.isValid(address)).toBe(true);
-        expect(address.length).toBe(40);
-    });
-
-    it("Altered address is not valid", function () {
-        // Arrange:
-        var publicKey = generateRandomKey();
-
-        // Act:
-        var address = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
-        var modifiedAddress = _Network2.default.data.Testnet.char + address.slice(1);
-
-        // Assert:
-        expect(_Address2.default.isValid(address)).toBe(true);
-        expect(_Address2.default.isValid(modifiedAddress)).toBe(false);
-    });
-
-    it("Can convert public key to address", function () {
-        // Arrange:
-        var publicKeyMainnet = "ed9bf729c0d93f238bc4af468b952c35071d9fe1219b27c30dfe108c2e3db030";
-        var publicKeyTestnet = "4fec0eb477c3294c0ae1de1c6f6e47253b6e392ecb136bdf60721cde90890db0";
-        var expectedAddressMainnet = "NC3KIMHFGODLLWLQLRIUVF5BLXBCEZLC7AI7L36K";
-        var expectedAddressTestnet = "TA4B72ATAJ6NAWTYWNRKJBPH5PQ5VQA2GQFDCEPL";
-
-        // Act:
-        var addressMainnet = _Address2.default.toAddress(publicKeyMainnet, _Network2.default.data.Mainnet.id);
-        var addressTestnet = _Address2.default.toAddress(publicKeyTestnet, _Network2.default.data.Testnet.id);
-
-        // Assert:
-        expect(addressMainnet).toEqual(expectedAddressMainnet);
-        expect(addressTestnet).toEqual(expectedAddressTestnet);
-    });
-
-    it("Can convert same public key to different network address", function () {
-        // Arrange:
-        var publicKey = "ed9bf729c0d93f238bc4af468b952c35071d9fe1219b27c30dfe108c2e3db030";
-        var expectedAddressMainnet = "NC3KIMHFGODLLWLQLRIUVF5BLXBCEZLC7AI7L36K";
-        var expectedAddressTestnet = "TC3KIMHFGODLLWLQLRIUVF5BLXBCEZLC7CL2246V";
-
-        // Act:
-        var addressMainnet = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
-        var addressTestnet = _Address2.default.toAddress(publicKey, _Network2.default.data.Testnet.id);
-
-        // Assert:
-        expect(addressMainnet).toEqual(expectedAddressMainnet);
-        expect(addressTestnet).toEqual(expectedAddressTestnet);
-    });
-});
-
-},{"../../src/app/utils/Address":223,"../../src/app/utils/Network":226,"../../src/app/utils/convert":229}],238:[function(require,module,exports){
-'use strict';
-
-var _convert = require('../../src/app/utils/convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Convert util tests', function () {
-
-    it("utf8ToHex encodes ascii", function () {
-        // Arrange:
-        var ascii = "Hello";
-        var expectedResult = "48656c6c6f";
-
-        // Act:
-        var result = _convert2.default.utf8ToHex(ascii);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("utf8ToHex encodes utf8", function () {
-        // Arrange:
-        var utf8 = "Любя, съешь щипцы, - вздохнёт мэр, - кайф жгуч";
-        var expectedResult = "d09bd18ed0b1d18f2c20d181d18ad0b5d188d18c20d189d0b8d0bfd186d18b2c202d20d0b2d0b7d0b4d0bed185d0bdd191d18220d0bcd18dd1802c202d20d0bad0b0d0b9d18420d0b6d0b3d183d187";
-
-        // Act:
-        var result = _convert2.default.utf8ToHex(utf8);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("hex2ua does not throw on invalid input", function () {
-        // Arrange:
-        var input = null;
-
-        // Act:
-        // toThrow requires a function, not an actual result, so wrap in bind
-        var result = _convert2.default.hex2ua.bind(null, {});
-
-        // Assert:
-        expect(result).not.toThrow();
-    });
-
-    it("hex2ua converts proper data", function () {
-        // Arrange:
-        var hex = "55aa90bb";
-        var expectedResult = new Uint8Array([85, 170, 144, 187]);
-
-        // Act: 
-        var result = _convert2.default.hex2ua(hex);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("hex2ua discards odd bytes", function () {
-        // Arrange:
-        var hex = "55aa90b";
-        var expectedResult = new Uint8Array([85, 170, 144]);
-
-        // Act:
-        var result = _convert2.default.hex2ua(hex);
-
-        // Assert:
-        expect().toEqual(expectedResult);
-    });
-
-    it("ua2hex works on typed arrays", function () {
-        // Arrange:
-        var source = new Uint8Array([85, 170, 144, 187]);
-        var expectedResult = "55aa90bb";
-
-        // Act:
-        var result = _convert2.default.ua2hex(source);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    // this one is actually not a requirement...
-    it("ua2hex works on untyped arrays", function () {
-        // Arrange:
-        var source = [85, 170, 144, 187];
-        var expectedResult = "55aa90bb";
-
-        // Act:
-        var result = _convert2.default.ua2hex(source);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    // actually maybe it'd be good if it would throw ...
-    it("ua2hex does throws on invalid data", function () {
-        // Arrange:
-        var source = [256];
-        var data = null;
-
-        // Act: 
-        var result = _convert2.default.ua2hex.bind(data, source);
-
-        // Assert:
-        expect(result).not.toThrow();
-    });
-
-    it("roundtrip ua2hex(hex2ua())", function () {
-        // Arrange:
-        var hex = "55aa90bb";
-
-        // Act:
-        var result = _convert2.default.ua2hex(_convert2.default.hex2ua(hex));
-
-        // Assert:
-        expect(result).toEqual(hex);
-    });
-
-    it("roundtrip hex2ua(ua2hex())", function () {
-        // Arrange:
-        var source = new Uint8Array([85, 170, 144, 187]);
-
-        // Act:
-        var result = _convert2.default.hex2ua(_convert2.default.ua2hex(source));
-
-        // Assert:
-        expect(result).toEqual(source);
-    });
-
-    it("hex2ua_reversed returns reversed array", function () {
-        // Arrange:
-        var hex = "55aa90bb";
-        var expectedResult = new Uint8Array([187, 144, 170, 85]);
-
-        // Act:
-        var result = _convert2.default.hex2ua_reversed(hex);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("hex2ua_reversed discards odd bytes", function () {
-        // Arrange:
-        var hex = "55aa90bb";
-        var expectedResult = new Uint8Array([144, 170, 85]);
-
-        // Act:
-        var result = _convert2.default.hex2ua_reversed(hex);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("hex2a encodes byte-to-byte", function () {
-        // Arrange:
-        var source = "90909055aa90bbc3bc";
-        var expectedResult = 9;
-
-        // Act:
-        var result = _convert2.default.hex2a(source).length;
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can convert ua to words", function () {
-        // Arrange:
-        var ua = new Uint8Array([125, 109, 176, 209, 206, 169, 43, 155, 2, 2, 206, 98, 33, 74, 26, 25, 30, 25, 123, 238, 201, 175, 91, 63, 25, 79, 136, 232, 177, 18, 201, 127]);
-        var uaLength = 32;
-        var expectedResult = CryptoJS.enc.Hex.parse("7d6db0d1cea92b9b0202ce62214a1a191e197beec9af5b3f194f88e8b112c97f");
-
-        // Act:
-        var result = _convert2.default.ua2words(ua, uaLength).toString(CryptoJS.enc.Hex);
-
-        // Assert:
-        expect(CryptoJS.enc.Hex.parse(result)).toEqual(expectedResult);
-    });
-
-    it("Can convert words to ua", function () {
-        // Arrange:
-        var ua = new Uint8Array([125, 109, 176, 209, 206, 169, 43, 155, 2, 2, 206, 98, 33, 74, 26, 25, 30, 25, 123, 238, 201, 175, 91, 63, 25, 79, 136, 232, 177, 18, 201, 127]);
-        var words = CryptoJS.enc.Hex.parse("7d6db0d1cea92b9b0202ce62214a1a191e197beec9af5b3f194f88e8b112c97f");
-        var destUa = new Uint8Array(64);
-        var hash = CryptoJS.SHA3(words, {
-            outputLength: 512
-        });
-
-        // Act:
-        var result = _convert2.default.words2ua(words, hash);
-
-        // Assert:
-        expect(_convert2.default.hex2ua(result)).toEqual(ua);
-    });
-});
-
-},{"../../src/app/utils/convert":229}],239:[function(require,module,exports){
-'use strict';
-
-var _sinks = require('../../src/app/utils/sinks');
-
-var _sinks2 = _interopRequireDefault(_sinks);
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-var _accountData = require('../data/accountData');
-
-var _accountData2 = _interopRequireDefault(_accountData);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Mosaic definition transaction module tests', function () {
-    var $controller = void 0,
-        $rootScope = void 0,
-        Wallet = void 0,
-        DataBridge = void 0,
-        $q = void 0,
-        $filter = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _$rootScope_, _Wallet_, _DataBridge_, _$q_) {
-        $controller = _$controller_;
-        $rootScope = _$rootScope_;
-        Wallet = _Wallet_;
-        DataBridge = _DataBridge_;
-        $q = _$q_;
-        $filter = _$filter_;
-    }));
-
-    function createDummyWalletContextTestnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.testnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.testnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.testnetNamespaceOwned;
-        DataBridge.mosaicOwned = _accountData2.default.testnetMosaicOwned;
-        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.testnetMosaicDefinitionMetaDataPair;
-        DataBridge.nisHeight = 999999999;
-    }
-
-    function createDummyWalletContextMainnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.mainnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.mainnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.mainnetNamespaceOwned;
-        DataBridge.mosaicOwned = _accountData2.default.mainnetMosaicOwned;
-        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.mainnetMosaicDefinitionMetaDataPair;
-
-        DataBridge.nisHeight = 999999999;
-    }
-
-    it("Can update current account mosaics and namespaces", function () {
-        // Arrange
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.updateCurrentAccountNSM();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual(Wallet.currentAccount.address);
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nano:points', 'nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-        expect(ctrl.formData.namespaceParent).toEqual({
-            owner: 'TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO',
-            fqn: 'nano',
-            height: 547741
-        });
-    });
-
-    it("Default properties initialized (after updateCurrentAccountNSM)", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            mosaicFeeSink: _sinks2.default.sinks.mosaic[Wallet.network],
-            mosaicName: '',
-            namespaceParent: {
-                owner: 'TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO',
-                fqn: 'nano',
-                height: 547741
-            },
-            mosaicDescription: '',
-            properties: {
-                'initialSupply': 0,
-                'divisibility': 0,
-                'transferable': true,
-                'supplyMutable': true
-            },
-            levy: {
-                'mosaic': null,
-                'address': Wallet.currentAccount.address,
-                'feeType': 1,
-                'fee': 5
-            },
-            fee: 20 * 1000000,
-            mosaicFee: 500 * 1000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: {
-                "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
-                "harvestedBlocks": 0,
-                "balance": 16000000,
-                "importance": 0,
-                "vestedBalance": 0,
-                "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
-                "label": null,
-                "multisigInfo": {
-                    "cosignatoriesCount": 1,
-                    "minCosignatories": 1
-                }
-            }
-        });
-        expect(ctrl.currentAccount).toEqual(Wallet.currentAccount.address);
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nano:points', 'nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-        expect(ctrl.hasLevy).toBe(false);
-        expect(ctrl.okPressed).toBe(false);
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-    });
-
-    it("Has right sink on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaicFeeSink).toEqual("TBMOSA-ICOD4F-54EE5C-DMR23C-CBGOAM-2XSJBR-5OLC");
-    });
-
-    it("Has right sink on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaicFeeSink).toEqual("NBMOSA-ICOD4F-54EE5C-DMR23C-CBGOAM-2XSIUX-6TRS");
-    });
-
-    it("Has right rentalFee on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaicFee).toBe(500 * 1000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Has right rentalFee on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaicFee).toBe(50000 * 1000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Has right fee on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(20000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Has right fee on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(108000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Can update transaction fee if multisig", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(6000000);
-        expect(ctrl.formData.innerFee).toBe(20000000);
-    });
-
-    it("Can update transaction fee if multisig enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateFees();
-        scope.$digest();
-        ctrl.formData.isMultisig = false;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(20000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Can lowercase mosaic name", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-        ctrl.formData.mosaicName = "AwEsOmE";
-        ctrl.processMosaicName();
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaicName).toEqual('awesome');
-    });
-
-    it("Can set default mosaic levy if levy enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.updateLevyMosaic(true);
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.levy.mosaic).toEqual({
-            "namespaceId": "nem",
-            "name": "xem"
-        });
-    });
-
-    it("Can set mosaic levy to null if levy enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.updateLevyMosaic(true);
-        ctrl.updateLevyMosaic(false);
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.levy.mosaic).toBe(null);
-    });
-
-    it("Can set selected mosaic as levy mosaic", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.selectedMosaic = 'nano:points';
-        ctrl.updateLevyMosaic(true);
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.levy.mosaic).toEqual({
-            "namespaceId": "nano",
-            "name": "points"
-        });
-    });
-
-    it("Can change levy fee type to percentile", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.selectedMosaic = 'nano:points';
-        ctrl.updateLevyMosaic(true);
-        ctrl.formData.levy.feeType = 2;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.levy.feeType).toBe(2);
-    });
-
-    it("Can change levy fee type to percentile then absolute", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.selectedMosaic = 'nano:points';
-        ctrl.updateLevyMosaic(true);
-        ctrl.formData.levy.feeType = 2;
-        scope.$digest();
-        ctrl.formData.levy.feeType = 1;
-
-        // Assert
-        expect(ctrl.formData.levy.feeType).toBe(1);
-    });
-
-    it("Set right current account address if multisig enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateCurrentAccountNSM();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual("TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X");
-    });
-
-    it("Set right current account address if multisig enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        scope.$digest();
-        ctrl.formData.isMultisig = false;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual(Wallet.currentAccount.address);
-    });
-
-    it("Set right current account mosaic names and selected mosaic if multisig enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        scope.$digest();
-        ctrl.updateCurrentAccountNSM();
-
-        // Assert
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-    });
-
-    it("Set right current account mosaic names and selected mosaic if multisig enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        scope.$digest();
-        ctrl.updateCurrentAccountNSM();
-        ctrl.formData.isMultisig = false;
-        scope.$digest();
-        ctrl.updateCurrentAccountNSM();
-
-        // Assert
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nano:points', 'nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-    });
-
-    it("Can disable transferable mode", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.properties.transferable = false;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.properties.transferable).toBe(false);
-    });
-
-    it("Can disable mutable supply", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('CreateMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.properties.supplyMutable = false;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.properties.supplyMutable).toBe(false);
-    });
-
-    describe('Mosaic definition transaction module delegated tests', function () {
-
-        it("Pass right parameters to prepareMosaicDefinition in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('CreateMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareMosaicDefinition from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareMosaicDefinition').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareMosaicDefinition).toHaveBeenCalledWith(ctrl.common, ctrl.formData);
-        });
-
-        it("Can't call prepareMosaicDefinition in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('CreateMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareMosaicDefinition from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareMosaicDefinition').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareMosaicDefinition).not.toHaveBeenCalled();
-        });
-
-        it("Pass right parameters to serializeAndAnnounceTransaction in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('CreateMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).toHaveBeenCalledWith(jasmine.any(Object), ctrl.common);
-        });
-
-        it("Can't call serializeAndAnnounceTransaction in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('CreateMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).not.toHaveBeenCalled();
-        });
-    });
-});
-
-},{"../../src/app/utils/sinks":233,"../data/accountData":234,"../data/wallet":235}],240:[function(require,module,exports){
-'use strict';
-
-var _Address = require('../../src/app/utils/Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-var _convert = require('../../src/app/utils/convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _KeyPair = require('../../src/app/utils/KeyPair');
-
-var _KeyPair2 = _interopRequireDefault(_KeyPair);
-
-var _CryptoHelpers = require('../../src/app/utils/CryptoHelpers');
-
-var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('CryptoHelpers util tests', function () {
-    var $filter = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$filter_) {
-        $filter = _$filter_;
-    }));
-
-    it("Can check address", function () {
-        // Arrange:
-        var privatekey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-        var address = "NCRCWIADNM3UQQTRRFKXBAVHDPZMGVBBXA4J4RE5";
-
-        // Act:
-        var result = _CryptoHelpers2.default.checkAddress(privatekey, _Network2.default.data.Mainnet.id, address);
-
-        // Assert:
-        expect(result).toBe(true);
-    });
-
-    it("Can derive a key from password and count", function () {
-        // Arrange:
-        var password = "TestTest";
-        var count = 20;
-        var expectedKey = "8cd87bc513857a7079d182a6e19b370e907107d97bd3f81a85bcebcc4b5bd3b5";
-
-        // Act:
-        var result = _CryptoHelpers2.default.derivePassSha(password, count);
-
-        // Assert:
-        expect(result.priv).toEqual(expectedKey);
-    });
-
-    it("Can encrypt a private key", function () {
-        // Arrange:
-        var password = "TestTest";
-        var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-        var expectedKey = "8cd87bc513857a7079d182a6e19b370e907107d97bd3f81a85bcebcc4b5bd3b5";
-
-        // Act:
-        var result = _CryptoHelpers2.default.encodePrivKey(privateKey, password);
-        var pass = _CryptoHelpers2.default.derivePassSha(password, 20);
-        var obj = {
-            ciphertext: CryptoJS.enc.Hex.parse(result.ciphertext),
-            iv: _convert2.default.hex2ua(result.iv),
-            key: _convert2.default.hex2ua(pass.priv)
-        };
-
-        // Assert:
-        expect(pass.priv).toEqual(expectedKey);
-        expect(result.iv.length).toBe(16 * 2);
-        expect(result.ciphertext.length).toBe(48 * 2);
-    });
-
-    it("Can decrypt a private key", function () {
-        // Arrange:
-        var password = "TestTest";
-        var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-        var key = "8cd87bc513857a7079d182a6e19b370e907107d97bd3f81a85bcebcc4b5bd3b5";
-        var encrypted = "c09ef3ed0cadd6ca6d3638b5dd854ac871a0afaec6b7fed791166b571a64d57f564376dc0180c851b0a1120b5896e6a0";
-        var iv = "0329814121c7a4bb11418084dbe40560";
-        var obj = {
-            ciphertext: CryptoJS.enc.Hex.parse(encrypted),
-            iv: _convert2.default.hex2ua(iv),
-            key: _convert2.default.hex2ua(key)
-        };
-
-        // Act:
-        var decrypted = _CryptoHelpers2.default.decrypt(obj);
-
-        // Assert:
-        expect(decrypted).toEqual(expectedPrivateKey);
-    });
-
-    it("Can encrypt and decrypt private Key", function () {
-        // Arrange:
-        var password = "TestTest";
-        var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-
-        // Act:
-        var result = _CryptoHelpers2.default.encodePrivKey(privateKey, password);
-        var pass = _CryptoHelpers2.default.derivePassSha(password, 20);
-        var obj = {
-            ciphertext: CryptoJS.enc.Hex.parse(result.ciphertext),
-            iv: _convert2.default.hex2ua(result.iv),
-            key: _convert2.default.hex2ua(pass.priv)
-        };
-        var decrypted = _CryptoHelpers2.default.decrypt(obj);
-
-        // Assert:
-        expect(privateKey).toEqual(decrypted);
-    });
-
-    describe('Encrypt private key edge-cases', function () {
-
-        it("Encryption return error if no password", function () {
-            // Arrange:
-            var password = "";
-            var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-
-            // Act:
-            var result = _CryptoHelpers2.default.encodePrivKey.bind(null, privateKey, password);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-
-        it("Encryption return error if no private key", function () {
-            // Arrange:
-            var password = "TestTest";
-            var privateKey = "";
-
-            // Act
-            var result = _CryptoHelpers2.default.encodePrivKey.bind(null, privateKey, password);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-    });
-
-    it("Can decrypt private key of pass:enc wallets", function () {
-        // Arrange:
-        var common = {
-            'password': 'TestTest',
-            'privateKey': ''
-        };
-        var walletAccount = {
-            "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
-            "iv": "dccffaa4883cda85d6b06714aabe6ec6"
-        };
-        var mainAlgo = "pass:enc";
-        var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-
-        // Act:
-        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-        // Assert:
-        expect(result).toBe(true);
-        expect(common.privateKey).toEqual(expectedPrivateKey);
-        expect(!common.password).toEqual(true);
-    });
-
-    it("Can decrypt private key of pass:bip32 wallets", function () {
-        // Arrange:
-        var common = {
-            'password': 'TestTest',
-            'privateKey': ''
-        };
-        var walletAccount = {
-            "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
-            "iv": "dccffaa4883cda85d6b06714aabe6ec6"
-        };
-        var mainAlgo = "pass:bip32";
-        var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-
-        // Act:
-        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-        // Assert:
-        expect(result).toBe(true);
-        expect(common.privateKey).toEqual(expectedPrivateKey);
-        expect(!common.password).toEqual(true);
-    });
-
-    it("Can decrypt private key of pass:6k wallets", function () {
-        // Arrange:
-        var common = {
-            'password': 'TestTest',
-            'privateKey': ''
-        };
-        var walletAccount = {
-            "encrypted": "",
-            "iv": ""
-        };
-        var mainAlgo = "pass:6k";
-        var expectedPrivateKey = "8fac70ea9aca3ae3418e25c0d31d9a0723e0a1790ae8fa97747c00dc0037472e";
-
-        // Act:
-        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-        // Assert:
-        expect(result).toBe(true);
-        expect(common.privateKey).toEqual(expectedPrivateKey);
-    });
-
-    it("Can decrypt private key of pass:6k wallets childs", function () {
-        // Arrange:
-        var common = {
-            'password': 'TestTest',
-            'privateKey': ''
-        };
-        var walletAccount = {
-            "encrypted": "5c3a7ebbefb391e5175a29ec5a22cb162cd590bb2e0b09416273f86bdc39fa83c04c4bb53b9c64fd1e6eaba5dba149bd",
-            "iv": "f131d9a4dfb1b0b696e05ccae9412e8f"
-        };
-        var mainAlgo = "pass:6k";
-        var expectedPrivateKey = "4f27ca43521bbc394a6f6dde65b533e0768f954fa47ce320b0e9f4b5fe450f9d";
-
-        // Act:
-        var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-        // Assert:
-        expect(result).toBe(true);
-        expect(common.privateKey).toEqual(expectedPrivateKey);
-        expect(!common.password).toEqual(true);
-    });
-
-    describe('Decrypt private key edge-cases', function () {
-
-        it("Private key decryption return false and alert if no algo", function () {
-            // Arrange:
-            var common = {
-                'password': 'TestTest',
-                'privateKey': ''
-            };
-            var walletAccount = {
-                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
-                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
-            };
-            var mainAlgo = "";
-            var expectedPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-
-            // Act:
-            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-            // Assert:
-            expect(result).toBe(false);
-            expect(common.privateKey).toEqual("");
-            expect(!common.password).toEqual(false);
-        });
-
-        it("Decryption of pass:enc wallets return false if no password", function () {
-            // Arrange:
-            var common = {
-                'password': '',
-                'privateKey': ''
-            };
-            var walletAccount = {
-                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
-                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
-            };
-            var mainAlgo = "pass:enc";
-
-            // Act:
-            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-            // Assert:
-            expect(result).toBe(false);
-            expect(common.privateKey).toEqual("");
-            expect(!common.password).toEqual(true);
-        });
-
-        it("Decryption of pass:bip32 wallets return false if no password", function () {
-            // Arrange:
-            var common = {
-                'password': '',
-                'privateKey': ''
-            };
-            var walletAccount = {
-                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
-                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
-            };
-            var mainAlgo = "pass:bip32";
-
-            // Act:
-            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-            // Assert:
-            expect(result).toBe(false);
-            expect(common.privateKey).toEqual("");
-            expect(!common.password).toEqual(true);
-        });
-
-        it("Decryption of pass:6k wallets return false if no password", function () {
-            // Arrange:
-            var common = {
-                'password': '',
-                'privateKey': ''
-            };
-            var walletAccount = {
-                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
-                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
-            };
-            var mainAlgo = "pass:6k";
-
-            // Act:
-            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-            // Assert:
-            expect(result).toBe(false);
-            expect(common.privateKey).toEqual("");
-            expect(!common.password).toEqual(true);
-        });
-
-        it("Decryption of pass:6k wallets generate key if no encrypted and iv in wallet account", function () {
-            // Arrange:
-            var common = {
-                'password': 'TestTest',
-                'privateKey': ''
-            };
-            var walletAccount = {
-                "encrypted": "",
-                "iv": ""
-            };
-            var mainAlgo = "pass:6k";
-            var expectedPrivateKey = "8fac70ea9aca3ae3418e25c0d31d9a0723e0a1790ae8fa97747c00dc0037472e";
-
-            // Act:
-            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-            // Assert:
-            expect(result).toBe(true);
-            expect(common.privateKey).toEqual(expectedPrivateKey);
-            expect(!common.password).toEqual(true);
-        });
-
-        it("Decryption of pass:6k wallets return false and alert if encrypted but no iv", function () {
-            // Arrange:
-            var common = {
-                'password': 'TestTest',
-                'privateKey': ''
-            };
-            var walletAccount = {
-                "encrypted": "2e1717f245b7e1138b0dfe99dfce65b16b1c9d8ca03a9f90b86b43677b6337ce56ec474c64f73244790eb2490ad14752",
-                "iv": ""
-            };
-            var mainAlgo = "pass:6k";
-
-            // Act:
-            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-            // Assert:
-            expect(result).toBe(false);
-            expect(common.privateKey).toEqual("");
-            expect(!common.password).toEqual(false);
-        });
-
-        it("Decryption of pass:6k wallets return false and alert if no encrypted but iv", function () {
-            // Arrange:
-            var common = {
-                'password': 'TestTest',
-                'privateKey': ''
-            };
-            var walletAccount = {
-                "encrypted": "",
-                "iv": "dccffaa4883cda85d6b06714aabe6ec6"
-            };
-            var mainAlgo = "pass:6k";
-
-            // Act:
-            var result = _CryptoHelpers2.default.passwordToPrivatekeyClear(common, walletAccount, mainAlgo, true);
-
-            // Assert:
-            expect(result).toBe(false);
-            expect(common.privateKey).toEqual("");
-            expect(!common.password).toEqual(false);
-        });
-    });
-
-    it("Can generate bip32 seed and child on mainnet", function (done) {
-        // Arrange:
-        var privateKey = "6809a9582cd395aa8803bbce10449c9819e34d3afa1cb4f4e2df52fb37864ccb";
-        var password = "TestTest";
-        var index = 0;
-        var expectedSeed = "P5XzbwJKMQMpm1hYYk1z9k4KNcjnvDMfGsxmimSWH7QwPJu2jK3u8GvwPSaeZajxHS1gPEMovGk2pcu3Y2zpgC7VcYDK5Cpkb3aNtyjfiiPnf2Nq";
-        var expectedChildPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-
-        // Act:
-        _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Mainnet.id).then(function (data) {
-            var seed = data.seed;
-            var childPrivateKey = data.privateKey;
-
-            // Assert:
-            expect(seed).toEqual(expectedSeed);
-            expect(childPrivateKey).toEqual(expectedChildPrivateKey);
-
-            done();
-        });
-    });
-
-    it("Can generate bip32 seed and child on testnet", function (done) {
-        // Arrange:
-        var privateKey = "6809a9582cd395aa8803bbce10449c9819e34d3afa1cb4f4e2df52fb37864ccb";
-        var password = "TestTest";
-        var index = 0;
-        var expectedSeed = "ZGYuxVoQi4Wi11wqqQpDHg16w3Je6wP6KCfqWT9o8SatSvpr5VUfmAENCyh3svgaXGFXZN11RYvrNA2equ6yprZmNrr2JjrCcYMuQwrZ4XAoJdBs";
-        var expectedChildPrivateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-
-        // Act:
-        _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Testnet.id).then(function (data) {
-            var seed = data.seed;
-            var childPrivateKey = data.privateKey;
-
-            // Assert:
-            expect(seed).toEqual(expectedSeed);
-            expect(childPrivateKey).toEqual(expectedChildPrivateKey);
-
-            done();
-        });
-    });
-
-    it("Can derive account from bip32 seed", function (done) {
-        // Arrange:
-        var seed = "ZGYuxVoQi4Wi11wqqQpDHg16w3Je6wP6KCfqWT9o8SatSvpr5VUfmAENCyh3svgaXGFXZN11RYvrNA2equ6yprZmNrr2JjrCcYMuQwrZ4XAoJdBs";
-        var index = 1;
-        var expectedAccount = "NA7RDSYKYNPPU6F5FDT2ACXN4WHIMD33G7IZPR3N";
-        var expectedAccountPrivateKey = "e1a5c85cd1a9162022eab2e60429cbea6e65977f048dab25c86a5bab923b675f";
-
-        // Act:
-        _CryptoHelpers2.default.BIP32derivation(seed, index, _Network2.default.data.Mainnet.id).then(function (data) {
-            var account = data.address;
-            var accountPrivateKey = data.privateKey;
-
-            // Assert:
-            expect(account).toEqual(expectedAccount);
-            expect(accountPrivateKey).toEqual(expectedAccountPrivateKey);
-
-            done();
-        });
-    });
-
-    describe('Bip32 edge-cases', function () {
-
-        it("Bip32 return error if no private key", function (done) {
-            // Arrange:
-            var privateKey = "";
-            var password = "TestTest";
-            var index = 0;
-
-            // Act:
-            _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Mainnet.id).then(function (data) {}, function (err) {
-                // Assert:
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Bip32 return error if no password", function (done) {
-            // Arrange:
-            var privateKey = "6809a9582cd395aa8803bbce10449c9819e34d3afa1cb4f4e2df52fb37864ccb";
-            var password = "";
-            var index = 0;
-
-            // Act:
-            var result = _CryptoHelpers2.default.generateBIP32Data(privateKey, password, index, _Network2.default.data.Mainnet.id).then(function (data) {}, function (err) {
-                // Assert:
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Bip32 can't derivate account without seed", function (done) {
-            // Arrange:
-            var seed = "";
-            var index = 1;
-            var isMultisig = false;
-
-            // Act:
-            var result = _CryptoHelpers2.default.BIP32derivation(seed, isMultisig, index, _Network2.default.data.Mainnet.id).then(function (data) {}, function (err) {
-                // Assert:
-                expect(result).toBeDefined();
-
-                done();
-            });
-        });
-    });
-
-    it("Can encode message with sender private key", function () {
-        // Arrange:
-        var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-        var recipientPublic = "5aae0b521c59cfc8c2114dc74d2f652359a68e377657c3f6bd6091f16f72e1ec";
-        var message = "NEM is awesome !";
-        var iv = "f396cf605ee7cb0e7618df82aa48c684";
-        var salt = "5f8d37e8116b6dc9171ffeb7617b0988bfd8abe0e611c2c34cc127b637d8192a";
-        var expectedHex = "5f8d37e8116b6dc9171ffeb7617b0988bfd8abe0e611c2c34cc127b637d8192af396cf605ee7cb0e7618df82aa48c684eb60d26923a2672758f7df7b1430a026e88fea1f4bb3171ab213a5679b9fb9d9";
-
-        // Act:
-        var encryptedHex = _CryptoHelpers2.default._encode(senderPriv, recipientPublic, message, _convert2.default.hex2ua(iv), _convert2.default.hex2ua(salt));
-
-        // Assert:
-        expect(encryptedHex).toEqual(expectedHex);
-    });
-
-    it("Can decode message with recipient private key", function () {
-        // Arrange:
-        var senderPublic = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
-        var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
-        var expectedMessage = "NEM is awesome !";
-        var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
-
-        // Act:
-        var decrypted = {
-            'type': 1,
-            'payload': _CryptoHelpers2.default.decode(recipientPriv, senderPublic, encryptedMessage)
-        };
-        var decryptedMessage = $filter('fmtHexMessage')(decrypted);
-
-        // Assert:
-        expect(decryptedMessage).toEqual(expectedMessage);
-    });
-
-    it("Roundtrip decode encode", function () {
-        // Arrange:
-        var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-        var sender = _KeyPair2.default.create(senderPriv);
-        var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
-        var recipient = _KeyPair2.default.create(recipientPriv);
-        var message = "NEM is awesome !";
-        var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
-
-        // Act:
-        var decrypted = {
-            'type': 1,
-            'payload': _CryptoHelpers2.default.decode(recipientPriv, sender.publicKey.toString(), encryptedMessage)
-        };
-        var decryptedMessage = $filter('fmtHexMessage')(decrypted);
-
-        var encrypted = _CryptoHelpers2.default.encode(recipientPriv, sender.publicKey.toString(), decryptedMessage);
-
-        // Assert:
-        expect(decryptedMessage).toEqual(message);
-        expect(encrypted.length).toBe(80 * 2);
-    });
-
-    it("Roundtrip encode decode", function () {
-        // Arrange:
-        var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-        var sender = _KeyPair2.default.create(senderPriv);
-        var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
-        var recipient = _KeyPair2.default.create(recipientPriv);
-        var message = "NEM is awesome !";
-
-        // Act:
-        var encrypted = _CryptoHelpers2.default.encode(senderPriv, recipient.publicKey.toString(), message);
-        var decrypted = {
-            'type': 1,
-            'payload': _CryptoHelpers2.default.decode(recipientPriv, sender.publicKey.toString(), encrypted)
-        };
-        var decryptedMessage = $filter('fmtHexMessage')(decrypted);
-
-        // Assert:
-        expect(decryptedMessage).toEqual(message);
-    });
-
-    describe('Encode & decode message edge-cases', function () {
-
-        it("Message encoding return error if no sender private key", function () {
-            // Arrange:
-            var senderPriv = "";
-            var recipientPublic = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
-            var message = "NEM is awesome !";
-
-            // Act:
-            var result = _CryptoHelpers2.default.encode.bind(null, senderPriv, recipientPublic, message);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-
-        it("Message encoding return error if no recipient public key", function () {
-            // Arrange:
-            var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-            var recipientPublic = "";
-            var message = "NEM is awesome !";
-
-            // Act:
-            var result = _CryptoHelpers2.default.encode.bind(null, senderPriv, recipientPublic, message);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-
-        it("Message encoding return error if no message", function () {
-            // Arrange:
-            var senderPriv = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-            var recipientPublic = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
-            var message = "";
-
-            // Act:
-            var result = _CryptoHelpers2.default.encode.bind(null, senderPriv, recipientPublic, message);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-
-        it("Message decoding return error if no recipient private key", function () {
-            // Arrange:
-            var senderPublic = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
-            var recipientPriv = "";
-            var message = "NEM is awesome !";
-            var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
-
-            // Act:
-            var result = _CryptoHelpers2.default.decode.bind(null, recipientPriv, senderPublic, encryptedMessage);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-
-        it("Message decoding return error if no sender public key", function () {
-            // Arrange:
-            var senderPublic = "";
-            var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
-            var message = "NEM is awesome !";
-            var encryptedMessage = "dd31d6b4111c1023bae6533399e74f73a29c6e6b48ab550f8a7bea127e27dddb4fd3fe4fad3c835307c0da52d9c268f56237d1810e07912e6a6568cba09d9a9176ee6b1ade9569c2e1e273e9675bd4ff";
-
-            // Act:
-            var result = _CryptoHelpers2.default.decode.bind(null, recipientPriv, senderPublic, encryptedMessage);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-
-        it("Message decoding return error if no payload", function () {
-            // Arrange:
-            var senderPublic = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
-            var recipientPriv = "2618090794e9c9682f2ac6504369a2f4fb9fe7ee7746f9560aca228d355b1cb9";
-            var message = "NEM is awesome !";
-            var encryptedMessage = "";
-
-            // Act:
-            var result = _CryptoHelpers2.default.decode.bind(null, recipientPriv, senderPublic, encryptedMessage);
-
-            // Assert:
-            expect(result).toThrow();
-        });
-    });
-
-    //Key is different each time and it return an error... Not sure how to do that properly
-    xit("Can encrypt and decrypt private key for mobile", function () {
-        // Arrange:
-        var privateKey = "2a91e1d5c110a8d0105aad4683f962c2a56663a3cad46666b16d243174673d90";
-        var password = "TestTest";
-
-        // Act:
-        var result = _CryptoHelpers2.default.AES_PBKF2_encryption(password, privateKey);
-        var encrypted = result.encrypted.ciphertext.toString();
-        var salt = result.salt.toString();
-
-        var key = CryptoJS.PBKDF2(password, salt, {
-            keySize: 256 / 32,
-            iterations: 2000,
-            hasher: CryptoJS.algo.SHA1
-        });
-
-        var decrypted = CryptoJS.AES.decrypt(result.encrypted.enc, key.toString());
-
-        // Assert:
-        expect(encrypted.length).toBe(48 * 2);
-        expect(salt.length).toBe(32 * 2);
-        expect(decrypted).toEqual(privateKey);
-    });
-});
-
-},{"../../src/app/utils/Address":223,"../../src/app/utils/CryptoHelpers":224,"../../src/app/utils/KeyPair":225,"../../src/app/utils/Network":226,"../../src/app/utils/convert":229}],241:[function(require,module,exports){
-'use strict';
-
-var _helpers = require('../../src/app/utils/helpers');
-
-var _helpers2 = _interopRequireDefault(_helpers);
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('DataBridge service tests', function () {
-    var DataBridge = void 0,
-        AppConstants = void 0,
-        $localStorage = void 0,
-        Wallet = void 0,
-        Connector = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_AppConstants_, _$localStorage_, _DataBridge_, _Wallet_, _Connector_) {
-        DataBridge = _DataBridge_;
-        Wallet = _Wallet_;
-        Connector = _Connector_;
-        AppConstants = _AppConstants_;
-        $localStorage = _$localStorage_;
-    }));
-
-    function createContext(Wallet) {
-        Wallet.setWallet(_wallet2.default);
-        Wallet.setDefaultNode();
-    }
-
-    it("Default properties initialized", function () {
-        // Assert
-        expect(DataBridge.nisHeight).toBe(0);
-        expect(DataBridge.connectionStatus).toBe(false);
-        expect(DataBridge.accountData).toBeUndefined();
-        expect(DataBridge.transactions).toEqual([]);
-        expect(DataBridge.unconfirmed).toEqual([]);
-        expect(DataBridge.mosaicDefinitionMetaDataPair).toEqual({});
-        expect(DataBridge.mosaicDefinitionMetaDataPairSize).toBe(0);
-        expect(DataBridge.mosaicOwned).toEqual({});
-        expect(DataBridge.mosaicOwnedSize).toEqual({});
-        expect(DataBridge.namespaceOwned).toEqual({});
-        expect(DataBridge.harvestedBlocks).toEqual([]);
-        expect(DataBridge.connector).toBeUndefined();
-        expect(DataBridge.delegatedData).toBeUndefined();
-        expect(DataBridge.marketInfo).toBeUndefined();
-    });
-});
-
-},{"../../src/app/utils/helpers":230,"../data/wallet":235}],242:[function(require,module,exports){
-'use strict';
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-var _accountData = require('../data/accountData');
-
-var _accountData2 = _interopRequireDefault(_accountData);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Mosaic supply change transaction module tests', function () {
-    var $controller = void 0,
-        $rootScope = void 0,
-        Wallet = void 0,
-        DataBridge = void 0,
-        $q = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$controller_, _$rootScope_, _Wallet_, _DataBridge_, _$q_) {
-        $controller = _$controller_;
-        $rootScope = _$rootScope_;
-        Wallet = _Wallet_;
-        DataBridge = _DataBridge_;
-        $q = _$q_;
-    }));
-
-    function createDummyWalletContextTestnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.testnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.testnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.testnetNamespaceOwned;
-        DataBridge.mosaicOwned = _accountData2.default.testnetMosaicOwned;
-        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.testnetMosaicDefinitionMetaDataPair;
-
-        DataBridge.nisHeight = 999999999;
-    }
-
-    function createDummyWalletContextMainnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.mainnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.mainnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.mainnetNamespaceOwned;
-        DataBridge.mosaicOwned = _accountData2.default.mainnetMosaicOwned;
-        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.mainnetMosaicDefinitionMetaDataPair;
-
-        DataBridge.nisHeight = 999999999;
-    }
-
-    it("Can update current account mosaics", function () {
-        // Arrange
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.updateCurrentAccountMosaics();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual(Wallet.currentAccount.address);
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nano:points', 'nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-    });
-
-    it("Default properties initialized (after updateCurrentAccountMosaics)", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            mosaic: '',
-            supplyType: 1,
-            delta: 0,
-            fee: 20 * 1000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: {
-                "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
-                "harvestedBlocks": 0,
-                "balance": 16000000,
-                "importance": 0,
-                "vestedBalance": 0,
-                "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
-                "label": null,
-                "multisigInfo": {
-                    "cosignatoriesCount": 1,
-                    "minCosignatories": 1
-                }
-            }
-        });
-        expect(ctrl.currentAccount).toEqual(Wallet.currentAccount.address);
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nano:points', 'nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-        expect(ctrl.okPressed).toBe(false);
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-    });
-
-    it("Has right fee on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(20000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Has right fee on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(108000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Can update transaction fee if multisig", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(6000000);
-        expect(ctrl.formData.innerFee).toBe(20000000);
-    });
-
-    it("Can set right current account address if multisig enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateCurrentAccountMosaics();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual(ctrl.formData.multisigAccount.address);
-    });
-
-    it("Can set right current account address if multisig enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateCurrentAccountMosaics();
-        scope.$digest();
-        ctrl.formData.isMultisig = false;
-        ctrl.updateCurrentAccountMosaics();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual(Wallet.currentAccount.address);
-    });
-
-    it("Can update multisig account mosaics if multisig enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateCurrentAccountMosaics();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-    });
-
-    it("Can update account mosaics if multisig enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateCurrentAccountMosaics();
-        scope.$digest();
-        ctrl.formData.isMultisig = false;
-        ctrl.updateCurrentAccountMosaics();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccountMosaicNames).toEqual(['nano:points', 'nem:xem']);
-        expect(ctrl.selectedMosaic).toEqual('nem:xem');
-    });
-
-    it("Can set selected mosaic as mosaic to change", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.selectedMosaic = 'nano:points';
-        ctrl.updateMosaic();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaic).toEqual({
-            "namespaceId": "nano",
-            "name": "points"
-        });
-    });
-
-    it("Can change supply type to delete", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.supplyType = 2;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            mosaic: '',
-            supplyType: 2,
-            delta: 0,
-            fee: 20000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: {
-                "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
-                "harvestedBlocks": 0,
-                "balance": 16000000,
-                "importance": 0,
-                "vestedBalance": 0,
-                "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
-                "label": null,
-                "multisigInfo": {
-                    "cosignatoriesCount": 1,
-                    "minCosignatories": 1
-                }
-            }
-        });
-    });
-
-    it("Can change supply type to create after delete", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('EditMosaicCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.supplyType = 2;
-        scope.$digest();
-        ctrl.formData.supplyType = 1;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            mosaic: '',
-            supplyType: 1,
-            delta: 0,
-            fee: 20000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: {
-                "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
-                "harvestedBlocks": 0,
-                "balance": 16000000,
-                "importance": 0,
-                "vestedBalance": 0,
-                "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
-                "label": null,
-                "multisigInfo": {
-                    "cosignatoriesCount": 1,
-                    "minCosignatories": 1
-                }
-            }
-        });
-    });
-
-    describe('Mosaic supply change transaction module delegation tests', function () {
-
-        it("Pass right parameters to prepareMosaicSupply in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('EditMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareMosaicDefinition from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareMosaicSupply').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareMosaicSupply).toHaveBeenCalledWith(ctrl.common, ctrl.formData);
-        });
-
-        it("Can't call prepareMosaicSupply in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('EditMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareMosaicDefinition from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareMosaicSupply').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareMosaicSupply).not.toHaveBeenCalled();
-        });
-
-        it("Pass right parameters to serializeAndAnnounceTransaction in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('EditMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).toHaveBeenCalledWith(jasmine.any(Object), ctrl.common);
-        });
-
-        it("Can't call serializeAndAnnounceTransaction in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('EditMosaicCtrl', {
-                $scope: scope
-            });
-            scope.$digest();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).not.toHaveBeenCalled();
-        });
-    });
-});
-
-},{"../data/accountData":234,"../data/wallet":235}],243:[function(require,module,exports){
-'use strict';
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _Address = require('../../src/app/utils/Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Filters tests', function () {
-    var $filter = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$filter_) {
-        $filter = _$filter_;
-    }));
-
-    it("Can format public key to address", function () {
-        // Arrange:
-        var publicKey = "9291abb3c52134be9d20ef21a796743497df7776d2661237bda9cadade34e44c";
-        var expectedAddress = _Address2.default.toAddress(publicKey, _Network2.default.data.Mainnet.id);
-
-        // Act:
-        var result = $filter('fmtPubToAddress')(publicKey, _Network2.default.data.Mainnet.id);
-
-        // Assert:
-        expect(result).toEqual(expectedAddress);
-    });
-
-    it("Can format address", function () {
-        // Arrange:
-        var address = "NCRCWIADNM3UQQTRRFKXBAVHDPZMGVBBXA4J4RE5";
-        var expectedResult = "NCRCWI-ADNM3U-QQTRRF-KXBAVH-DPZMGV-BBXA4J-4RE5";
-
-        // Act:
-        var result = $filter('fmtAddress')(address);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can format NEM date", function () {
-        // Arrange:
-        var timestamp = 37629823;
-        var expectedResult = "Mon, 06 Jun 2016 12:50:08 GMT";
-
-        // Act:
-        var result = $filter('fmtNemDate')(timestamp);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can format NEM value", function () {
-        // Arrange:
-        var value = 10000200;
-
-        // Act:
-        var result = $filter('fmtNemValue')(value);
-
-        // Assert
-        expect(result[0]).toEqual("10");
-        expect(result[1]).toEqual("000200");
-    });
-
-    it("Can format Importance score", function () {
-        // Arrange:
-        var data = 0.0005305934429032625;
-
-        // Act:
-        var result = $filter('fmtNemImportanceScore')(data);
-
-        // Assert:
-        expect(result[0]).toEqual("5");
-        expect(result[1]).toEqual("3059");
-    });
-
-    it("Can format Importance transfer modes", function () {
-        // Arrange:
-        var mode1 = "Activation";
-        var mode2 = "Deactivation";
-
-        //Act:
-        var result1 = $filter('fmtImportanceTransferMode')(1);
-        var result2 = $filter('fmtImportanceTransferMode')(2);
-
-        // Assert:
-        expect(result1).toEqual(mode1);
-        expect(result2).toEqual(mode2);
-    });
-
-    it("Can reverse array", function () {
-        // Arrange:
-        var array = [0, 1, 2, 3, 4, 5];
-        var expectedResult = [5, 4, 3, 2, 1, 0];
-
-        // Act:
-        var result = $filter('reverse')(array);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can format name from network id", function () {
-        // Arrange:
-        var mijin = "Mijin";
-        var mainnet = "Mainnet";
-        var testnet = "Testnet";
-
-        // Act:
-        var result1 = $filter('toNetworkName')(_Network2.default.data.Mijin.id);
-        var result2 = $filter('toNetworkName')(_Network2.default.data.Mainnet.id);
-        var result3 = $filter('toNetworkName')(_Network2.default.data.Testnet.id);
-
-        // Assert:
-        expect(result1).toEqual(mijin);
-        expect(result2).toEqual(mainnet);
-        expect(result3).toEqual(testnet);
-    });
-
-    it("Can paginate an array", function () {
-        // Arrange:
-        var currentPage = 1;
-        var pageSize = 5;
-        var input = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-        var expectedResult = [5, 6, 7, 8];
-
-        // Act:
-        var result = $filter('startFrom')(input, currentPage * pageSize);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can paginate unconfirmed txes", function () {
-        // Arrange:
-        var currentPage = 1;
-        var pageSize = 5;
-        var input = {
-            "7b0f03c193207e1be74d573f36c4456d55bc9eaf2400c559313aafe0c47273bc": {
-                "meta": {
-                    "innerHash": {},
-                    "id": 0,
-                    "hash": {
-                        "data": "7b0f03c193207e1be74d573f36c4456d55bc9eaf2400c559313aafe0c47273bc"
-                    },
-                    "height": 9007199254740991
-                },
-                "transaction": {
-                    "timeStamp": 38180238,
-                    "amount": 0,
-                    "signature": "3eeec6afffcbafa9dc81958f8ae599ede115159dfe1132c5b85e23f05f5b31297aa692c36045b0b55dc9516715839c55dd33cc97940f575326e6f0ab17e98205",
-                    "fee": 10000000,
-                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                    "type": 257,
-                    "deadline": 38183838,
-                    "message": {},
-                    "version": -1744830463,
-                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
-                }
-            },
-            "58e0481ffbdd3b94817dcfb36b5f7fb6631aad624ea6d025489ac03afb0b6c7f": {
-                "meta": {
-                    "innerHash": {},
-                    "id": 0,
-                    "hash": {
-                        "data": "58e0481ffbdd3b94817dcfb36b5f7fb6631aad624ea6d025489ac03afb0b6c7f"
-                    },
-                    "height": 9007199254740991
-                },
-                "transaction": {
-                    "timeStamp": 38180242,
-                    "amount": 0,
-                    "signature": "a8d9428674eb67593df3d14abf44a2c4a6406de879ba276abda578f2a7c74346e8a39333ef1a75d7c4fe90cff1545ae00f5806713f07511dcdce01a79adf6d0d",
-                    "fee": 10000000,
-                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                    "type": 257,
-                    "deadline": 38183842,
-                    "message": {},
-                    "version": -1744830463,
-                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
-                }
-            },
-            "d75b34c37919643fd4e4e6977442b8395ca084e6eaa0207cf9a290366a89f75a": {
-                "meta": {
-                    "innerHash": {},
-                    "id": 0,
-                    "hash": {
-                        "data": "d75b34c37919643fd4e4e6977442b8395ca084e6eaa0207cf9a290366a89f75a"
-                    },
-                    "height": 9007199254740991
-                },
-                "transaction": {
-                    "timeStamp": 38180246,
-                    "amount": 0,
-                    "signature": "2b201dc47d3e3c1770beb719068ecfcce79a054181c906e5774d733936d3149fa7369a41eb981447fa5874dd532699bbbbacbd5f3bc30ba3f3ef8ff96ce49805",
-                    "fee": 10000000,
-                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                    "type": 257,
-                    "deadline": 38183846,
-                    "message": {},
-                    "version": -1744830463,
-                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
-                }
-            },
-            "dc0710faefd670bc61160b557bcf6842fe3a825e522444ee6aa1317fc34bab10": {
-                "meta": {
-                    "innerHash": {},
-                    "id": 0,
-                    "hash": {
-                        "data": "dc0710faefd670bc61160b557bcf6842fe3a825e522444ee6aa1317fc34bab10"
-                    },
-                    "height": 9007199254740991
-                },
-                "transaction": {
-                    "timeStamp": 38180249,
-                    "amount": 0,
-                    "signature": "5f0b553873b8d97bcc3b6a64a464e0359b8d3f4afe853fd3d79522b404173bdf03e648bc0c256cb530a9f70c18f28438449eee20e786140ca180f6d523ca8700",
-                    "fee": 10000000,
-                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                    "type": 257,
-                    "deadline": 38183849,
-                    "message": {},
-                    "version": -1744830463,
-                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
-                }
-            },
-            "2ded88a0bb62efa9f6bfbc014d2c1bf3df3facd7f5d3bcee3b74923b0f9b971b": {
-                "meta": {
-                    "innerHash": {},
-                    "id": 0,
-                    "hash": {
-                        "data": "2ded88a0bb62efa9f6bfbc014d2c1bf3df3facd7f5d3bcee3b74923b0f9b971b"
-                    },
-                    "height": 9007199254740991
-                },
-                "transaction": {
-                    "timeStamp": 38180253,
-                    "amount": 0,
-                    "signature": "73ff0bbcb5a4163631edab82f50fbb84c6090b47ff953c0bdffa636521892d89b3cfe661ca5e6ff77871470db8556af565bf751bc6f701c0da06c007f573d80b",
-                    "fee": 10000000,
-                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                    "type": 257,
-                    "deadline": 38183853,
-                    "message": {},
-                    "version": -1744830463,
-                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
-                }
-            },
-            "2c7afcd6590ea4859835c435fd1df2c43d9b32479744e0dbf225236212a66c2f": {
-                "meta": {
-                    "innerHash": {},
-                    "id": 0,
-                    "hash": {
-                        "data": "2c7afcd6590ea4859835c435fd1df2c43d9b32479744e0dbf225236212a66c2f"
-                    },
-                    "height": 9007199254740991
-                },
-                "transaction": {
-                    "timeStamp": 38180256,
-                    "amount": 0,
-                    "signature": "ba75097a85535c1b962f6b64f06597f0d153f976e7e0826c2426732321bd1d44f4c08c83b70f0560cca8e4e52b06154de6d8277fd4926748bc7c5a43d997fa0d",
-                    "fee": 10000000,
-                    "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                    "type": 257,
-                    "deadline": 38183856,
-                    "message": {},
-                    "version": -1744830463,
-                    "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
-                }
-            }
-        };
-        var expectedResult = [{
-            "meta": {
-                "innerHash": {},
-                "id": 0,
-                "hash": {
-                    "data": "2c7afcd6590ea4859835c435fd1df2c43d9b32479744e0dbf225236212a66c2f"
-                },
-                "height": 9007199254740991
-            },
-            "transaction": {
-                "timeStamp": 38180256,
-                "amount": 0,
-                "signature": "ba75097a85535c1b962f6b64f06597f0d153f976e7e0826c2426732321bd1d44f4c08c83b70f0560cca8e4e52b06154de6d8277fd4926748bc7c5a43d997fa0d",
-                "fee": 10000000,
-                "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "type": 257,
-                "deadline": 38183856,
-                "message": {},
-                "version": -1744830463,
-                "signer": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6"
-            }
-        }];
-
-        // Act:
-        var result = $filter('startFromUnc')(input, currentPage * pageSize);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can format supply", function () {
-        // Arrange:
-        var supply = 50000000000;
-        var mosaicId = {
-            namespaceId: "nw.fiat",
-            name: "eur"
-        };
-        var mosaics = {
-            "nem:xem": {
-                "mosaicDefinition": {
-                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-                    "description": "reserved xem mosaic",
-                    "id": {
-                        "namespaceId": "nem",
-                        "name": "xem"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "6"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "8999999999"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "false"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {}
-                },
-                "supply": 8999999999
-            },
-            "nano.fiat:eur": {
-                "mosaicDefinition": {
-                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                    "description": "Test currency",
-                    "id": {
-                        "namespaceId": "nano.fiat",
-                        "name": "eur"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "2"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "9999999"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "true"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {}
-                },
-                "supply": 9999999
-            },
-            "nw.fiat:eur": {
-                "mosaicDefinition": {
-                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                    "description": "Test asset",
-                    "id": {
-                        "namespaceId": "nw.fiat",
-                        "name": "eur"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "2"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "300000000"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "true"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {}
-                },
-                "supply": 500000000
-            },
-            "nano.fiat:usd": {
-                "mosaicDefinition": {
-                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                    "description": "Test currency",
-                    "id": {
-                        "namespaceId": "nano.fiat",
-                        "name": "usd"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "2"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "1000000000"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "true"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {}
-                },
-                "supply": 1000010000
-            }
-        };
-        var expectedResult = ['500 000 000', '00'];
-
-        // Act:
-        var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    describe('Fmt supply edge-cases', function () {
-
-        it("Fmt supply return error if unknown mosaic name", function () {
-            // Arrange:
-            var supply = 50000000000;
-            var mosaicId = {
-                namespaceId: "nw.fiat",
-                name: "vouchers"
-            };
-            var mosaics = {
-                "nem:xem": {
-                    "mosaicDefinition": {
-                        "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-                        "description": "reserved xem mosaic",
-                        "id": {
-                            "namespaceId": "nem",
-                            "name": "xem"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "6"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "8999999999"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "false"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 8999999999
-                },
-                "nano.fiat:eur": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test currency",
-                        "id": {
-                            "namespaceId": "nano.fiat",
-                            "name": "eur"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "9999999"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 9999999
-                },
-                "nw.fiat:eur": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test asset",
-                        "id": {
-                            "namespaceId": "nw.fiat",
-                            "name": "eur"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "300000000"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 500000000
-                },
-                "nano.fiat:usd": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test currency",
-                        "id": {
-                            "namespaceId": "nano.fiat",
-                            "name": "usd"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "1000000000"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 1000010000
-                }
-            };
-            var expectedResult = ["unknown mosaic divisibility", 50000000000];
-
-            // Act:
-            var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
-
-            // Assert:
-            expect(result).toEqual(expectedResult);
-        });
-
-        it("Fmt supply return no divisibility if == 0", function () {
-            // Arrange:
-            var supply = 50000000000;
-            var mosaicId = {
-                namespaceId: "nw.fiat",
-                name: "eur"
-            };
-            var mosaics = {
-                "nem:xem": {
-                    "mosaicDefinition": {
-                        "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-                        "description": "reserved xem mosaic",
-                        "id": {
-                            "namespaceId": "nem",
-                            "name": "xem"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "6"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "8999999999"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "false"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 8999999999
-                },
-                "nano.fiat:eur": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test currency",
-                        "id": {
-                            "namespaceId": "nano.fiat",
-                            "name": "eur"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "9999999"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 9999999
-                },
-                "nw.fiat:eur": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test asset",
-                        "id": {
-                            "namespaceId": "nw.fiat",
-                            "name": "eur"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "0"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "300000000"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 500000000
-                },
-                "nano.fiat:usd": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test currency",
-                        "id": {
-                            "namespaceId": "nano.fiat",
-                            "name": "usd"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "1000000000"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 1000010000
-                }
-            };
-            var expectedResult = ["50 000 000 000", ""];
-
-            // Act:
-            var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
-
-            // Assert:
-            expect(result).toEqual(expectedResult);
-        });
-
-        it("Fmt supply return 0 if supply == 0", function () {
-            // Arrange:
-            var supply = 0;
-            var mosaicId = {
-                namespaceId: "nw.fiat",
-                name: "eur"
-            };
-            var mosaics = {
-                "nem:xem": {
-                    "mosaicDefinition": {
-                        "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-                        "description": "reserved xem mosaic",
-                        "id": {
-                            "namespaceId": "nem",
-                            "name": "xem"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "6"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "8999999999"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "false"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 8999999999
-                },
-                "nano.fiat:eur": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test currency",
-                        "id": {
-                            "namespaceId": "nano.fiat",
-                            "name": "eur"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "9999999"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 9999999
-                },
-                "nw.fiat:eur": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test asset",
-                        "id": {
-                            "namespaceId": "nw.fiat",
-                            "name": "eur"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "300000000"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 500000000
-                },
-                "nano.fiat:usd": {
-                    "mosaicDefinition": {
-                        "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                        "description": "Test currency",
-                        "id": {
-                            "namespaceId": "nano.fiat",
-                            "name": "usd"
-                        },
-                        "properties": [{
-                            "name": "divisibility",
-                            "value": "2"
-                        }, {
-                            "name": "initialSupply",
-                            "value": "1000000000"
-                        }, {
-                            "name": "supplyMutable",
-                            "value": "true"
-                        }, {
-                            "name": "transferable",
-                            "value": "true"
-                        }],
-                        "levy": {}
-                    },
-                    "supply": 1000010000
-                }
-            };
-            var expectedResult = ["0", "00"];
-
-            // Act:
-            var result = $filter('fmtSupply')(supply, mosaicId, mosaics);
-
-            // Assert:
-            expect(result).toEqual(expectedResult);
-        });
-    });
-
-    it("Can format raw supply", function () {
-        // Arrange:
-        var supply = 420000;
-        var divisibility = 3;
-        var expectedResult = ['420', '000'];
-
-        // Act:
-        var result = $filter('fmtSupplyRaw')(supply, divisibility);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    describe('Fmt raw supply edge-cases', function () {
-
-        it("Fmt raw supply return 0 if raw supply == 0", function () {
-            // Arrange:
-            var supply = 0;
-            var divisibility = 3;
-            var expectedResult = ['0', '000'];
-
-            // Act:
-            var result = $filter('fmtSupplyRaw')(supply, divisibility);
-
-            // Assert:
-            expect(result).toEqual(expectedResult);
-        });
-
-        it("Fmt raw supply return no divisibility if == 0", function () {
-            // Arrange:
-            var supply = 420000;
-            var divisibility = 0;
-            var expectedResult = ['420 000', ''];
-
-            // Act:
-            var result = $filter('fmtSupplyRaw')(supply, divisibility);
-
-            // Assert:
-            expect(result).toEqual(expectedResult);
-        });
-    });
-
-    it("Can format HEX to UTF8", function () {
-        // Arrange:
-        var hex = "d09bd18ed0b1d18f2c20d181d18ad0b5d188d18c20d189d0b8d0bfd186d18b2c202d20d0b2d0b7d0b4d0bed185d0bdd191d18220d0bcd18dd1802c202d20d0bad0b0d0b9d18420d0b6d0b3d183d187";
-        var expectedResult = "Любя, съешь щипцы, - вздохнёт мэр, - кайф жгуч";
-
-        // Act:
-        var result = $filter('fmtHexToUtf8')(hex);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can format Levy", function () {
-        // Arrange:
-        var mosaic = {
-            "quantity": 1000000,
-            "mosaicId": {
-                "namespaceId": "nano",
-                "name": "usd"
-            },
-            "levy": {
-                "fee": 1000,
-                "recipient": "TALICE2GMA34CXHD7XLJQ536NM5UNKQHTORNNT2J",
-                "type": 1,
-                "mosaicId": {
-                    "namespaceId": "nem",
-                    "name": "xem"
-                }
-            }
-        };
-        var multiplier = 1;
-        var levy = mosaic.levy;
-        var mosaics = {
-            "nano:usd": {
-                "mosaicDefinition": {
-                    "creator": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                    "description": "Test currency",
-                    "id": {
-                        "namespaceId": "nano",
-                        "name": "usd"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "2"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "1000000000"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "true"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {
-                        "fee": 1000,
-                        "recipient": "TALICE2GMA34CXHD7XLJQ536NM5UNKQHTORNNT2J",
-                        "type": 1,
-                        "mosaicId": {
-                            "namespaceId": "nem",
-                            "name": "xem"
-                        },
-                        "supply": 1000000
-                    }
-                }
-            },
-            "nem:xem": {
-                "mosaicDefinition": {
-                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-                    "description": "reserved xem mosaic",
-                    "id": {
-                        "namespaceId": "nem",
-                        "name": "xem"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "6"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "8999999999"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "false"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {}
-                },
-                "supply": 8999999999
-            }
-        };
-
-        // Act:
-        var result = $filter('fmtLevyFee')(mosaic, multiplier, levy, mosaics);
-
-        // Assert:
-        expect(result).toEqual("0.001000");
-    });
-
-    it("Can format HEX message", function () {
-        // Arrange:
-        var data = {
-            type: 1,
-            payload: "4e454d20697320617765736f6d652021"
-        };
-        var expectedMessage = "NEM is awesome !";
-
-        // Act:
-        var message = $filter('fmtHexMessage')(data);
-
-        // Assert:
-        expect(message).toEqual(expectedMessage);
-    });
-
-    it("Can split HEX", function () {
-        // Arrange:
-        var hex = "aef202e4e1ea9ec9b409e9bea3ab97115e5341dec70966cddda0fdcaf36ea28493f93c48c5221ab87327dd30ee712b94f721d899866b3d2566f46178e63a243d2036006a14aef4776ea81445def250c8";
-        var expectedResult = "aef202e4e1ea9ec9b409e9bea3ab97115e5341dec70966cddda0fdcaf36ea284\n93f93c48c5221ab87327dd30ee712b94f721d899866b3d2566f46178e63a243d\n2036006a14aef4776ea81445def250c8";
-
-        // Act:
-        var result = $filter('fmtSplitHex')(hex);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-
-    it("Can split HEX return initial HEX if length < 64 chars", function () {
-        // Arrange:
-        var hex = "aef202e4e1ea9ec9b409e9bea3ab97115e5341dec709";
-
-        // Act:
-        var result = $filter('fmtSplitHex')(hex);
-
-        // Assert:
-        expect(result).toEqual(hex);
-    });
-
-    it("Can format objects to array", function () {
-        // Arrange:
-        var data = {
-            "nw.fiat": {
-                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "fqn": "nw.fiat",
-                "height": 307541
-            },
-            "nano.assets": {
-                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "fqn": "nano.assets",
-                "height": 437986
-            },
-            "nano": {
-                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "fqn": "nano",
-                "height": 437986
-            },
-            "nanowallet": {
-                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "fqn": "nanowallet",
-                "height": 447390
-            },
-            "nw": {
-                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "fqn": "nw",
-                "height": 307541
-            },
-            "nano.fiat": {
-                "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "fqn": "nano.fiat",
-                "height": 437986
-            }
-        };
-        var expectedResult = [{
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nw.fiat",
-            "height": 307541
-        }, {
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nano.assets",
-            "height": 437986
-        }, {
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nano",
-            "height": 437986
-        }, {
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nanowallet",
-            "height": 447390
-        }, {
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nw",
-            "height": 307541
-        }, {
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nano.fiat",
-            "height": 437986
-        }];
-
-        // Act:
-        var result = $filter('objValues')(data);
-
-        // Assert:
-        expect(result).toEqual(expectedResult);
-    });
-});
-
-},{"../../src/app/utils/Address":223,"../../src/app/utils/Network":226}],244:[function(require,module,exports){
-'use strict';
-
-var _Address = require('../../src/app/utils/Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-var _convert = require('../../src/app/utils/convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _KeyPair = require('../../src/app/utils/KeyPair');
-
-var _KeyPair2 = _interopRequireDefault(_KeyPair);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Keypair tests', function () {
-
-    it("Can create keypair from hex private key", function () {
-        // Arrange:
-        var privateKey = "c9fb7f16b738b783be5192697a684cba4a36adb3d9c22c0808f30ae1d85d384f";
-        var expectedPublicKey = "ed9bf729c0d93f238bc4af468b952c35071d9fe1219b27c30dfe108c2e3db030";
-
-        // Act:
-        var kp = _KeyPair2.default.create(privateKey);
-
-        // Assert:
-        expect(kp.publicKey.toString()).toEqual(expectedPublicKey);
-    });
-
-    it("Can sign data with private key", function () {
-        // Arrange:
-        var privateKey = "abf4cf55a2b3f742d7543d9cc17f50447b969e6e06f5ea9195d428ab12b7318d";
-        var publicKey = "8a558c728c21c126181e5e654b404a45b4f0137ce88177435a69978cc6bec1f4";
-        var signature = "d9cec0cc0e3465fab229f8e1d6db68ab9cc99a18cb0435f70deb6100948576cd5c0aa1feb550bdd8693ef81eb10a556a622db1f9301986827b96716a7134230c";
-
-        // Act:
-        var kp = _KeyPair2.default.create(privateKey);
-        var sign = kp.sign("8ce03cd60514233b86789729102ea09e867fc6d964dea8c2018ef7d0a2e0e24bf7e348e917116690b9").toString();
-
-        // Assert:
-        expect(kp.publicKey.toString()).toEqual(publicKey);
-        expect(sign).toEqual(signature);
-    });
-});
-
-},{"../../src/app/utils/Address":223,"../../src/app/utils/KeyPair":225,"../../src/app/utils/Network":226,"../../src/app/utils/convert":229}],245:[function(require,module,exports){
-'use strict';
-
-var _CryptoHelpers = require('../../src/app/utils/CryptoHelpers');
-
-var CryptoHelpers = _interopRequireWildcard(_CryptoHelpers);
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-describe('Login module tests', function () {
-    var Wallet = void 0,
-        $localStorage = void 0,
-        $controller = void 0,
-        $q = void 0,
-        $rootScope = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$controller_, _$localStorage_, _Wallet_, _$q_, _$rootScope_) {
-        Wallet = _Wallet_;
-        $localStorage = _$localStorage_;
-        $controller = _$controller_;
-        $localStorage.$reset();
-        $q = _$q_;
-        $rootScope = _$rootScope_;
-    }));
-
-    function override(ctrl) {
-        ctrl._downloadWalletCalled = false;
-        ctrl.download = function (wallet) {
-            ctrl._downloadWalletCalled = true;
-        };
-    }
-
-    it("Default properties initialized", function () {
-        // Arrange:
-        var ctrl = $controller('LoginCtrl');
-
-        // Assert
-        expect(ctrl.selectedWallet).toEqual('');
-        expect(ctrl._storage.wallets).toEqual($localStorage.wallets || []);
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-    });
-
-    it("Can load a wallet into app", function () {
-        // Arrange:
-        var ctrl = $controller('LoginCtrl');
-        var base64WalletString = "eyJwcml2YXRlS2V5IjoiIiwibmFtZSI6IlRlc3RuZXRTcGVjIiwiYWNjb3VudHMiOnsiMCI6eyJicmFpbiI6dHJ1ZSwiYWxnbyI6InBhc3M6YmlwMzIiLCJlbmNyeXB0ZWQiOiJjNmRjYmM4YTUzOGM5ZTJlYzllOWJlMTE1YWE2YTEzNDlkMWE4YTI3ZTU3NDEzNmI0ZTYwM2YwNTQ5NDc0MDUzZTAyNmUwNzcxYmY4ZDg2YTM5MmZjY2NlNWI1NDNkMGIiLCJpdiI6IjRjNjM3Nzc1MjM2ZDVhMzY5OGM5NzNiOWJhNjc0NTllIiwiYWRkcmVzcyI6IlRBRjdCUERWMjJIQ0ZOUkpFV09HTFJLQllRRjY1R0JPTFFQSTVHR08iLCJuZXR3b3JrIjotMTA0LCJIRHNlZWQiOiJaR1l1eFZvUWk0V2kxMXdxcVFYaHRmZFdZU01iZWpEUVp1NW5uY25vNmFHSnhaVmR3UEtyb01oY0hhelBOTnAxYWE4UmQyenBCOHRtbm93WE40b3ViM3NyUEtGYnBDQWNvVHBoeml0eXNMcWk1ckJVIiwiY2hpbGQiOiJURDQySTRENVU3VU00VjJXUDJNNlNBNE5XQTdQNTVJVFRZVVZMQkFVIn19fQ==";
-
-        // Act
-        ctrl.loadWallet(base64WalletString);
-
-        // Assert
-        expect(ctrl._storage.wallets).toEqual([{
-            "privateKey": "",
-            "name": "TestnetSpec",
-            "accounts": {
-                "0": {
-                    "brain": true,
-                    "algo": "pass:bip32",
-                    "encrypted": "c6dcbc8a538c9e2ec9e9be115aa6a1349d1a8a27e574136b4e603f0549474053e026e0771bf8d86a392fccce5b543d0b",
-                    "iv": "4c637775236d5a3698c973b9ba67459e",
-                    "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-                    "network": -104,
-                    "HDseed": "ZGYuxVoQi4Wi11wqqQXhtfdWYSMbejDQZu5nncno6aGJxZVdwPKroMhcHazPNNp1aa8Rd2zpB8tmnowXN4oub3srPKFbpCAcoTphzitysLqi5rBU",
-                    "child": "TD42I4D5U7UM4V2WP2M6SA4NWA7P55ITTYUVLBAU"
-                }
-            }
-        }]);
-    });
-
-    xit("Can login with selected wallet - Don't know how to test", function () {
-        // Arrange:
-        var ctrl = $controller('LoginCtrl');
-        ctrl._storage.wallets = [_wallet2.default.testnetWallet];
-        var selectedWallet = ctrl._storage.wallets[0];
-        spyOn(ctrl._location, 'path');
-
-        // Act
-        ctrl.login(selectedWallet);
-
-        // Assert
-        expect(Wallet.current).toEqual(selectedWallet);
-        expect(ctrl._location.path).toHaveBeenCalledWith('/dashboard');
-    });
-
-    it("Can clear sensitive data", function () {
-        // Arrange:
-        var ctrl = $controller('LoginCtrl');
-        ctrl.common = {
-            'password': '1234567890123456789012345678901234567890123456789012345678901234',
-            'privateKey': 'Hello'
-        };
-
-        // Act
-        ctrl.clearSensitiveData();
-
-        // Assert
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-    });
-
-    describe('Login module edge-cases', function () {
-
-        it("Can't load a wallet into app if empty data", function () {
-            // Arrange:
-            var ctrl = $controller('LoginCtrl');
-            var base64WalletString = "";
-
-            // Act
-            ctrl.loadWallet(base64WalletString);
-
-            // Assert
-            expect(ctrl._storage.wallets).toEqual([]);
-        });
-
-        it("Can't login without selected wallet", function () {
-            // Arrange:
-            var ctrl = $controller('LoginCtrl');
-            var selectedWallet = "";
-            spyOn(ctrl._location, 'path');
-
-            // Act
-            ctrl.login(selectedWallet);
-
-            // Assert
-            expect(Wallet.current).toEqual(undefined);
-            expect(ctrl._location.path).not.toHaveBeenCalled();
-        });
-    });
-
-    xit("Pass right parameters to generateBIP32Data on wallet upgrade ", function (done) {
-        // Arrange:
-        var scope = $rootScope.$new();
-        var ctrl = $controller('LoginCtrl');
-        override(ctrl);
-        ctrl.common = {
-            'password': 'TestTest11',
-            'privateKey': ''
-        };
-        ctrl._storage.wallets = [_wallet2.default.testnetWallet];
-        ctrl.selectedWallet = ctrl._storage.wallets[0];
-        spyOn(CryptoHelpers, 'generateBIP32Data').and.returnValues($q.when({}));
-        spyOn(ctrl, 'upgradeWallet').and.callThrough();
-
-        // Act
-        ctrl.upgradeWallet();
-
-        // Assert
-        expect(CryptoHelpers.generateBIP32Data).toHaveBeenCalledWith(ctrl.common.privateKey, ctrl.common.password, 0, ctrl.selectedWallet.accounts[0].network);
-        done();
-    });
-
-    xit("Can upgrade a wallet", function (done) {
-        // Arrange:
-        var ctrl = $controller('LoginCtrl');
-        override(ctrl);
-        var expectedWallet = _wallet2.default.testnetWallet;
-        var bip32Data = {
-            "seed": "ZGYuxVoQi4Wi11wqqQXhtfdWYSMbejDQZu5nncno6aGJxZVdwPKroMhcHazPNNp1aa8Rd2zpB8tmnowXN4oub3srPKFbpCAcoTphzitysLqi5rBU",
-            "address": "TD42I4D5U7UM4V2WP2M6SA4NWA7P55ITTYUVLBAU"
-        };
-        ctrl.common = {
-            'password': 'TestTest11',
-            'privateKey': ''
-        };
-        ctrl._storage.wallets = [_wallet2.default.testnetWallet];
-        ctrl.selectedWallet = ctrl._storage.wallets[0];
-        spyOn(CryptoHelpers, 'generateBIP32Data').and.callThrough();
-
-        // Act
-        ctrl.upgradeWallet();
-
-        // Assert
-        expect(ctrl._storage.wallets[0]).toEqual(expectedWallet);
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-        expect(ctrl._downloadWalletCalled).toBe(true);
-        done();
-    });
-});
-
-},{"../../src/app/utils/CryptoHelpers":224,"../data/wallet":235}],246:[function(require,module,exports){
-'use strict';
-
-var _sinks = require('../../src/app/utils/sinks');
-
-var _sinks2 = _interopRequireDefault(_sinks);
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-var _accountData = require('../data/accountData');
-
-var _accountData2 = _interopRequireDefault(_accountData);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Provision namespace transaction module tests', function () {
-    var $controller = void 0,
-        $rootScope = void 0,
-        Wallet = void 0,
-        DataBridge = void 0,
-        $q = void 0,
-        $filter = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$controller_, _$rootScope_, _Wallet_, _DataBridge_, _$q_, _$filter_) {
-        $controller = _$controller_;
-        $rootScope = _$rootScope_;
-        Wallet = _Wallet_;
-        DataBridge = _DataBridge_;
-        $q = _$q_;
-        $filter = _$filter_;
-    }));
-
-    function createDummyWalletContextTestnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.testnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.testnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.testnetNamespaceOwned;
-        DataBridge.nisHeight = 999999999;
-    }
-
-    function createDummyWalletContextMainnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.mainnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.mainnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.mainnetNamespaceOwned;
-
-        DataBridge.nisHeight = 999999999;
-    }
-
-    it("Default properties initialized", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-        scope.$digest();
-        // Assert
-        expect(ctrl.formData).toEqual({
-            rentalFeeSink: _sinks2.default.sinks.namespace[Wallet.network],
-            rentalFee: 200 * 1000000,
-            namespaceName: '',
-            namespaceParent: { owner: 'TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO', fqn: 'nano', height: 547741 },
-            fee: 20 * 1000000,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: {
-                "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
-                "harvestedBlocks": 0,
-                "balance": 16000000,
-                "importance": 0,
-                "vestedBalance": 0,
-                "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
-                "label": null,
-                "multisigInfo": {
-                    "cosignatoriesCount": 1,
-                    "minCosignatories": 1
-                }
-            }
-        });
-        expect(ctrl.okPressed).toBe(false);
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-    });
-
-    it("Has right transaction fee on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(20000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Has right transaction fee on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(108000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Has right transaction fee if multisig", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(6000000);
-        expect(ctrl.formData.innerFee).toBe(20000000);
-    });
-
-    it("Has right rental fee for root namespaces on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.namespaceParent = null;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.rentalFee).toBe(5000 * 1000000);
-    });
-
-    it("Has right rental fee for root namespaces on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.namespaceParent = null;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.rentalFee).toBe(50000 * 1000000);
-    });
-
-    it("Has right rental fee for sub namespaces on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.namespaceParent = 'nano';
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.rentalFee).toBe(200 * 1000000);
-    });
-
-    it("Has right rental fee for sub namespaces on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.namespaceParent = 'nano';
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.rentalFee).toBe(5000 * 1000000);
-    });
-
-    it("Has right sink on testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.rentalFeeSink).toEqual("TAMESP-ACEWH4-MKFMBC-VFERDP-OOP4FK-7MTDJE-YP35");
-    });
-
-    it("Has right sink on mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.rentalFeeSink).toEqual("NAMESP-ACEWH4-MKFMBC-VFERDP-OOP4FK-7MTBXD-PZZA");
-    });
-
-    it("Can detect < level 3 namespaces", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        DataBridge.namespaceOwned[1] = {
-            "nano.test.third": {
-                "owner": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-                "fqn": "nano.test.third",
-                "height": 547741
-            }
-        };
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-        var NSarray = $filter('objValues')(DataBridge.namespaceOwned);
-
-        // Act & Assert
-        expect(ctrl.isNotNamespaceLevel3(NSarray[1]['nano'])).toBe(true);
-        expect(ctrl.isNotNamespaceLevel3(NSarray[0]['nano.test.third'])).toBe(false);
-    });
-
-    it("Set right current address if multisig enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateCurrentAccountNS();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual("TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X");
-    });
-
-    it("Set right current address if multisig enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('NamespacesCtrl', {
-            $scope: scope
-        });
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        scope.$digest();
-        ctrl.formData.isMultisig = false;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.currentAccount).toEqual(Wallet.currentAccount.address);
-    });
-
-    describe('Provision namespace transaction module delegation tests', function () {
-
-        it("Pass right parameters to prepareNamespace in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('NamespacesCtrl', {
-                $scope: scope
-            });
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareNamespace from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareNamespace').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareNamespace).toHaveBeenCalledWith(ctrl.common, ctrl.formData);
-        });
-
-        it("Can't call prepareNamespace in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('NamespacesCtrl', {
-                $scope: scope
-            });
-            // Override
-            ctrl.updateFees = function () {
-                // Otherwise it calls prepareNamespace from here first and then spy is on the wrong function
-            };
-            spyOn(ctrl._Transactions, 'prepareNamespace').and.callThrough();
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.prepareNamespace).not.toHaveBeenCalled();
-        });
-
-        it("Pass right parameters to serializeAndAnnounceTransaction in send() method", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('NamespacesCtrl', {
-                $scope: scope
-            });
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest11"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).toHaveBeenCalledWith(jasmine.any(Object), ctrl.common);
-        });
-
-        it("Can't call serializeAndAnnounceTransaction in send() method if wrong password", function () {
-            // Arrange:
-            var scope = $rootScope.$new();
-            createDummyWalletContextTestnet(Wallet);
-            var ctrl = $controller('NamespacesCtrl', {
-                $scope: scope
-            });
-            spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-            ctrl.common = {
-                "privateKey": "",
-                "password": "TestTest"
-            };
-
-            // Act
-            ctrl.send();
-
-            // Assert
-            expect(ctrl._Transactions.serializeAndAnnounceTransaction).not.toHaveBeenCalled();
-        });
-    });
-});
-
-},{"../../src/app/utils/sinks":233,"../data/accountData":234,"../data/wallet":235}],247:[function(require,module,exports){
-'use strict';
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _Address = require('../../src/app/utils/Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-var _KeyPair = require('../../src/app/utils/KeyPair');
-
-var _KeyPair2 = _interopRequireDefault(_KeyPair);
-
-var _CryptoHelpers = require('../../src/app/utils/CryptoHelpers');
-
-var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Signup module tests', function () {
-    var WalletBuilder = void 0,
-        $filter = void 0,
-        $controller = void 0,
-        $localStorage = void 0,
-        AppConstants = void 0,
-        $q = void 0,
-        $rootScope = void 0,
-        $timeout = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _WalletBuilder_, _$localStorage_, _AppConstants_, _$q_, _$rootScope_, _$timeout_) {
-        WalletBuilder = _WalletBuilder_;
-        $filter = _$filter_;
-        $controller = _$controller_;
-        $localStorage = _$localStorage_;
-        AppConstants = _AppConstants_;
-        $q = _$q_;
-        $rootScope = _$rootScope_;
-        $timeout = _$timeout_;
-    }));
-
-    // Override
-    function override(ctrl) {
-        ctrl._storage.wallets = [];
-        ctrl._downloadWalletCalled = false;
-        ctrl.download = function (wallet) {
-            ctrl._downloadWalletCalled = true;
-        };
-    }
-
-    it("Default properties initialized", function () {
-        // Arrange:
-        var ctrl = $controller('SignupCtrl');
-
-        // Assert
-        expect(ctrl.network).toBe(AppConstants.defaultNetwork);
-        expect(ctrl.networks).toEqual(_Network2.default.data);
-        expect(ctrl._selectedType).toEqual(ctrl.walletTypes[0]);
-        expect(ctrl._storage.wallets).toEqual($localStorage.wallets || []);
-    });
-
-    it("Can change network", function () {
-        // Arrange:
-        var ctrl = $controller('SignupCtrl');
-
-        // Act
-        ctrl.changeNetwork(_Network2.default.data.Mainnet.id);
-
-        // Assert
-        expect(ctrl.network).toBe(_Network2.default.data.Mainnet.id);
-    });
-
-    it("Can change wallet type", function () {
-        // Arrange:
-        var ctrl = $controller('SignupCtrl');
-        var type = 2;
-
-        // Act
-        ctrl.changeWalletType(type);
-
-        // Assert
-        expect(ctrl._selectedType).toEqual(ctrl.walletTypes[type - 1]);
-    });
-
-    xit("Can create new wallet", function () {
-        // Arrange
-        var scope = $rootScope.$new();
-        var ctrl = $controller('SignupCtrl', {
-            $scope: scope
-        });
-        override(ctrl);
-        ctrl.formData = {};
-        ctrl.formData.walletName = "QM";
-        ctrl.formData.password = "TestTest";
-        ctrl.formData.confirmPassword = "TestTest";
-        ctrl.network = _Network2.default.data.Mainnet.id;
-        scope.$digest();
-
-        // Act
-        spyOn(ctrl._WalletBuilder, 'createWallet').and.callThrough();
-
-        ctrl.createWallet();
-
-        expect(ctrl._storage.wallets.length).toEqual(1);
-        expect(ctrl._downloadWalletCalled).toBe(true);
-    });
-
-    describe('createWallet edge-cases', function () {
-
-        it("Can't create new wallet if name already exist", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "TestTest";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-            ctrl._storage.wallets.push({ "name": "QM" });
-
-            spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createWallet();
-
-            expect(ctrl._WalletBuilder.createWallet).not.toHaveBeenCalled();
-        });
-
-        it("Can't create new wallet if parameter missing", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-
-            spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createWallet();
-
-            expect(ctrl._WalletBuilder.createWallet).not.toHaveBeenCalled();
-        });
-
-        it("Can't create new wallet if passwords not matching", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "TestTest11";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-
-            spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createWallet();
-
-            expect(ctrl._WalletBuilder.createWallet).not.toHaveBeenCalled();
-        });
-    });
-
-    xit("Can create brain wallet", function (done) {
-        // Arrange:
-        var ctrl = $controller('SignupCtrl');
-        override(ctrl);
-        ctrl.formData = {};
-        ctrl.formData.walletName = "QM";
-        ctrl.formData.password = "TestTest";
-        ctrl.formData.confirmPassword = "TestTest";
-        ctrl.network = _Network2.default.data.Mainnet.id;
-        var expectedWallet = {
-            "privateKey": "",
-            "name": "QM",
-            "accounts": {
-                "0": {
-                    "brain": true,
-                    "algo": "pass:6k",
-                    "encrypted": "",
-                    "iv": "",
-                    "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
-                    "network": 104,
-                    "child": "fda69cfb780e65ee400be32101f80c7611ba95930cd838a4d32dabb4c738f1af"
-                }
-            }
-        };
-
-        // Act
-        ctrl._createBrainWallet().then(function () {
-
-            // Assert
-            expect(ctrl._storage.wallets.length).toEqual(1);
-            expect(ctrl._downloadWalletCalled).toBe(true);
-            expect(ctrl._storage.wallets[0]).toEqual(expectedWallet);
-
-            done();
-        });
-    });
-
-    describe('createBrainWallet edge-cases', function () {
-
-        it("Can't create brain wallet if name already exist", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "TestTest";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-            ctrl._storage.wallets[0] = {
-                "privateKey": "",
-                "name": "QM",
-                "accounts": {
-                    "0": {
-                        "brain": true,
-                        "algo": "pass:6k",
-                        "encrypted": "",
-                        "iv": "",
-                        "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
-                        "network": 104,
-                        "child": "fda69cfb780e65ee400be32101f80c7611ba95930cd838a4d32dabb4c738f1af"
-                    }
-                }
-            };
-
-            spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createBrainWallet();
-
-            expect(ctrl._WalletBuilder.createBrainWallet).not.toHaveBeenCalled();
-        });
-
-        it("Can't create brain wallet if parameter missing", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-
-            spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createBrainWallet();
-
-            expect(ctrl._WalletBuilder.createBrainWallet).not.toHaveBeenCalled();
-        });
-
-        it("Can't create brain wallet if passwords not matching", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "TestTest11";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-
-            spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createBrainWallet();
-
-            expect(ctrl._WalletBuilder.createBrainWallet).not.toHaveBeenCalled();
-        });
-    });
-
-    xit("Can create private key wallet", function (done) {
-        // Arrange
-        var ctrl = $controller('SignupCtrl');
-        override(ctrl);
-        ctrl.formData = {};
-        ctrl.formData.walletName = "QM";
-        ctrl.formData.password = "TestTest";
-        ctrl.formData.confirmPassword = "TestTest";
-        ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-        ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-        ctrl.network = _Network2.default.data.Mainnet.id;
-
-        // Act
-        ctrl._createPrivateKeyWallet().then(function () {
-
-            // Assert
-            expect(ctrl._storage.wallets.length).toEqual(1);
-            expect(ctrl._downloadWalletCalled).toBe(true);
-
-            done();
-        });
-    });
-
-    describe('createPrivateKeyWallet edge-cases', function () {
-
-        it("Can't create private key wallet if name already exist", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "TestTest";
-            ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-            ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-            ctrl._storage.wallets[0] = {
-                "privateKey": "",
-                "name": "QM",
-                "accounts": {
-                    "0": {
-                        "brain": false,
-                        "algo": "pass:enc",
-                        "encrypted": "4b51d000bce632b5e47d3d1583d421042a81e6dc19edd15339de39e0297c1920aa1646671f111bd712846f1643aaae57",
-                        "iv": "a1ba21b3193e6f07e0873b07a3044fd2",
-                        "address": "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK",
-                        "network": 104,
-                        "child": "NCETMVL7JDELNHFQUNQ3554TUM2A5Z4SGFGIL3WC"
-                    }
-                }
-            };
-
-            spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createPrivateKeyWallet();
-
-            expect(ctrl._WalletBuilder.createPrivateKeyWallet).not.toHaveBeenCalled();
-        });
-
-        it("Can't create private key wallet if parameter missing", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "TestTest";
-            ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-            ctrl.formData.address = "";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-
-            spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createPrivateKeyWallet();
-
-            expect(ctrl._WalletBuilder.createPrivateKeyWallet).not.toHaveBeenCalled();
-        });
-
-        it("Can't create private key wallet if passwords not matching", function () {
-            // Arrange:
-            var ctrl = $controller('SignupCtrl');
-            override(ctrl);
-            ctrl.formData = {};
-            ctrl.formData.walletName = "QM";
-            ctrl.formData.password = "TestTest";
-            ctrl.formData.confirmPassword = "TestTest11";
-            ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-            ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-            ctrl.network = _Network2.default.data.Mainnet.id;
-
-            spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
-
-            // Act: 
-            ctrl.createPrivateKeyWallet();
-
-            expect(ctrl._WalletBuilder.createPrivateKeyWallet).not.toHaveBeenCalled();
-        });
-    });
-});
-
-},{"../../src/app/utils/Address":223,"../../src/app/utils/CryptoHelpers":224,"../../src/app/utils/KeyPair":225,"../../src/app/utils/Network":226}],248:[function(require,module,exports){
-'use strict';
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _Address = require('../../src/app/utils/Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-var _KeyPair = require('../../src/app/utils/KeyPair');
-
-var _KeyPair2 = _interopRequireDefault(_KeyPair);
-
-var _CryptoHelpers = require('../../src/app/utils/CryptoHelpers');
-
-var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Signup module delegated tests', function () {
-    var WalletBuilder = void 0,
-        $filter = void 0,
-        $controller = void 0,
-        $localStorage = void 0,
-        AppConstants = void 0,
-        $q = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _$localStorage_, _AppConstants_, _WalletBuilder_, _$q_) {
-        WalletBuilder = _WalletBuilder_;
-        $q = _$q_;
-        $filter = _$filter_;
-        $controller = _$controller_;
-        $localStorage = _$localStorage_;
-        AppConstants = _AppConstants_;
-    }));
-
-    // Override
-    function override(ctrl) {
-        ctrl._storage.wallets = [];
-        ctrl._downloadWalletCalled = false;
-        ctrl.download = function (wallet) {
-            ctrl._downloadWalletCalled = true;
-        };
-    }
-
-    it("Can create new wallet", function () {
-        // Arrange
-        var ctrl = $controller('SignupCtrl');
-        override(ctrl);
-        ctrl.formData = {};
-        ctrl.formData.walletName = "QM";
-        ctrl.formData.password = "TestTest";
-        ctrl.formData.confirmPassword = "TestTest";
-        ctrl.network = _Network2.default.data.Mainnet.id;
-
-        spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
-
-        // Act
-        ctrl.createWallet();
-
-        // Assert: 
-        expect(ctrl._WalletBuilder.createWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.network);
-    });
-
-    it("Can create brain wallet", function () {
-        // Arrange
-        var ctrl = $controller('SignupCtrl');
-        override(ctrl);
-        ctrl.formData = {};
-        ctrl.formData.walletName = "QM";
-        ctrl.formData.password = "TestTest";
-        ctrl.formData.confirmPassword = "TestTest";
-        ctrl.network = _Network2.default.data.Mainnet.id;
-
-        spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
-
-        // Act
-        ctrl.createBrainWallet();
-
-        // Assert: 
-        expect(ctrl._WalletBuilder.createBrainWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.network);
-    });
-
-    it("Can create private key wallet", function () {
-        // Arrange
-        var ctrl = $controller('SignupCtrl');
-        override(ctrl);
-        ctrl.formData = {};
-        ctrl.formData.walletName = "QM";
-        ctrl.formData.password = "TestTest";
-        ctrl.formData.confirmPassword = "TestTest";
-        ctrl.formData.privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-        ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-        ctrl.network = _Network2.default.data.Mainnet.id;
-
-        spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
-
-        // Act
-        ctrl.createPrivateKeyWallet();
-
-        // Assert: 
-        expect(ctrl._WalletBuilder.createPrivateKeyWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.formData.address, ctrl.formData.privateKey, ctrl.network);
-    });
-});
-
-},{"../../src/app/utils/Address":223,"../../src/app/utils/CryptoHelpers":224,"../../src/app/utils/KeyPair":225,"../../src/app/utils/Network":226}],249:[function(require,module,exports){
-'use strict';
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-var _TransactionTypes = require('../../src/app/utils/TransactionTypes');
-
-var _TransactionTypes2 = _interopRequireDefault(_TransactionTypes);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Transactions service tests', function () {
-    var Wallet = void 0,
-        DataBridge = void 0,
-        $localStorage = void 0,
-        Transactions = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_Wallet_, _DataBridge_, _$localStorage_, _Transactions_) {
-        Wallet = _Wallet_;
-        DataBridge = _DataBridge_;
-        $localStorage = _$localStorage_;
-        $localStorage.$reset();
-        Transactions = _Transactions_;
-    }));
-
-    function createDummyWalletContextMainnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.mainnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.nisHeight = 999999999;
-    }
-
-    function createDummyWalletContextTestnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.testnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.nisHeight = 999999999;
-    }
-
-    it("Can set right mainnet network version", function () {
-        // Arrange
-        createDummyWalletContextMainnet(Wallet);
-
-        // Act
-        var version1 = Transactions.CURRENT_NETWORK_VERSION(1);
-        var version2 = Transactions.CURRENT_NETWORK_VERSION(2);
-
-        // Assert
-        expect(version1).toEqual(0x68000000 | 1);
-        expect(version2).toEqual(0x68000000 | 2);
-    });
-
-    it("Can set right testnet network version", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-
-        // Act
-        var version1 = Transactions.CURRENT_NETWORK_VERSION(1);
-        var version2 = Transactions.CURRENT_NETWORK_VERSION(2);
-
-        // Assert
-        expect(version1).toEqual(0x98000000 | 1);
-        expect(version2).toEqual(0x98000000 | 2);
-    });
-
-    it("Can create transfer transaction common data part on mainnet", function () {
-        // Arrange
-        createDummyWalletContextMainnet(Wallet);
-        var expectedCommonDataPart = {
-            "type": 257,
-            "version": 1744830465,
-            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
-            "timeStamp": 42682584,
-            "deadline": 42686184
-        };
-        var senderPublicKey = "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6";
-        var timeStamp = 42682584;
-        var version = Transactions.CURRENT_NETWORK_VERSION(1);
-        var due = 60;
-
-        // Act
-        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.Transfer, senderPublicKey, timeStamp, due, version);
-
-        // Assert
-        expect(commonDataPart).toEqual(expectedCommonDataPart);
-    });
-
-    it("Can create transfer transaction common data part on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var expectedCommonDataPart = {
-            "type": 257,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 42658411,
-            "deadline": 42662011
-        };
-        var senderPublicKey = "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495";
-        var timeStamp = 42658411;
-        var version = Transactions.CURRENT_NETWORK_VERSION(1);
-        var due = 60;
-
-        // Act
-        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.Transfer, senderPublicKey, timeStamp, due, version);
-
-        // Assert
-        expect(commonDataPart).toEqual(expectedCommonDataPart);
-    });
-
-    it("Can create correct transfer transaction object on mainnet", function () {
-        // Arrange
-        createDummyWalletContextMainnet(Wallet);
-        var common = {
-            "privateKey": "e47a818db63310158a38d5e9f6503f40b17011635110cbaa64e0ad3491fe3126",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
-            "recipientPubKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
-            "amount": 0,
-            "message": "",
-            "mosaics": null,
-            "fee": 10000000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transferTransactionObject = {
-            "type": 257,
-            "version": 1744830465,
-            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
-            "timeStamp": 42682584,
-            "deadline": 42686184,
-            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
-            "amount": 0,
-            "fee": 10000000,
-            "message": {
-                "type": 1,
-                "payload": ""
-            },
-            "mosaics": null
-        };
-
-        // Act
-        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
-        entity.timeStamp = 42682584;
-        entity.deadline = 42686184;
-
-        // Assert
-        expect(entity).toEqual(transferTransactionObject);
-    });
-
-    it("Can create correct transfer transaction object on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var common = {
-            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "recipientPubKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-            "amount": 0,
-            "message": "",
-            "mosaics": null,
-            "fee": 1000000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transferTransactionObject = {
-            "type": 257,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 42658411,
-            "deadline": 42662011,
-            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "amount": 0,
-            "fee": 1000000,
-            "message": {
-                "type": 1,
-                "payload": ""
-            },
-            "mosaics": null
-        };
-
-        // Act
-        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
-        entity.timeStamp = 42658411;
-        entity.deadline = 42662011;
-
-        // Assert
-        expect(entity).toEqual(transferTransactionObject);
-    });
-
-    it("Can create correct transfer transaction object with message on mainnet", function () {
-        // Arrange
-        createDummyWalletContextMainnet(Wallet);
-        var common = {
-            "privateKey": "e47a818db63310158a38d5e9f6503f40b17011635110cbaa64e0ad3491fe3126",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
-            "recipientPubKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
-            "amount": 0,
-            "message": "Hey !",
-            "mosaics": null,
-            "fee": 12000000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transferTransactionObject = {
-            "type": 257,
-            "version": 1744830465,
-            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
-            "timeStamp": 42682584,
-            "deadline": 42686184,
-            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
-            "amount": 0,
-            "fee": 12000000,
-            "message": {
-                "type": 1,
-                "payload": "4865792021"
-            },
-            "mosaics": null
-        };
-
-        // Act
-        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
-        entity.timeStamp = 42682584;
-        entity.deadline = 42686184;
-
-        // Assert
-        expect(entity).toEqual(transferTransactionObject);
-    });
-
-    it("Can create correct transfer transaction object with message on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var common = {
-            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "recipientPubKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-            "amount": 0,
-            "message": "Hey !",
-            "mosaics": null,
-            "fee": 2000000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transferTransactionObject = {
-            "type": 257,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 42658411,
-            "deadline": 42662011,
-            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "amount": 0,
-            "fee": 2000000,
-            "message": {
-                "type": 1,
-                "payload": "4865792021"
-            },
-            "mosaics": null
-        };
-
-        // Act
-        var entity = Transactions.prepareTransfer(common, dummyTransaction, null);
-        entity.timeStamp = 42658411;
-        entity.deadline = 42662011;
-
-        // Assert
-        expect(entity).toEqual(transferTransactionObject);
-    });
-
-    it("Can create correct transfer transaction object with mosaics on mainnet", function () {
-        // Arrange
-        createDummyWalletContextMainnet(Wallet);
-        var mosaicDefinitionMetaDataPair = {
-            "nem:xem": {
-                "mosaicDefinition": {
-                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-                    "description": "reserved xem mosaic",
-                    "id": {
-                        "namespaceId": "nem",
-                        "name": "xem"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "6"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "8999999999"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "false"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {}
-                },
-                "supply": 8999999999
-            }
-        };
-        var common = {
-            "privateKey": "e47a818db63310158a38d5e9f6503f40b17011635110cbaa64e0ad3491fe3126",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
-            "recipientPubKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
-            "amount": 1,
-            "message": "",
-            "mosaics": [{
-                "mosaicId": {
-                    "namespaceId": "nem",
-                    "name": "xem"
-                },
-                "quantity": 0,
-                "gid": "mos_id_0"
-            }],
-            "fee": 12500000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transferTransactionObject = {
-            "type": 257,
-            "version": 1744830466,
-            "signer": "3f7303650ab969d42247cb7adb0284070c8a64e6fb950fab878dc7ec704be0b6",
-            "timeStamp": 42697337,
-            "deadline": 42700937,
-            "recipient": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
-            "amount": 1000000,
-            "fee": 12500000,
-            "message": {
-                "type": 1,
-                "payload": ""
-            },
-            "mosaics": [{
-                "mosaicId": {
-                    "namespaceId": "nem",
-                    "name": "xem"
-                },
-                "quantity": 0,
-                "gid": "mos_id_0"
-            }]
-        };
-
-        // Act
-        var entity = Transactions.prepareTransfer(common, dummyTransaction, mosaicDefinitionMetaDataPair);
-        entity.timeStamp = 42697337;
-        entity.deadline = 42700937;
-
-        // Assert
-        expect(entity).toEqual(transferTransactionObject);
-    });
-
-    it("Can create correct transfer transaction object with mosaics on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var mosaicDefinitionMetaDataPair = {
-            "nem:xem": {
-                "mosaicDefinition": {
-                    "creator": "3e82e1c1e4a75adaa3cba8c101c3cd31d9817a2eb966eb3b511fb2ed45b8e262",
-                    "description": "reserved xem mosaic",
-                    "id": {
-                        "namespaceId": "nem",
-                        "name": "xem"
-                    },
-                    "properties": [{
-                        "name": "divisibility",
-                        "value": "6"
-                    }, {
-                        "name": "initialSupply",
-                        "value": "8999999999"
-                    }, {
-                        "name": "supplyMutable",
-                        "value": "false"
-                    }, {
-                        "name": "transferable",
-                        "value": "true"
-                    }],
-                    "levy": {}
-                },
-                "supply": 8999999999
-            }
-        };
-        var common = {
-            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "recipientPubKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-            "amount": 1,
-            "message": "",
-            "mosaics": [{
-                "mosaicId": {
-                    "namespaceId": "nem",
-                    "name": "xem"
-                },
-                "quantity": 0,
-                "gid": "mos_id_0"
-            }],
-            "fee": 1000000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transferTransactionObject = {
-            "type": 257,
-            "version": -1744830462,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 42698693,
-            "deadline": 42702293,
-            "recipient": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "amount": 1000000,
-            "fee": 1000000,
-            "message": {
-                "type": 1,
-                "payload": ""
-            },
-            "mosaics": [{
-                "mosaicId": {
-                    "namespaceId": "nem",
-                    "name": "xem"
-                },
-                "quantity": 0,
-                "gid": "mos_id_0"
-            }]
-        };
-
-        // Act
-        var entity = Transactions.prepareTransfer(common, dummyTransaction, mosaicDefinitionMetaDataPair);
-        entity.timeStamp = 42698693;
-        entity.deadline = 42702293;
-
-        // Assert
-        expect(entity).toEqual(transferTransactionObject);
-    });
-
-    /**
-    * Provision namespace transaction tests
-    */
-    it("Can create provision namespace transaction common data part on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var expectedCommonDataPart = {
-            "type": 8193,
-            "version": -1744830463,
-            "signer": "462ee976890916e54fa825d26bdd0235f5eb5b6a143c199ab0ae5ee9328e08ce",
-            "timeStamp": 43290303,
-            "deadline": 43293903
-        };
-        var senderPublicKey = "462ee976890916e54fa825d26bdd0235f5eb5b6a143c199ab0ae5ee9328e08ce";
-        var timeStamp = 43290303;
-        var version = Transactions.CURRENT_NETWORK_VERSION(1);
-        var due = 60;
-
-        // Act
-        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.ProvisionNamespace, senderPublicKey, timeStamp, due, version);
-
-        // Assert
-        expect(commonDataPart).toEqual(expectedCommonDataPart);
-    });
-
-    it("Can create correct provision namespace transaction object on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var common = {
-            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
-            "rentalFee": 5000000000,
-            "namespaceName": "",
-            "namespaceParent": null,
-            "fee": 20000000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transactionObject = {
-            "type": 8193,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "newPart": "",
-            "parent": null,
-            "timeStamp": 42658411,
-            "deadline": 42662011,
-            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
-            "fee": 20000000,
-            "rentalFee": 5000000000
-        };
-
-        // Act
-        var entity = Transactions.prepareNamespace(common, dummyTransaction);
-        entity.timeStamp = 42658411;
-        entity.deadline = 42662011;
-
-        // Assert
-        expect(entity).toEqual(transactionObject);
-    });
-
-    it("Can create correct provision namespace transaction object for sub-namespace on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var common = {
-            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
-            "rentalFee": 200000000,
-            "namespaceName": "nemrocks",
-            "namespaceParent": {
-                "fqn": "nano2"
-            },
-            "fee": 20000000,
-            "innerFee": 0,
-            "due": 60,
-            "isMultisig": false,
-            "multisigAccount": ''
-        };
-        var transactionObject = {
-            "type": 8193,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "newPart": "nemrocks",
-            "parent": "nano2",
-            "timeStamp": 42658411,
-            "deadline": 42662011,
-            "rentalFeeSink": "TAMESPACEWH4MKFMBCVFERDPOOP4FK7MTDJEYP35",
-            "fee": 20000000,
-            "rentalFee": 200000000
-        };
-
-        // Act
-        var entity = Transactions.prepareNamespace(common, dummyTransaction);
-        entity.timeStamp = 42658411;
-        entity.deadline = 42662011;
-
-        // Assert
-        expect(entity).toEqual(transactionObject);
-    });
-
-    /**
-    * Mosaic definition transaction tests
-    */
-    it("Can create mosaic definition transaction common data part on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var expectedCommonDataPart = {
-            "type": 16385,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 43290303,
-            "deadline": 43293903
-        };
-        var senderPublicKey = "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495";
-        var timeStamp = 43290303;
-        var version = Transactions.CURRENT_NETWORK_VERSION(1);
-        var due = 60;
-
-        // Act
-        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.MosaicDefinition, senderPublicKey, timeStamp, due, version);
-
-        // Assert
-        expect(commonDataPart).toEqual(expectedCommonDataPart);
-    });
-
-    it("Can create correct mosaic definition transaction object on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var common = {
-            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "mosaicFeeSink": "TBMOSA-ICOD4F-54EE5C-DMR23C-CBGOAM-2XSJBR-5OLC",
-            "mosaicFee": 500000000,
-            "mosaicName": "",
-            "namespaceParent": {
-                "owner": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-                "fqn": "nw.fiat",
-                "height": 307541
-            },
-            "mosaicDescription": "",
-            "properties": {
-                "initialSupply": 0,
-                "divisibility": 0,
-                "transferable": true,
-                "supplyMutable": true
-            },
-            "levy": {
-                "mosaic": null,
-                "address": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-                "feeType": 1,
-                "fee": 5
-            },
-            "fee": 0,
-            "due": 60,
-            "innerFee": 0,
-            "isMultisig": false,
-            "multisigAccount": ""
-        };
-
-        var transactionObject = {
-            "type": 16385,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 43773466,
-            "deadline": 43777066,
-            "creationFeeSink": "TBMOSAICOD4F54EE5CDMR23CCBGOAM2XSJBR5OLC",
-            "creationFee": 500000000,
-            "mosaicDefinition": {
-                "creator": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-                "id": {
-                    "namespaceId": "nw.fiat",
-                    "name": ""
-                },
-                "description": "",
-                "properties": [{
-                    "name": "initialSupply",
-                    "value": "0"
-                }, {
-                    "name": "divisibility",
-                    "value": "0"
-                }, {
-                    "name": "transferable",
-                    "value": "true"
-                }, {
-                    "name": "supplyMutable",
-                    "value": "true"
-                }],
-                "levy": null
-            },
-            "fee": 20000000
-        };
-
-        // Act
-        var entity = Transactions.prepareMosaicDefinition(common, dummyTransaction);
-        entity.timeStamp = 43773466;
-        entity.deadline = 43777066;
-
-        // Assert
-        expect(entity).toEqual(transactionObject);
-    });
-
-    /**
-    * Mosaic supply change transaction tests
-    */
-    it("Can create mosaic supply change transaction common data part on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var expectedCommonDataPart = {
-            "type": 16386,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 43290303,
-            "deadline": 43293903
-        };
-        var senderPublicKey = "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495";
-        var timeStamp = 43290303;
-        var version = Transactions.CURRENT_NETWORK_VERSION(1);
-        var due = 60;
-
-        // Act
-        var commonDataPart = Transactions.CREATE_DATA(_TransactionTypes2.default.MosaicSupply, senderPublicKey, timeStamp, due, version);
-
-        // Assert
-        expect(commonDataPart).toEqual(expectedCommonDataPart);
-    });
-
-    it("Can create correct mosaic supply change transaction object on testnet", function () {
-        // Arrange
-        createDummyWalletContextTestnet(Wallet);
-        var common = {
-            "privateKey": "eb4c6577e1eb7f80466e4073eb12c7d5a546913952b1c9ad608a939dd5bb4221",
-            "password": ""
-        };
-        var dummyTransaction = {
-            "mosaic": {
-                "namespaceId": "nano2",
-                "name": "points"
-            },
-            "supplyType": 1,
-            "delta": 0,
-            "fee": 0,
-            "due": 60,
-            "innerFee": 0,
-            "isMultisig": false,
-            "multisigAccount": ""
-        };
-
-        var transactionObject = {
-            "type": 16386,
-            "version": -1744830463,
-            "signer": "5f8fcdf7cae84b079f08f40c0a6f2da2af3698abeb10de62ed88ccfa1f14e495",
-            "timeStamp": 43775455,
-            "deadline": 43779055,
-            "mosaicId": {
-                "namespaceId": "nano2",
-                "name": "points"
-            },
-            "supplyType": 1,
-            "delta": 0,
-            "fee": 20000000
-        };
-
-        // Act
-        var entity = Transactions.prepareMosaicSupply(common, dummyTransaction);
-        entity.timeStamp = 43775455;
-        entity.deadline = 43779055;
-
-        // Assert
-        expect(entity).toEqual(transactionObject);
-    });
-});
-
-},{"../../src/app/utils/TransactionTypes":227,"../data/wallet":235}],250:[function(require,module,exports){
-'use strict';
-
-var _helpers = require('../../src/app/utils/helpers');
-
-var _helpers2 = _interopRequireDefault(_helpers);
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-var _accountData = require('../data/accountData');
-
-var _accountData2 = _interopRequireDefault(_accountData);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Transfer transaction module tests', function () {
-    var $controller = void 0,
-        $localStorage = void 0,
-        AppConstants = void 0,
-        $rootScope = void 0,
-        Wallet = void 0,
-        DataBridge = void 0,
-        $httpBackend = void 0,
-        NetworkRequests = void 0,
-        $q = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$controller_, _$localStorage_, _AppConstants_, _$rootScope_, _Wallet_, _DataBridge_, _$httpBackend_, _NetworkRequests_, _$q_) {
-        $controller = _$controller_;
-        $localStorage = _$localStorage_;
-        AppConstants = _AppConstants_;
-        $rootScope = _$rootScope_;
-        Wallet = _Wallet_;
-        DataBridge = _DataBridge_;
-        $httpBackend = _$httpBackend_;
-        NetworkRequests = _NetworkRequests_;
-        $q = _$q_;
-    }));
-
-    function createDummyWalletContextTestnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.testnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.testnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.testnetNamespaceOwned;
-        DataBridge.mosaicOwned = _accountData2.default.testnetMosaicOwned;
-        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.testnetMosaicDefinitionMetaDataPair;
-        DataBridge.nisHeight = 999999999;
-    }
-
-    function createDummyWalletContextMainnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.mainnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.mainnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.mainnetNamespaceOwned;
-        DataBridge.mosaicOwned = _accountData2.default.mainnetMosaicOwned;
-        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.mainnetMosaicDefinitionMetaDataPair;
-        DataBridge.nisHeight = 999999999;
-    }
-
-    it("Default properties initialized", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-
-        // Assert
-        expect(ctrl.formData).toEqual({
-            rawRecipient: '',
-            recipientPubKey: '',
-            recipient: '',
-            message: '',
-            amount: 0,
-            fee: 1 * 1000000,
-            encryptMessage: false,
-            innerFee: 0,
-            isMultisig: false,
-            multisigAccount: {
-                "address": "TBUSUKWVVPS7LZO4AF6VABQHY2FI4IIMCJGIVX3X",
-                "harvestedBlocks": 0,
-                "balance": 16000000,
-                "importance": 0,
-                "vestedBalance": 0,
-                "publicKey": "671ca866718ed174a21e593fc1e250837c03935bc79e2daad3bd018c444d78a7",
-                "label": null,
-                "multisigInfo": {
-                    "cosignatoriesCount": 1,
-                    "minCosignatories": 1
-                }
-            },
-            mosaics: null,
-            isMosaicTransfer: false
-        });
-        expect(ctrl.counter).toBe(1);
-        expect(ctrl.mosaicsMetaData).toEqual(DataBridge.mosaicDefinitionMetaDataPair);
-        expect(ctrl.currentAccountMosaicNames).toEqual(["nano:points", "nem:xem"]);
-        expect(ctrl.selectedMosaic).toEqual("nem:xem");
-        expect(ctrl.invoice).toBe(false);
-        expect(ctrl.aliasAddress).toEqual('');
-        expect(ctrl.showAlias).toBe(false);
-        expect(ctrl.okPressed).toBe(false);
-        expect(ctrl.common).toEqual({
-            'password': '',
-            'privateKey': ''
-        });
-        expect(ctrl.invoiceData).toEqual({
-            "v": ctrl._Wallet.network === _Network2.default.data.Testnet.id ? 1 : 2,
-            "type": 2,
-            "data": {
-                "addr": "TAF7BPDV22HCFNRJEWOGLRKBYQF65GBOLQPI5GGO",
-                "amount": 0,
-                "msg": "",
-                "name": "NanoWallet XEM invoice"
-            }
-        });
-    });
-
-    it("Can update fee - Testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-
-        // Act
-        ctrl.updateFees();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(1000000);
-    });
-
-    it("Can update fee - Mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-
-        // Act
-        ctrl.updateFees();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(10000000);
-    });
-
-    it("Update fee on amount change - Testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.amount = 20000;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(2000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Update fee on amount change - Mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.amount = 20000;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(13000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Update fee on message change - Testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.message = "Hello";
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(2000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Update fee on message change - Mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.message = "Hello";
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(12000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Update fee if multisig", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(6000000);
-        expect(ctrl.formData.innerFee).toBe(1000000);
-    });
-
-    it("Update fee if mosaic transfer - Testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(1000000);
-    });
-
-    it("Update fee if mosaic transfer - Mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(12500000);
-    });
-
-    it("Update fee if multisig and mosaic transfer", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.innerFee).toBe(1000000);
-        expect(ctrl.formData.fee).toBe(6000000);
-    });
-
-    it("Fee cap is 25 XEM - Testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.amount = 500000;
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(25000000);
-        expect(ctrl.formData.innerFee).toBe(0);
-    });
-
-    it("Calculate right fees for mosaics - Testnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        ctrl.formData.mosaics[0].quantity = 150000000000; // 150'000 XEM
-        scope.$digest();
-        ctrl.updateFees();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(15000000);
-    });
-
-    it("Calculate right fees for mosaics - Mainnet", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        ctrl.formData.mosaics[0].quantity = 150000000000; // 150'000 XEM
-        scope.$digest();
-        ctrl.updateFees();
-
-        // Assert
-        expect(ctrl.formData.fee).toBe(96250000);
-    });
-
-    it("Calculate right fees for multisig mosaic transfers", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        ctrl.formData.mosaics[0].quantity = 150000000000; // 150'000 XEM
-        scope.$digest();
-        ctrl.updateFees();
-
-        // Assert
-        expect(ctrl.formData.innerFee).toBe(15000000);
-        expect(ctrl.formData.fee).toBe(6000000);
-    });
-
-    it("Encrypt message disabled if multisig", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.encryptMessage = true;
-        ctrl.formData.isMultisig = true;
-        // Done directly in view when click on multisig tab, set encrypt message to false
-        ctrl.formData.encryptMessage = false;
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.encryptMessage).toBe(false);
-    });
-
-    it("Define right values for mosaics and amount if mosaic transfer enabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaics).toEqual([{
-            'mosaicId': {
-                'namespaceId': 'nem',
-                'name': 'xem'
-            },
-            'quantity': 0,
-            'gid': 'mos_id_0'
-        }]);
-        expect(ctrl.formData.amount).toBe(1);
-    });
-
-    it("Define right values for mosaics and amount if mosaic transfer disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMosaicTransfer = false;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaics).toBe(null);
-        expect(ctrl.formData.amount).toBe(0);
-    });
-
-    it("Define right values for mosaics and amount if mosaic transfer enabled then disabled", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Act
-        ctrl.formData.isMosaicTransfer = false;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaics).toBe(null);
-        expect(ctrl.formData.amount).toBe(0);
-    });
-
-    it("Can remove mosaic from mosaics array", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Act
-        ctrl.removeMosaic(0);
-
-        // Assert
-        expect(ctrl.formData.mosaics).toEqual([]);
-    });
-
-    it("Can update current account mosaics", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        ctrl.currentAccountMosaicNames = [];
-        scope.$digest();
-
-        // Act
-        ctrl.updateCurrentAccountMosaics();
-
-        // Assert
-        expect(ctrl.currentAccountMosaicNames).toEqual(["nano:points", "nem:xem"]);
-    });
-
-    it("Can update current multisig account mosaics", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        ctrl.currentAccountMosaicNames = [];
-        ctrl.formData.isMultisig = true;
-        scope.$digest();
-
-        // Act
-        ctrl.updateCurrentAccountMosaics();
-
-        // Assert
-        if (!DataBridge.accountData.meta.cosignatoryOf.length) {
-            expect(ctrl.currentAccountMosaicNames).toEqual([]);
-        } else {
-            expect(ctrl.currentAccountMosaicNames).toEqual(["nem:xem"]);
-        }
-    });
-
-    it("Can attach a mosaic to mosaics array", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Act
-        ctrl.selectedMosaic = 'nano:points';
-        ctrl.attachMosaic();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaics).toEqual([{
-            'mosaicId': {
-                'namespaceId': 'nem',
-                'name': 'xem'
-            },
-            'quantity': 0,
-            'gid': 'mos_id_0'
-        }, {
-            'mosaicId': {
-                'namespaceId': 'nano',
-                'name': 'points'
-            },
-            'quantity': 0,
-            'gid': 'mos_id_' + ctrl.counter
-        }]);
-    });
-
-    it("Can reset mosaics array if multisig", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        ctrl.formData.isMosaicTransfer = true;
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-        ctrl.formData.mosaics = [{
-            'mosaicId': {
-                'namespaceId': 'nem',
-                'name': 'xem'
-            },
-            'quantity': 0,
-            'gid': 'mos_id_0'
-        }, {
-            'mosaicId': {
-                'namespaceId': 'nano',
-                'name': 'points'
-            },
-            'quantity': 0,
-            'gid': 'mos_id_' + ctrl.counter
-        }];
-
-        // Act
-        ctrl.formData.isMultisig = true;
-        // Done directly in view when click on multisig tab, reset mosaic array
-        ctrl.setMosaicTransfer();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.formData.mosaics).toEqual([{
-            'mosaicId': {
-                'namespaceId': 'nem',
-                'name': 'xem'
-            },
-            'quantity': 0,
-            'gid': 'mos_id_0'
-        }]);
-    });
-
-    it("Can get recipient's public key from network and set right data using plain address", function (done) {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        var cleanAddress = 'TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S';
-        var accountData = {
-            "meta": {
-                "cosignatories": [],
-                "cosignatoryOf": [],
-                "status": "LOCKED",
-                "remoteStatus": "ACTIVE"
-            },
-            "account": {
-                "address": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "harvestedBlocks": 592,
-                "balance": 231445000000,
-                "importance": 2.9038651986973836E-4,
-                "vestedBalance": 231356599161,
-                "publicKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                "label": null,
-                "multisigInfo": {}
-            }
-        };
-
-        // Act
-        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/account/get?address=TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S').respond(200, accountData);
-        ctrl.formData.rawRecipient = 'TBCI2A-67UQZA-KCR6NS-4JWAEI-CEIGEI-M72G3M-VW5S';
-        ctrl.processRecipientInput();
-        scope.$digest();
-        $httpBackend.flush();
-
-        // Assert
-        expect(ctrl.formData.recipientPubKey.length).toBe(64);
-        expect(ctrl.formData.recipient).toEqual(cleanAddress);
-        done();
-    });
-
-    it("Can get recipient's public key from network and set right data using @alias", function (done) {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        var cleanAddress = 'TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S';
-        var accountData = {
-            "meta": {
-                "cosignatories": [],
-                "cosignatoryOf": [],
-                "status": "LOCKED",
-                "remoteStatus": "INACTIVE"
-            },
-            "account": {
-                "address": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "harvestedBlocks": 592,
-                "balance": 231445000000,
-                "importance": 2.9038651986973836E-4,
-                "vestedBalance": 231356599161,
-                "publicKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                "label": null,
-                "multisigInfo": {}
-            }
-        };
-        var namespaceData = {
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nw",
-            "height": 440493
-        };
-
-        // Act
-        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/namespace?namespace=nw').respond(200, namespaceData);
-        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/account/get?address=TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S').respond(200, accountData);
-        ctrl.formData.rawRecipient = '@nw';
-        ctrl.processRecipientInput();
-        scope.$digest();
-        $httpBackend.flush();
-
-        // Assert
-        expect(ctrl.formData.recipientPubKey.length).toBe(64);
-        expect(ctrl.formData.recipient).toEqual(cleanAddress);
-        expect(ctrl.showAlias).toBe(true);
-        done();
-    });
-
-    it("Can reset recipient data", function (done) {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        var cleanAddress = 'TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S';
-        var accountData = {
-            "meta": {
-                "cosignatories": [],
-                "cosignatoryOf": [],
-                "status": "LOCKED",
-                "remoteStatus": "INACTIVE"
-            },
-            "account": {
-                "address": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-                "harvestedBlocks": 592,
-                "balance": 231445000000,
-                "importance": 2.9038651986973836E-4,
-                "vestedBalance": 231356599161,
-                "publicKey": "0257b05f601ff829fdff84956fb5e3c65470a62375a1cc285779edd5ca3b42f6",
-                "label": null,
-                "multisigInfo": {}
-            }
-        };
-        var namespaceData = {
-            "owner": "TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S",
-            "fqn": "nw",
-            "height": 440493
-        };
-
-        // Act
-        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/namespace?namespace=nw').respond(200, namespaceData);
-        $httpBackend.expectGET('http://' + _helpers2.default.getHostname(Wallet.node) + ':' + AppConstants.defaultNisPort + '/account/get?address=TBCI2A67UQZAKCR6NS4JWAEICEIGEIM72G3MVW5S').respond(200, accountData);
-        ctrl.formData.rawRecipient = '@nw';
-        ctrl.processRecipientInput();
-        scope.$digest();
-        $httpBackend.flush();
-        ctrl.resetRecipientData();
-
-        // Assert
-        expect(ctrl.formData.recipientPubKey.length).toBe(0);
-        expect(ctrl.formData.recipient).toEqual('');
-        expect(ctrl.showAlias).toBe(false);
-        done();
-    });
-
-    it("Can reset form data", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextTestnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        ctrl.formData.amount = 8;
-        ctrl.formData.message = 'NEM rocks !';
-        scope.$digest();
-
-        // Act
-        ctrl.resetData();
-
-        // Assert
-        expect(ctrl.formData.amount).toBe(0);
-        expect(ctrl.formData.message).toEqual('');
-    });
-});
-
-},{"../../src/app/utils/Network":226,"../../src/app/utils/helpers":230,"../data/accountData":234,"../data/wallet":235}],251:[function(require,module,exports){
-'use strict';
-
-var _helpers = require('../../src/app/utils/helpers');
-
-var _helpers2 = _interopRequireDefault(_helpers);
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-var _accountData = require('../data/accountData');
-
-var _accountData2 = _interopRequireDefault(_accountData);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Transfer transaction module delegated tests', function () {
-    var WalletBuilder = void 0,
-        $controller = void 0,
-        $rootScope = void 0,
-        Wallet = void 0,
-        DataBridge = void 0,
-        $httpBackend = void 0,
-        NetworkRequests = void 0,
-        $q = void 0,
-        Transactions = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_$controller_, _$rootScope_, _Wallet_, _DataBridge_, _$httpBackend_, _NetworkRequests_, _$q_, _Transactions_) {
-        $controller = _$controller_;
-        $rootScope = _$rootScope_;
-        Wallet = _Wallet_;
-        DataBridge = _DataBridge_;
-        $httpBackend = _$httpBackend_;
-        NetworkRequests = _NetworkRequests_;
-        $q = _$q_;
-        Transactions = _Transactions_;
-    }));
-
-    function createDummyWalletContextMainnet(Wallet) {
-        Wallet.setWallet(_wallet2.default.mainnetWallet);
-        Wallet.setDefaultNode();
-
-        DataBridge.accountData = _accountData2.default.mainnetAccountData;
-        DataBridge.namespaceOwned = _accountData2.default.mainnetNamespaceOwned;
-        DataBridge.mosaicOwned = _accountData2.default.mainnetMosaicOwned;
-        DataBridge.mosaicDefinitionMetaDataPair = _accountData2.default.mainnetMosaicDefinitionMetaDataPair;
-        DataBridge.nisHeight = 999999999;
-    }
-
-    it("Call getRecipientData function with right parameter", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        spyOn(ctrl, 'getRecipientData').and.returnValue($q.when({}));
-        var cleanAddress = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
-
-        // Act
-        ctrl.formData.rawRecipient = 'NAMOAV-HFVPJ6-FP32YP-2GCM64-WSRMKX-A5KKYW-WHPY';
-        scope.$digest();
-        ctrl.processRecipientInput();
-
-        // Assert
-        expect(ctrl.getRecipientData).toHaveBeenCalledWith(cleanAddress);
-    });
-
-    it("Call getRecipientDataFromAlias function with right parameter", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        spyOn(ctrl, 'getRecipientDataFromAlias').and.returnValue($q.when({}));
-        var alias = 'imre';
-
-        // Act
-        ctrl.formData.rawRecipient = '@imre';
-        ctrl.processRecipientInput();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.getRecipientDataFromAlias).toHaveBeenCalledWith(alias);
-    });
-
-    it("Right parameters in getAccountData request when using plain address", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        var cleanAddress = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
-        var accountData = {
-            "meta": {
-                "cosignatories": [],
-                "cosignatoryOf": [],
-                "status": "LOCKED",
-                "remoteStatus": "ACTIVE"
-            },
-            "account": {
-                "address": "NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY",
-                "harvestedBlocks": 116,
-                "balance": 3030159148572,
-                "importance": 3.543180679979003E-4,
-                "vestedBalance": 3005640174876,
-                "publicKey": "89ba9620b787ee1b4cdc1d1a9c6739ed90657cc3e04af9319a9cc3e029804b07",
-                "label": null,
-                "multisigInfo": {}
-            }
-        };
-
-        spyOn(ctrl, 'getRecipientData').and.callThrough();
-        spyOn(ctrl._NetworkRequests, 'getAccountData').and.callFake(function () {
-            return {
-                then: function then(callback) {
-                    return callback(accountData);
-                }
-            };
-        });
-
-        // Act
-        ctrl.formData.rawRecipient = 'NAMOAV-HFVPJ6-FP32YP-2GCM64-WSRMKX-A5KKYW-WHPY';
-        ctrl.processRecipientInput();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.getRecipientData).toHaveBeenCalledWith(cleanAddress);
-        expect(ctrl._NetworkRequests.getAccountData).toHaveBeenCalledWith(_helpers2.default.getHostname(Wallet.node), cleanAddress);
-    });
-
-    it("Right parameters in getNamespacesById and getAccountData request when using @alias", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        var cleanAddress = 'NDS3R3ZVAUCQGIU4GUG7L56II4IIXBGIMREL45YG';
-        var alias = 'imre';
-        var accountData = {
-            "meta": {
-                "cosignatories": [],
-                "cosignatoryOf": [],
-                "status": "LOCKED",
-                "remoteStatus": "INACTIVE"
-            },
-            "account": {
-                "address": "NDS3R3ZVAUCQGIU4GUG7L56II4IIXBGIMREL45YG",
-                "harvestedBlocks": 0,
-                "balance": 13949807000001,
-                "importance": 0.001423425672461785,
-                "vestedBalance": 13949807000001,
-                "publicKey": "f85ab43dad059b9d2331ddacc384ad925d3467f03207182e01296bacfb242d01",
-                "label": null,
-                "multisigInfo": {}
-            }
-        };
-        var namespaceData = {
-            "owner": "NDS3R3ZVAUCQGIU4GUG7L56II4IIXBGIMREL45YG",
-            "fqn": "imre",
-            "height": 440493
-        };
-
-        spyOn(ctrl, 'getRecipientDataFromAlias').and.callThrough();
-        spyOn(ctrl._NetworkRequests, 'getNamespacesById').and.callFake(function () {
-            return {
-                then: function then(callback) {
-                    return callback(namespaceData);
-                }
-            };
-        });
-        spyOn(ctrl._NetworkRequests, 'getAccountData').and.callFake(function () {
-            return {
-                then: function then(callback) {
-                    return callback(accountData);
-                }
-            };
-        });
-
-        // Act
-        ctrl.formData.rawRecipient = '@imre';
-        ctrl.processRecipientInput();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl.getRecipientDataFromAlias).toHaveBeenCalledWith(alias);
-        expect(ctrl._NetworkRequests.getNamespacesById).toHaveBeenCalledWith(_helpers2.default.getHostname(Wallet.node), alias);
-        expect(ctrl._NetworkRequests.getAccountData).toHaveBeenCalledWith(_helpers2.default.getHostname(Wallet.node), cleanAddress);
-    });
-
-    it("Pass right parameters to prepareTranfer when updating fees", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        spyOn(ctrl._Transactions, 'prepareTransfer').and.callThrough();
-        ctrl.common = {
-            "privateKey": "8fac70ea9aca3ae3418e25c0d31d9a0723e0a1790ae8fa97747c00dc0037472e",
-            "password": ""
-        };
-
-        // Act
-        ctrl.formData.recipient = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
-        ctrl.formData.amount = 8;
-        ctrl.formData.message = 'NEM rocks !';
-        ctrl.updateFees();
-        scope.$digest();
-
-        // Assert
-        expect(ctrl._Transactions.prepareTransfer).toHaveBeenCalledWith(ctrl.common, ctrl.formData, ctrl.mosaicsMetaData);
-    });
-
-    it("Pass right parameters to prepareTranfer in send() method", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        // Override
-        ctrl.updateFees = function () {
-            // Otherwise it calls prepareTransfer from here first and then spy is on the wrong function
-        };
-        spyOn(ctrl._Transactions, 'prepareTransfer').and.callThrough();
-        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-        ctrl.common = {
-            "privateKey": "",
-            "password": "TestTest"
-        };
-        ctrl.formData.recipient = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
-        ctrl.formData.amount = 8;
-        ctrl.formData.message = 'NEM rocks !';
-        scope.$digest();
-
-        // Act
-        ctrl.send();
-
-        // Assert
-        expect(ctrl._Transactions.prepareTransfer).toHaveBeenCalledWith(ctrl.common, ctrl.formData, ctrl.mosaicsMetaData);
-    });
-
-    it("Can't call prepareTransfer in send() method if wrong password", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        // Override
-        ctrl.updateFees = function () {
-            // Otherwise it calls prepareTransfer from here first and then spy is on the wrong function
-        };
-        spyOn(ctrl._Transactions, 'prepareTransfer').and.callThrough();
-        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-        ctrl.common = {
-            "privateKey": "",
-            "password": "TestTest11"
-        };
-
-        // Act
-        ctrl.send();
-
-        // Assert
-        expect(ctrl._Transactions.prepareTransfer).not.toHaveBeenCalled();
-    });
-
-    it("Pass right parameters to serializeAndAnnounceTransaction in send() method", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-        ctrl.common = {
-            "privateKey": "",
-            "password": "TestTest"
-        };
-        ctrl.formData.recipient = 'NAMOAVHFVPJ6FP32YP2GCM64WSRMKXA5KKYWWHPY';
-        ctrl.formData.amount = 8;
-        scope.$digest();
-
-        // Act
-        ctrl.send();
-
-        // Assert
-        expect(ctrl._Transactions.serializeAndAnnounceTransaction).toHaveBeenCalledWith(jasmine.any(Object), ctrl.common);
-    });
-
-    it("Can't call serializeAndAnnounceTransaction in send() method if wrong password", function () {
-        // Arrange:
-        var scope = $rootScope.$new();
-        createDummyWalletContextMainnet(Wallet);
-        var ctrl = $controller('TransferTransactionCtrl', { $scope: scope });
-        scope.$digest();
-        spyOn(ctrl._Transactions, 'serializeAndAnnounceTransaction').and.returnValue($q.when({}));
-        ctrl.common = {
-            "privateKey": "",
-            "password": "TestTest11"
-        };
-
-        // Act
-        ctrl.send();
-
-        // Assert
-        expect(ctrl._Transactions.serializeAndAnnounceTransaction).not.toHaveBeenCalled();
-    });
-});
-
-},{"../../src/app/utils/helpers":230,"../data/accountData":234,"../data/wallet":235}],252:[function(require,module,exports){
-'use strict';
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _helpers = require('../../src/app/utils/helpers');
-
-var _helpers2 = _interopRequireDefault(_helpers);
-
-var _nodes = require('../../src/app/utils/nodes');
-
-var _nodes2 = _interopRequireDefault(_nodes);
-
-var _wallet = require('../data/wallet');
-
-var _wallet2 = _interopRequireDefault(_wallet);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('Wallet service tests', function () {
-    var Wallet = void 0,
-        AppConstants = void 0,
-        $localStorage = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_Wallet_, _AppConstants_, _$localStorage_) {
-        Wallet = _Wallet_;
-        AppConstants = _AppConstants_;
-        $localStorage = _$localStorage_;
-        $localStorage.$reset();
-    }));
-
-    it("Default properties initialized", function () {
-        // Assert
-        expect(Wallet.current).toBeUndefined();
-        expect(Wallet.currentAccount).toBeUndefined();
-        expect(Wallet.algo).toBeUndefined();
-        expect(Wallet.node).toBeUndefined();
-        expect(Wallet.searchNode).toBeUndefined();
-        expect(Wallet.chainLink).toBeUndefined();
-        expect(Wallet.harvestingNode).toBeUndefined();
-        expect(Wallet.ntyData).toBeUndefined();
-    });
-
-    it("Can set a wallet", function () {
-        // Arrange
-        var wallet = _wallet2.default.mainnetWallet;
-
-        // Act
-        Wallet.setWallet(wallet);
-
-        // Assert
-        expect(Wallet.current).toEqual(wallet);
-        expect(Wallet.currentAccount).toEqual(wallet.accounts[0]);
-        expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
-        expect(Wallet.network).toEqual(wallet.accounts[0].network);
-    });
-
-    describe('Set a wallet edge-cases', function () {
-
-        it("Can't set a wallet if no wallet", function () {
-            // Arrange
-            var wallet = "";
-
-            // Act
-            Wallet.setWallet(wallet);
-
-            // Assert
-            expect(Wallet.current).toBe(undefined);
-            expect(Wallet.currentAccount).toBe(undefined);
-            expect(Wallet.algo).toBe(undefined);
-            expect(Wallet.network).toBe(AppConstants.defaultNetwork);
-        });
-    });
-
-    it("Can set a wallet at index", function () {
-        // Arrange
-        var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
-        Wallet.setWallet(wallet);
-        var index = 1;
-
-        // Act
-        Wallet.setWalletAccount(wallet, index);
-
-        // Assert
-        expect(Wallet.currentAccount).toEqual(wallet.accounts[index]);
-        expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
-        expect(Wallet.network).toEqual(wallet.accounts[0].network);
-    });
-
-    describe('Set a wallet account edge-cases', function () {
-
-        it("Can't set a wallet account if no current wallet", function () {
-            // Arrange
-            var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
-            var index = 1;
-
-            // Act
-            Wallet.setWalletAccount(wallet, index);
-
-            // Assert
-            expect(Wallet.current).toBe(undefined);
-            expect(Wallet.currentAccount).toBe(undefined);
-            expect(Wallet.algo).toBe(undefined);
-            expect(Wallet.network).toBe(AppConstants.defaultNetwork);
-        });
-
-        it("Can't set a wallet account if no selected wallet", function () {
-            // Arrange
-            var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
-            Wallet.setWallet(wallet);
-            var index = 1;
-            var selectedWallet = "";
-
-            // Act
-            Wallet.setWalletAccount(selectedWallet, index);
-
-            // Assert
-            expect(Wallet.current).toEqual(wallet);
-            expect(Wallet.currentAccount).toEqual(wallet.accounts[0]);
-            expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
-            expect(Wallet.network).toBe(wallet.accounts[0].network);
-        });
-
-        it("Can't set a wallet account if index is out of bounds", function () {
-            // Arrange
-            var wallet = _wallet2.default.mainnetWalletDoubleAccounts;
-            Wallet.setWallet(wallet);
-            var index = 2;
-
-            // Act
-            Wallet.setWalletAccount(wallet, index);
-
-            // Assert
-            expect(Wallet.current).toEqual(wallet);
-            expect(Wallet.currentAccount).toEqual(wallet.accounts[0]);
-            expect(Wallet.algo).toEqual(wallet.accounts[0].algo);
-            expect(Wallet.network).toBe(wallet.accounts[0].network);
-        });
-    });
-
-    it("Can set default mainnet node if none in local storage", function () {
-        // Arrange
-        Wallet.network = 104;
-
-        // Act
-        Wallet.setDefaultNode();
-
-        // Assert
-        expect(Wallet.node).toEqual(_nodes2.default.defaultMainnetNode);
-    });
-
-    it("Can set mainnet node if one in local storage", function () {
-        // Arrange
-        Wallet.network = 104;
-        $localStorage.selectedMainnetNode = "http://san.nem.ninja:7778";
-
-        // Act
-        Wallet.setDefaultNode();
-
-        // Assert
-        expect(Wallet.node).toEqual($localStorage.selectedMainnetNode);
-    });
-
-    it("Can set default testnet node if none in local storage", function () {
-        // Arrange
-        Wallet.network = -104;
-
-        // Act
-        Wallet.setDefaultNode();
-
-        // Assert
-        expect(Wallet.node).toEqual(_nodes2.default.defaultTestnetNode);
-    });
-
-    it("Can set testnet node if one in local storage", function () {
-        // Arrange
-        Wallet.network = -104;
-        $localStorage.selectedTestnetNode = "http://bob.nem.ninja:7778";
-
-        // Act
-        Wallet.setDefaultNode();
-
-        // Assert
-        expect(Wallet.node).toEqual($localStorage.selectedTestnetNode);
-    });
-
-    it("Can set mainnet util nodes", function () {
-        // Arrange
-        Wallet.network = 104;
-
-        // Act
-        Wallet.setUtilNodes();
-
-        // Assert
-        expect(Wallet.chainLink).toEqual(_nodes2.default.defaultMainnetExplorer);
-        expect(Wallet.searchNode).toEqual(_nodes2.default.mainnetSearchNodes[0]);
-    });
-
-    it("Can set testnet util nodes", function () {
-        // Arrange
-        Wallet.network = -104;
-
-        // Act
-        Wallet.setUtilNodes();
-
-        // Assert
-        expect(Wallet.chainLink).toEqual(_nodes2.default.defaultTestnetExplorer);
-        expect(Wallet.searchNode).toEqual(_nodes2.default.testnetSearchNodes[0]);
-    });
-
-    it("Can set mainnet nty data if present in local storage", function () {
-        // Arrange
-        Wallet.network = _Network2.default.data.Mainnet.id;
-        $localStorage.ntyMainnet = [{
-            "filename": "Accords-jazz.pdf",
-            "tags": "Mainnet",
-            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
-            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
-            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
-        }];
-
-        // Act
-        Wallet.setNtyData();
-
-        // Assert
-        expect(Wallet.ntyData).toEqual($localStorage.ntyMainnet);
-    });
-
-    it("Can set testnet nty data if present in local storage", function () {
-        // Arrange
-        Wallet.network = _Network2.default.data.Testnet.id;
-        $localStorage.ntyTestnet = [{
-            "filename": "Accords-jazz.pdf",
-            "tags": "Testnet",
-            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
-            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
-            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
-        }];
-
-        // Act
-        Wallet.setNtyData();
-
-        // Assert
-        expect(Wallet.ntyData).toEqual($localStorage.ntyTestnet);
-    });
-
-    it("Can set mainnet nty data in local storage", function () {
-        // Arrange
-        Wallet.network = _Network2.default.data.Mainnet.id;
-        var ntyData = [{
-            "filename": "Accords-jazz.pdf",
-            "tags": "Mainnet",
-            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
-            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
-            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
-        }];
-
-        // Act
-        Wallet.setNtyDataInLocalStorage(ntyData);
-
-        // Assert
-        expect($localStorage.ntyMainnet).toEqual(ntyData);
-    });
-
-    it("Can set testnet nty data in local storage", function () {
-        // Arrange
-        Wallet.network = _Network2.default.data.Testnet.id;
-        var ntyData = [{
-            "filename": "Accords-jazz.pdf",
-            "tags": "Mainnet",
-            "fileHash": "fe4e545903b88c03ec6bd0a91283dc9c12b13510407fc06164fd9bec04258e2bfb79974c43",
-            "txHash": "5f0d3258a9a22522ff5d68634484909b9c37bacd6e68ab6d7cbb54d502d45ee9",
-            "timeStamp": "Fri, 24 Jun 2016 14:51:31 GMT"
-        }];
-
-        // Act
-        Wallet.setNtyDataInLocalStorage(ntyData);
-
-        // Assert
-        expect($localStorage.ntyTestnet).toEqual(ntyData);
-    });
-});
-
-},{"../../src/app/utils/Network":226,"../../src/app/utils/helpers":230,"../../src/app/utils/nodes":232,"../data/wallet":235}],253:[function(require,module,exports){
-'use strict';
-
-var _Network = require('../../src/app/utils/Network');
-
-var _Network2 = _interopRequireDefault(_Network);
-
-var _Address = require('../../src/app/utils/Address');
-
-var _Address2 = _interopRequireDefault(_Address);
-
-var _convert = require('../../src/app/utils/convert');
-
-var _convert2 = _interopRequireDefault(_convert);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-describe('WalletBuilder service tests', function () {
-    var WalletBuilder = void 0;
-
-    beforeEach(angular.mock.module('app'));
-
-    beforeEach(angular.mock.inject(function (_WalletBuilder_) {
-        WalletBuilder = _WalletBuilder_;
-    }));
-
-    it("Can create new wallet", function (done) {
-        // Arrange:
-        var walletName = "Quantum_Mechanics";
-        var password = "TestTest";
-        var network = _Network2.default.data.Mainnet.id;
-
-        // Act
-        WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {
-
-            // Assert
-            expect(wallet).not.toBe(0);
-
-            done();
-        });
-    });
-
-    describe('Create new wallet edge-cases', function () {
-
-        it("Can't create new wallet without password", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create new wallet without name", function (done) {
-            // Arrange:
-            var walletName = "";
-            var password = "TestTest";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create new wallet without network", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "TestTest";
-            var network = "";
-
-            //// Act
-            WalletBuilder.createWallet(walletName, password, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-    });
-
-    it("Can create brain wallet", function (done) {
-        // Arrange:
-        var walletName = "Quantum_Mechanics";
-        var password = "TestTest";
-        var network = _Network2.default.data.Mainnet.id;
-        var expectedWallet = {
-            "privateKey": "",
-            "name": "Quantum_Mechanics",
-            "accounts": {
-                "0": {
-                    "brain": true,
-                    "algo": "pass:6k",
-                    "encrypted": "",
-                    "iv": "",
-                    "address": "NCTIKLMIWKRZC3TRKD5JYZUQHV76LGS3TTSUIXM6",
-                    "label": "Primary",
-                    "network": 104,
-                    "child": "fda69cfb780e65ee400be32101f80c7611ba95930cd838a4d32dabb4c738f1af"
-                }
-            }
-        };
-
-        // Act
-        WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {
-
-            // Assert
-            expect(wallet).toEqual(expectedWallet);
-
-            done();
-        });
-    });
-
-    describe('Create brain wallet edge-cases', function () {
-
-        it("Can't create brain wallet without password", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create brain wallet without name", function (done) {
-            // Arrange:
-            var walletName = "";
-            var password = "TestTest";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create brain wallet without network", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "TestTest";
-            var network = "";
-
-            // Act
-            WalletBuilder.createBrainWallet(walletName, password, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-    });
-
-    it("Can create private key wallet", function (done) {
-        // Arrange:
-        var walletName = "Quantum_Mechanics";
-        var password = "TestTest";
-        var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-        var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-        var network = _Network2.default.data.Mainnet.id;
-
-        // Act
-        WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {
-
-            // Assert
-            expect(wallet).not.toBe(0);
-
-            done();
-        });
-    });
-
-    describe('Create private key wallet edge-cases', function () {
-
-        it("Can't create private Key wallet without password", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "";
-            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create private Key wallet without private key", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "TestTest";
-            var privateKey = "";
-            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create private Key wallet without address", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "TestTest";
-            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-            var address = "";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create private Key wallet without name", function (done) {
-            // Arrange:
-            var walletName = "";
-            var password = "TestTest";
-            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-            var network = _Network2.default.data.Mainnet.id;
-
-            // Act
-            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-
-        it("Can't create private Key wallet without network", function (done) {
-            // Arrange:
-            var walletName = "Quantum_Mechanics";
-            var password = "TestTest";
-            var privateKey = "73d0d250a2214274c4f433f79573ff1d50cde37b5d181b341f9942d096341225";
-            var address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
-            var network = "";
-
-            // Act
-            WalletBuilder.createPrivateKeyWallet(walletName, password, address, privateKey, network).then(function (wallet) {}, function (err) {
-
-                // Assert
-                expect(err).toBeDefined();
-
-                done();
-            });
-        });
-    });
-});
-
-},{"../../src/app/utils/Address":223,"../../src/app/utils/Network":226,"../../src/app/utils/convert":229}]},{},[237,238,239,240,241,242,243,236,244,245,246,247,248,249,250,251,252,253]);
+},{}]},{},[13,14,15,16,17,18,19,20,21,22,23,24,25,26]);

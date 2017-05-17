@@ -3,12 +3,12 @@
 const _hexEncodeArray = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
 
 /**
-* Reversed convertion of hex to Uint8Array
-*
-* @param {string} hexx - An hex string
-*
-* @return {Uint8Array}
-*/
+ * Reversed convertion of hex to Uint8Array
+ *
+ * @param {string} hexx - An hex string
+ *
+ * @return {Uint8Array}
+ */
 let hex2ua_reversed = function(hexx) {
     let hex = hexx.toString(); //force conversion
     let ua = new Uint8Array(hex.length / 2);
@@ -19,12 +19,12 @@ let hex2ua_reversed = function(hexx) {
 };
 
 /**
-* Convert hex to Uint8Array
-*
-* @param {string} hexx - An hex string
-*
-* @return {Uint8Array}
-*/
+ * Convert hex to Uint8Array
+ *
+ * @param {string} hexx - An hex string
+ *
+ * @return {Uint8Array}
+ */
 let hex2ua = function(hexx) {
     let hex = hexx.toString(); //force conversion
     let ua = new Uint8Array(hex.length / 2);
@@ -35,12 +35,12 @@ let hex2ua = function(hexx) {
 };
 
 /**
-* Convert an Uint8Array to hex
-*
-* @param {Uint8Array} ua - An Uint8Array
-*
-* @return {string}
-*/
+ * Convert an Uint8Array to hex
+ *
+ * @param {Uint8Array} ua - An Uint8Array
+ *
+ * @return {string}
+ */
 let ua2hex = function(ua) {
     let s = '';
     for (let i = 0; i < ua.length; i++) {
@@ -52,12 +52,12 @@ let ua2hex = function(ua) {
 };
 
 /**
-* Convert hex to string
-*
-* @param {string} hexx - An hex string
-*
-* @return {string}
-*/
+ * Convert hex to string
+ *
+ * @param {string} hexx - An hex string
+ *
+ * @return {string}
+ */
 let hex2a = function(hexx) {
     let hex = hexx.toString();
     let str = '';
@@ -67,12 +67,12 @@ let hex2a = function(hexx) {
 };
 
 /**
-* Convert UTF-8 to hex
-*
-* @param {string} str - An UTF-8 string
-*
-* @return {string}
-*/
+ * Convert UTF-8 to hex
+ *
+ * @param {string} str - An UTF-8 string
+ *
+ * @return {string}
+ */
 let utf8ToHex = function(str) {
     let rawString = rstr2utf8(str);
     let hex = "";
@@ -91,13 +91,13 @@ let strlpad = function(str, pad, len) {
 }
 
 /**
-* Convert an Uint8Array to WordArray
-*
-* @param {Uint8Array} ua - An Uint8Array
-* @param {number} uaLength - The Uint8Array length
-*
-* @return {WordArray}
-*/
+ * Convert an Uint8Array to WordArray
+ *
+ * @param {Uint8Array} ua - An Uint8Array
+ * @param {number} uaLength - The Uint8Array length
+ *
+ * @return {WordArray}
+ */
 let ua2words = function(ua, uaLength) {
     let temp = [];
     for (let i = 0; i < uaLength; i += 4) {
@@ -108,13 +108,13 @@ let ua2words = function(ua, uaLength) {
 }
 
 /**
-* Convert a wordArray to Uint8Array
-*
-* @param {Uint8Array} destUa - A destination Uint8Array
-* @param {WordArray} cryptowords - A wordArray
-*
-* @return {Uint8Array}
-*/
+ * Convert a wordArray to Uint8Array
+ *
+ * @param {Uint8Array} destUa - A destination Uint8Array
+ * @param {WordArray} cryptowords - A wordArray
+ *
+ * @return {Uint8Array}
+ */
 let words2ua = function(destUa, cryptowords) {
     for (let i = 0; i < destUa.length; i += 4) {
         let v = cryptowords.words[i / 4];
@@ -128,13 +128,13 @@ let words2ua = function(destUa, cryptowords) {
 }
 
 /**
-* Converts a raw javascript string into a string of single byte characters using utf8 encoding.
-* This makes it easier to perform other encoding operations on the string.
-*
-* @param {string} input - A raw string
-*
-* @return {string} - UTF-8 string
-*/
+ * Converts a raw javascript string into a string of single byte characters using utf8 encoding.
+ * This makes it easier to perform other encoding operations on the string.
+ *
+ * @param {string} input - A raw string
+ *
+ * @return {string} - UTF-8 string
+ */
 let rstr2utf8 = function (input) {
     let output = "";
 

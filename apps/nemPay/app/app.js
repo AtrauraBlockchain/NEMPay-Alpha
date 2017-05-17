@@ -38,23 +38,28 @@ import './modules/register';
 
 // Create and bootstrap application
 const requires = [
+
+    /* Libs */
     'ui.router',
     'templates',
-    'app.layout',
     'ionic-material',
     'ionMdInput',
-    'app.components',
-    'app.filters',
     'ngCordova',
-    'app.services',
     'ngAnimate',
     'ngSanitize',
     'ngToast',
     'ngStorage',
     'pascalprecht.translate',
-    'app.lang',
 
-    /* CUSTOM */
+    /* Providers */
+    'app.layout',
+    'app.components',
+    'app.filters',
+    'app.services',
+
+
+    /* Modules */
+    'app.lang',
     'app.loadWallet',
     'app.balance',
     'app.transactions',

@@ -20,11 +20,10 @@ var sh = require('shelljs');
 
 // Where our files are located
 var jsFiles   = "apps/nemPay/app/**/*.js";
-
 var viewFiles = "apps/nemPay/app/**/*.html";
-
-var specFiles = "tests/specs/*.spec.js"
+var specFiles = "apps/tests/specs/*.spec.js";
 var specsArray = glob.sync(specFiles);
+
 
 var interceptErrors = function(error) {
 var args = Array.prototype.slice.call(arguments);
@@ -52,7 +51,7 @@ gulp.task('browserify', ['views'], function() {
       .pipe(gulp.dest('./www/'));
 });
 
-/* Task for test files
+/* Task for test files */
 gulp.task('browserifyTests', function() {
   return browserify(specsArray)
       .transform(babelify, {presets: ["es2015"]})
@@ -63,7 +62,7 @@ gulp.task('browserifyTests', function() {
       .pipe(source('tests.js'))
       // Start piping stream to tasks!
       .pipe(gulp.dest('./www/tests/'));
-});*/
+});
 
 
 /*Just move files to build*/
@@ -74,11 +73,11 @@ gulp.task('html', function() {
       .pipe(gulp.dest('./www/'));
 }); 
 
-/*gulp.task('tests', function() {
-  return gulp.src("tests/start.html")
+gulp.task('tests', function() {
+  return gulp.src("apps/tests/start.html")
       .on('error', interceptErrors)
       .pipe(gulp.dest('./www/tests'));
-});*/
+});
 
   gulp.task('js', function() {
   return gulp.src("apps/nemPay/vendors/**/*")
@@ -123,11 +122,12 @@ gulp.task('build', ['html', 'browserify'], function() {
 });
 
 // Run Tasks
-gulp.task('default', ['html','js', 'sass', 'images', 'browserify'], function() {
+gulp.task('default', ['html','js', 'sass', 'images', 'browserify','tests', 'browserifyTests'], function() {
 
   gulp.watch("www/index.html", ['html']);
   gulp.watch("apps/nempay/sass/**/*.scss", ['sass']);
   gulp.watch(viewFiles, ['views']);
   gulp.watch(jsFiles, ['browserify']);
+
 
 });

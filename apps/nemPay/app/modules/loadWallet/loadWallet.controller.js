@@ -1,11 +1,9 @@
-
-
 import helpers from '../../utils/helpers';
 import CryptoHelpers from '../../utils/CryptoHelpers';
 import Network from '../../utils/Network';
 
 class LoadWalletCtrl {
-    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $scope, $ionicLoading, $rootScope) {
+    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $ionicLoading, $rootScope) {
         'ngInject';
 
         // Local storage
@@ -241,5 +239,4 @@ class LoadWalletCtrl {
     }
 
 }
-
 export default LoadWalletCtrl;

@@ -1,6 +1,7 @@
 import helpers from "../../utils/helpers";
 import Network from "../..//utils/Network";
 import KeyPair from "../../utils/KeyPair";
+import Address from "../../utils/Address";
 
 class RegisterCtrl {
     constructor(AppConstants, $state, Alert, WalletBuilder, $localStorage, $timeout, $ionicLoading) {
