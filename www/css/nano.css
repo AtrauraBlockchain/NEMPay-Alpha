@@ -299,7 +299,8 @@ h2 {
 
 /* TRANSACTIONS */
 .transactions-page {
-  background-color: #fff; }
+  background-color: #fff;
+  margin-bottom: 30px; }
 
 .transactions-page h2 {
   display: inherit;
