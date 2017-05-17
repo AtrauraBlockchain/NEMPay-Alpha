@@ -23,6 +23,11 @@ https://ionicframework.com/
 3) Run:
 <pre>ionic serve</pre>
 
+
+# Known issues #
+### Multisig behaviour is not implemented yet ###
+
+
 ### Thanks ###
 - <b>QuantumMechanics: https://github.com/QuantumMechanics</b>  for building NanoWallet
 
