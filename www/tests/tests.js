@@ -5951,7 +5951,7 @@ var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-describe('Signup module tests', function () {
+describe('Register module tests', function () {
     var WalletBuilder = void 0,
         $filter = void 0,
         $controller = void 0,
@@ -6312,41 +6312,43 @@ describe('Signup module tests', function () {
 },{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/CryptoHelpers":2,"../../nempay/app/utils/KeyPair":3,"../../nempay/app/utils/Network":4}],21:[function(require,module,exports){
 'use strict';
 
-var _Network = require('../../nempay/app/utils/Network');
+var _Network = require('../../nemPay/app/utils/Network');
 
 var _Network2 = _interopRequireDefault(_Network);
 
-var _Address = require('../../nempay/app/utils/Address');
+var _Address = require('../../nemPay/app/utils/Address');
 
 var _Address2 = _interopRequireDefault(_Address);
 
-var _KeyPair = require('../../nempay/app/utils/KeyPair');
+var _KeyPair = require('../../nemPay/app/utils/KeyPair');
 
 var _KeyPair2 = _interopRequireDefault(_KeyPair);
 
-var _CryptoHelpers = require('../../nempay/app/utils/CryptoHelpers');
+var _CryptoHelpers = require('../../nemPay/app/utils/CryptoHelpers');
 
 var _CryptoHelpers2 = _interopRequireDefault(_CryptoHelpers);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-describe('Signup module delegated tests', function () {
+describe('Register module delegated tests', function () {
     var WalletBuilder = void 0,
         $filter = void 0,
         $controller = void 0,
         $localStorage = void 0,
         AppConstants = void 0,
-        $q = void 0;
+        $q = void 0,
+        $timeout = void 0;
 
     beforeEach(angular.mock.module('app'));
 
-    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _$localStorage_, _AppConstants_, _WalletBuilder_, _$q_) {
+    beforeEach(angular.mock.inject(function (_$filter_, _$controller_, _$localStorage_, _AppConstants_, _WalletBuilder_, _$q_, _$timeout_) {
         WalletBuilder = _WalletBuilder_;
         $q = _$q_;
         $filter = _$filter_;
         $controller = _$controller_;
         $localStorage = _$localStorage_;
         AppConstants = _AppConstants_;
+        $timeout = _$timeout_;
     }));
 
     // Override
@@ -6368,10 +6370,10 @@ describe('Signup module delegated tests', function () {
         ctrl.formData.confirmPassword = "TestTest";
         ctrl.network = _Network2.default.data.Mainnet.id;
 
-        spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
-
-        // Act
+        spyOn(ctrl._WalletBuilder, 'createWallet').and.callThrough();
         ctrl.createWallet();
+
+        $timeout.flush();
 
         // Assert: 
         expect(ctrl._WalletBuilder.createWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.network);
@@ -6387,10 +6389,11 @@ describe('Signup module delegated tests', function () {
         ctrl.formData.confirmPassword = "TestTest";
         ctrl.network = _Network2.default.data.Mainnet.id;
 
-        spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
+        spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.callThrough();
 
         // Act
         ctrl.createBrainWallet();
+        $timeout.flush();
 
         // Assert: 
         expect(ctrl._WalletBuilder.createBrainWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.network);
@@ -6408,17 +6411,18 @@ describe('Signup module delegated tests', function () {
         ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
         ctrl.network = _Network2.default.data.Mainnet.id;
 
-        spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
+        spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.callThrough();
 
         // Act
         ctrl.createPrivateKeyWallet();
+        $timeout.flush();
 
         // Assert: 
         expect(ctrl._WalletBuilder.createPrivateKeyWallet).toHaveBeenCalledWith(ctrl.formData.walletName, ctrl.formData.password, ctrl.formData.address, ctrl.formData.privateKey, ctrl.network);
     });
 });
 
-},{"../../nempay/app/utils/Address":1,"../../nempay/app/utils/CryptoHelpers":2,"../../nempay/app/utils/KeyPair":3,"../../nempay/app/utils/Network":4}],22:[function(require,module,exports){
+},{"../../nemPay/app/utils/Address":1,"../../nemPay/app/utils/CryptoHelpers":2,"../../nemPay/app/utils/KeyPair":3,"../../nemPay/app/utils/Network":4}],22:[function(require,module,exports){
 'use strict';
 
 var _wallet = require('../data/wallet');
