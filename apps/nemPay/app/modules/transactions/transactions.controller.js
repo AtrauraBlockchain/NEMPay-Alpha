@@ -61,28 +61,6 @@ class TransactionsCtrl {
                 this.chartEmpty = false;
             }
         });
-
-        //Confirmed txes pagination properties
-        this.currentPage = 0;
-        this.pageSize = 5;
-        this.numberOfPages = function() {
-            return Math.ceil(this._DataBridge.transactions.length / this.pageSize);
-        }
-
-        //Unconfirmed txes pagination properties
-        this.currentPageUnc = 0;
-        this.pageSizeUnc = 5;
-        this.numberOfPagesUnc = function() {
-            return Math.ceil(this._DataBridge.unconfirmed.length / this.pageSizeUnc);
-        }
-
-        // Harvested blocks pagination properties
-        this.currentPageHb = 0;
-        this.pageSizeHb = 5;
-        this.numberOfPagesHb = function() {
-            return Math.ceil(this._DataBridge.harvestedBlocks.length / this.pageSizeHb);
-        }
-
     }
 
     /**
