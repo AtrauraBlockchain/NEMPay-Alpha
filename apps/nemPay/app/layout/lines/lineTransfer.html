@@ -5,9 +5,9 @@
         <td>
             <div ng-class="{'send-card': tx.recipient !== mainAccount && !parent}" class="transition-card">
 
+
          <span ng-show="tx.mosaics.length">
             <span ng-repeat="mos in tx.mosaics">
-
                <span>
                   <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2>
                    <span class="text-lowercase mosaic-name">{{mos.mosaicId.name}}</span>

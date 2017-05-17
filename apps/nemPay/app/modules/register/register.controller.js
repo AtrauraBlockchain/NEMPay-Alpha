@@ -127,7 +127,7 @@ class RegisterCtrl {
         this._$timeout(() => {
 
             // Create the wallet from form data
-            return this._WalletBuilder.createWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
+            this._WalletBuilder.createWallet(this.formData.walletName, this.formData.password, this.network).then((wallet) => {
                     this._$timeout(() => {
                         if (wallet) {
                             // On success concat new wallet to local storage wallets
@@ -301,8 +301,6 @@ class RegisterCtrl {
             }
         }
     }
-
-
 }
 
 export default RegisterCtrl;

@@ -344,6 +344,8 @@ class NetworkRequests {
         return this._$http.post('http://' + host + ':' + port + '/transaction/announce', obj)
         .then(
             (res) => {
+                console.log("The real res");
+                console.log(res);
                 return {
                     'res': res,
                     'tx': data,

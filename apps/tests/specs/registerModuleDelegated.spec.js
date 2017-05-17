@@ -4,17 +4,18 @@ import KeyPair from '../../nemPay/app/utils/KeyPair';
 import CryptoHelpers from '../../nemPay/app/utils/CryptoHelpers';
 
 describe('Register module delegated tests', function() {
-    let WalletBuilder, $filter, $controller, $localStorage, AppConstants, $q;
+    let WalletBuilder, $filter, $controller, $localStorage, AppConstants, $q, $timeout;
 
     beforeEach(angular.mock.module('app'));
 
-    beforeEach(angular.mock.inject(function(_$filter_, _$controller_, _$localStorage_, _AppConstants_, _WalletBuilder_, _$q_) {
+    beforeEach(angular.mock.inject(function(_$filter_, _$controller_, _$localStorage_, _AppConstants_, _WalletBuilder_, _$q_, _$timeout_) {
         WalletBuilder = _WalletBuilder_;
         $q = _$q_;
         $filter = _$filter_;
         $controller = _$controller_;
         $localStorage = _$localStorage_;
         AppConstants = _AppConstants_;
+        $timeout = _$timeout_;
     }));
 
     // Override
@@ -36,10 +37,10 @@ describe('Register module delegated tests', function() {
         ctrl.formData.confirmPassword = "TestTest";
         ctrl.network = Network.data.Mainnet.id;
 
-        spyOn(ctrl._WalletBuilder, 'createWallet').and.returnValue($q.when({}));
-
-        // Act
+        spyOn(ctrl._WalletBuilder, 'createWallet').and.callThrough();
         ctrl.createWallet();
+
+        $timeout.flush();
 
         // Assert: 
         expect(ctrl._WalletBuilder.createWallet).toHaveBeenCalledWith(
@@ -58,10 +59,11 @@ describe('Register module delegated tests', function() {
         ctrl.formData.confirmPassword = "TestTest";
         ctrl.network = Network.data.Mainnet.id;
 
-        spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.returnValue($q.when({}));
+        spyOn(ctrl._WalletBuilder, 'createBrainWallet').and.callThrough();
 
         // Act
         ctrl.createBrainWallet();
+        $timeout.flush();
 
         // Assert: 
         expect(ctrl._WalletBuilder.createBrainWallet).toHaveBeenCalledWith(
@@ -82,10 +84,11 @@ describe('Register module delegated tests', function() {
         ctrl.formData.address = "NBJ2XZMCAFAAVZXTPUPJ4MDAJOYCFB7X3MKBHFCK";
         ctrl.network = Network.data.Mainnet.id;
 
-        spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.returnValue($q.when({}));
+        spyOn(ctrl._WalletBuilder, 'createPrivateKeyWallet').and.callThrough();
 
         // Act
         ctrl.createPrivateKeyWallet();
+        $timeout.flush();
 
         // Assert: 
         expect(ctrl._WalletBuilder.createPrivateKeyWallet).toHaveBeenCalledWith(
