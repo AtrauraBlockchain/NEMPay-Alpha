@@ -114,6 +114,12 @@ h2 {
   content: "\f2ca" !important;
 }
 
+
+.appleLinks a {color:#000000; text-decoration: none;}
+
+.appleLinksWhite a {color:#ffffff; text-decoration: none;}
+
+
 /* ALERTS */
 .ng-toast.ng-toast--right .ng-toast__list {
   display: block !important;
@@ -402,6 +408,7 @@ h2 {
 }
 
 
+
 .nempay-transaction{
   margin-bottom: 10px;
   border-bottom: 1px solid #d0d0d0;
@@ -425,6 +432,13 @@ h2 {
   text-align: justify;
 }
 
+.transactions-page .appleLinks a{
+  color: $transactionreceive;
+  text-decoration: none;
+}
+.transactions-page .send-card .appleLinks a{
+  color: $transationsent;
+}
 .transaction-row {
   cursor: pointer;
   outline: 0;
