@@ -43,5 +43,8 @@ servicesModule.service('Alias', AliasService);
 import AliasAlertService from './aliasAlert.service';
 servicesModule.service('AliasAlert', AliasAlertService);
 
+// Set Alias service
+import AppVersionService from './appVersion.service';
+servicesModule.service('AppVersion', AppVersionService);
 
 export default servicesModule;

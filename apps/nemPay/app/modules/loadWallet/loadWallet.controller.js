@@ -3,7 +3,7 @@ import CryptoHelpers from '../../utils/CryptoHelpers';
 import Network from '../../utils/Network';
 
 class LoadWalletCtrl {
-    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $ionicLoading, $rootScope) {
+    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $ionicLoading, $rootScope, AppVersion) {
         'ngInject';
 
         // Local storage
@@ -47,6 +47,13 @@ class LoadWalletCtrl {
             $location.path('/balance');
         });
 
+        AppVersion.fetchAppVersion().then(version => {
+            // Get current version
+            // Compare two versions
+            // Show popup
+            console.log("result");
+            console.log(version);
+        });
     }
 
     /**
