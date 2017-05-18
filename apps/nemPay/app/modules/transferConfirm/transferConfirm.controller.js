@@ -84,9 +84,6 @@ class TransferConfirmCtrl {
         // Mosaics data
         // Counter for mosaic gid
         this.mosaicsMetaData = this._DataBridge.mosaicDefinitionMetaDataPair;
-        console.log("hello");
-        console.log(this.mosaicsMetaData);
-
         let mosaicDefinitionMetaDataPair =  this.mosaicsMetaData[this.selectedMosaic];
         this.levy = mosaicDefinitionMetaDataPair.mosaicDefinition.levy;
 

@@ -4536,9 +4536,6 @@ var TransferConfirmCtrl = function () {
         // Mosaics data
         // Counter for mosaic gid
         this.mosaicsMetaData = this._DataBridge.mosaicDefinitionMetaDataPair;
-        console.log("hello");
-        console.log(this.mosaicsMetaData);
-
         var mosaicDefinitionMetaDataPair = this.mosaicsMetaData[this.selectedMosaic];
         this.levy = mosaicDefinitionMetaDataPair.mosaicDefinition.levy;
 
@@ -12688,7 +12685,7 @@ module.exports = {
  *
  * @type {string}
  */
-var defaultTestnetNode = 'http://104.128.226.60:7778';
+var defaultTestnetNode = 'http://bob.nem.ninja:7778';
 
 /**
  * The default mainnet node
@@ -12716,7 +12713,7 @@ var defaultMainnetExplorer = 'http://chain.nem.ninja/#/transfer/';
  *
  * @type {string}
  */
-var defaultTestnetExplorer = 'http://104.128.226.60:8765/#/transfer/';
+var defaultTestnetExplorer = 'http://bob.nem.ninja:8765/#/transfer/';
 
 /**
  * The default mijin block explorer

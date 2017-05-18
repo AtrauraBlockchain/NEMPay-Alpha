@@ -5,7 +5,7 @@
  *
  * @type {string}
  */
-let defaultTestnetNode = 'http://104.128.226.60:7778';
+let defaultTestnetNode = 'http://bob.nem.ninja:7778';
 
 /**
  * The default mainnet node
@@ -33,7 +33,7 @@ let defaultMainnetExplorer = 'http://chain.nem.ninja/#/transfer/';
  *
  * @type {string}
  */
-let defaultTestnetExplorer = 'http://104.128.226.60:8765/#/transfer/';
+let defaultTestnetExplorer = 'http://bob.nem.ninja:8765/#/transfer/';
 
 /**
  * The default mijin block explorer
