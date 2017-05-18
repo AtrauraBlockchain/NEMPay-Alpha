@@ -84,6 +84,11 @@ class TransferConfirmCtrl {
         // Mosaics data
         // Counter for mosaic gid
         this.mosaicsMetaData = this._DataBridge.mosaicDefinitionMetaDataPair;
+        console.log("hello");
+        console.log(this.mosaicsMetaData);
+
+        let mosaicDefinitionMetaDataPair =  this.mosaicsMetaData[this.selectedMosaic];
+        this.levy = mosaicDefinitionMetaDataPair.mosaicDefinition.levy;
 
         if(this.selectedMosaic == 'nem:xem'){
             this.formData.isMosaicTransfer = false;
@@ -178,7 +183,7 @@ class TransferConfirmCtrl {
 
             if(this.checkAccess()) {
             // Construct transaction byte array, sign and broadcast it to the network
-
+                console.log(this.formData);
             // Build the entity to send
             let entity = this._Transactions.prepareTransfer(this.common, this.formData, this.mosaicsMetaData);
             console.log("entity");

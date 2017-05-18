@@ -161,7 +161,8 @@ let fmtLevyFee = ['fmtSupplyFilter', function(fmtSupplyFilter) {
             levyValue = (multiplier / 1000000) * mosaic.quantity * levy.fee / 10000;
         }
         let r = fmtSupplyFilter(levyValue, levy.mosaicId, mosaics);
-        return r[0] + "." + r[1];
+        if (r[1]) return r[0] + "." + r[1];
+        return r[0];
     }
 }];
 
