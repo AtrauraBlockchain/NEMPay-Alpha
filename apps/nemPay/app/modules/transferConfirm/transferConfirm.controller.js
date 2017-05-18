@@ -53,7 +53,7 @@ class TransferConfirmCtrl {
 
             this.formData.amount = this._state.params.amount;
         }
-        else this.formData.amount = 1; // Always send 1 xem in amount when sending mosaic
+        else this.formData.amount = 1; // Always send 1, this represents the amount of mosaics send
 
         var namespace_mosaic = this.selectedMosaic.split(":");
 
@@ -62,9 +62,9 @@ class TransferConfirmCtrl {
                 'namespaceId': namespace_mosaic[0],
                 'name': namespace_mosaic[1]
             },
-            'quantity': this._state.params.amount * Math.pow(10, this._state.params.divisibility),
-            'gid': 'mos_id_2' // If we are sending more than one mosaic we should increase the counter and every mosaic must have different gid starting at 2
+            'quantity': this._state.params.amount * Math.pow(10, this._state.params.divisibility)
         }];
+
 
         console.log(this._state.params.amount * Math.pow(10, this._state.params.divisibility));
 
@@ -128,7 +128,6 @@ class TransferConfirmCtrl {
             this.formData.innerFee = 0;
         }
         this.formData.fee = entity.fee;
-        if (this.selectedMosaic != 'nem:xem') this.formData.fee = this.formData.fee + 1000000;
     }
 
     /**

@@ -38,12 +38,10 @@
                     <div class="text">
                         <span>{{ 'GENERAL_FEE' | translate }}: </span>
                         <span ng-show="!parent">
-                            <span ng-show="tx.mosaics.length">{{(tx.fee + tx.amount)/1000000}}</span>
-                            <span ng-hide="tx.mosaics.length">{{(tx.fee)/1000000}}</span>
+                            <span>{{(tx.fee)/1000000}}</span>
                         </span>
                         <span ng-show="parent">
-                            <span ng-show="tx.mosaics.length">{{(tx.fee + tx.amount + parent.fee)/1000000}}</span>
-                            <span ng-hide="tx.mosaics.length">{{(tx.fee + parent.fee)/1000000}}</span>
+                            <span>{{(tx.fee + parent.fee)/1000000}}</span>
                         </span>
                         <span class="text-lowercase mosaic-name"> xem</span>
 
