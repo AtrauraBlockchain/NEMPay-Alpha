@@ -286,7 +286,18 @@ class DataBridge {
                     console.log(d);
                     this.transactions = d.data;
 
-                 });
+                    this.transactions.forEach(t => {
+                        if(undefined !== t.transaction.mosaics && t.transaction.mosaics.length) {
+                            for (let i = 0; i < t.transaction.mosaics.length; i++) {
+                                let mos = t.transaction.mosaics[i];
+                                if(undefined === this.mosaicDefinitionMetaDataPair[helpers.mosaicIdToName(mos.mosaicId)]){
+                                    // Fetch definition from network
+                                    getMosaicDefinitionMetaDataPair(mos);
+                                }
+                            }
+                        }
+                    });
+                });
                 this._$rootScope.$emit('RECENT_TRANSACTIONS_LOADED', '');
                 console.log("recenttransactions data: ", d);
 

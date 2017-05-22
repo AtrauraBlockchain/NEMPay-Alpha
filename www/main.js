@@ -108,7 +108,7 @@ _angular2.default.bootstrap(document, ['app'], {
     strictDi: true
 });
 
-},{"./app.templates":2,"./components/":7,"./config/app.config":16,"./config/app.constants":17,"./config/app.run":18,"./filters/":20,"./layout/":23,"./modules/account":26,"./modules/balance":29,"./modules/languages":31,"./modules/loadWallet":32,"./modules/register":35,"./modules/transactions":38,"./modules/transfer":41,"./modules/transferConfirm":44,"./services/":52,"angular":77,"angular-animate":70,"angular-mocks":71,"angular-sanitize":73,"angular-translate":74,"angular-ui-router":75,"bootstrap":94,"jquery":185,"ng-toast":189,"ngstorage":190}],2:[function(require,module,exports){
+},{"./app.templates":2,"./components/":7,"./config/app.config":16,"./config/app.constants":17,"./config/app.run":18,"./filters/":20,"./layout/":23,"./modules/account":26,"./modules/balance":29,"./modules/languages":31,"./modules/loadWallet":32,"./modules/register":35,"./modules/transactions":38,"./modules/transfer":41,"./modules/transferConfirm":44,"./services/":53,"angular":78,"angular-animate":71,"angular-mocks":72,"angular-sanitize":74,"angular-translate":75,"angular-ui-router":76,"bootstrap":95,"jquery":186,"ng-toast":190,"ngstorage":191}],2:[function(require,module,exports){
 "use strict";
 
 angular.module("templates", []).run(["$templateCache", function ($templateCache) {
@@ -121,8 +121,8 @@ angular.module("templates", []).run(["$templateCache", function ($templateCache)
   $templateCache.put("layout/lines/lineMultisigModification.html", "<table id=\"MSMTable\" class=\"table table-bordered table-hover\" data-toggle=\"tooltip\" data-placement=\"{{tooltipPosition}}\" title=\"{{ \'AGGREGATE_MODIFICATION_NAME\' | translate }}\" style=\"cursor:pointer;outline:0;margin-bottom:0;table-layout:fixed\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n    <tbody style=\"outline:0;\" class=\"text-center\">\n        <tr data-toggle=\"collapse\" data-target=\"#MSMtable{{number}}\">\n            <td>\n                <span class=\"fa fa-refresh text-danger\" ng-show=\"(tx.signer | fmtPubToAddress:networkId) === mainAccount\"></span>\n                <span class=\"fa fa-refresh text-success\" ng-show=\"(tx.signer | fmtPubToAddress:networkId) !== mainAccount\"></span>\n                 <tt> \n                    <span ng-show=\"!parent\">{{ \'LINE_TX_DETAILS_MULTISIG_CREATE\' | translate }}</span>\n                    <span ng-show=\"parent\">{{ \'LINE_TX_DETAILS_MULTISIG_EDIT\' | translate }}</span>\n                </tt>\n            </td>\n            <td>\n                <span ng-show=\"!parent\">\n                    <strong>{{((tx.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <span ng-show=\"parent\">\n                    <strong>{{((tx.fee+parent.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.fee+parent.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <div class=\"row\" ng-show=\"needsSignature\">\n                    <span style=\"color:red\">{{ \'LINE_TX_DETAILS_NEED_SIG_2\' | translate }}</span>\n                </div>\n            </td>\n            <td></td>\n            <td>{{tx.timeStamp |  fmtNemPayDate}}</td>\n        </tr>\n        </tody>\n</table>\n\n<div id=\"MSMtable{{number}}\" class=\"collapse\">\n    <div class=\"accordion-inner\" style=\"padding-left: 8px; background-color: #e3e0cf;\">\n        <div class=\"row\" ng-show=\"!parent\">\n            <div class=\"col-sm-12\"><b>{{ \'AGGREGATE_MODIFICATION_NAME\' | translate }}</b></div>\n        </div>\n        <div class=\"row\" ng-show=\"parent\">\n            <div class=\"col-sm-12\"><b>{{ \'AGGREGATE_MODIFICATION_MULTISIG_NAME\' | translate }}</b></div>\n        </div>\n\n            <div class=\"row\">\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n            </div>\n\n        <div ng-show=\"parent\">\n\n            <div class=\"row\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_ISSUER\' | translate }}</b></div>\n                <div class=\"col-sm-9\">\n                    <tt>{{parent.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                </div>\n            </div>\n\n            <div class=\"row\">\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n            </div>\n\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_FEE\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                {{(tx.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(tx.fee | fmtNemValue)[1]}}</span> XEM\n            </div>\n        </div>\n\n        <div class=\"row\" ng-show=\"parent\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_FEE\' | translate }}</b></div>\n            <div class=\"col-sm-9\">{{(parent.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(parent.fee | fmtNemValue)[1]}}</span> XEM</div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_AFFECTED\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                {{tx.signer | fmtPubToAddress:networkId | fmtAddress}}\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_MOD\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                {{tx.modifications.length}}\n            </div>\n        </div>\n        <div class=\"row\" ng-show=\"tx.minCosignatories\">\n            <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_MIN_COSIG\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <tt>{{tx.minCosignatories.relativeChange}}</tt>\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\" >\n                <strong>{{ \'AGGREGATE_MODIFICATION_LIST\' | translate }}: </strong>\n            </div>\n        </div>\n\n        <div class=\"row\" ng-repeat=\"mod in tx.modifications\">\n            <div class=\"col-sm-1\">&nbsp;</div>\n            <div class=\"col-sm-2\"><b><span ng-show=\"mod.modificationType === 1\">{{ \'GENERAL_ADDED\' | translate }}</span><span ng-show=\"mod.modificationType === 2\">{{ \'GENERAL_REMOVED\' | translate }}</span></b></div>\n            <div class=\"col-sm-9\">\n                <tt>{{mod.cosignatoryAccount | fmtPubToAddress:networkId | fmtAddress}}</tt>\n            </div>\n        </div>\n\n        <div class=\"row\" ng-show=\"parent.signatures.length\">\n\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n\n                <div class=\"col-sm-12\" >\n                    <strong>{{ \'LINE_TX_DETAILS_SIGNATURES\' | translate }}: </strong>\n                </div>\n            </div>\n\n            <div ng-repeat=\"sig in parent.signatures\">\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_COSIGNATORY\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.signer | fmtPubToAddress:networkId | fmtAddress}}</div>\n                </div>\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_TIMESTAMP\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.timeStamp |  fmtNemPayDate}}</div>\n                </div>\n            </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-12\">\n                <hr style=\"border-style: dashed;margin:5px;\" />\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_BLOCK\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <span ng-show=\"{{meta.height}} !== 9007199254740991\">{{meta.height}}</span>\n                <span ng-show=\"{{meta.height}} === 9007199254740991\">{{ \'LINE_TX_DETAILS_WAITING\' | translate }}\n                        <span ng-if=\"parent\">- {{ \'LINE_TX_DETAILS_NEED_SIG\' | translate }}</span></span>\n            </div>\n        </div>\n        \n            <div class=\"row\">\n                <div class=\"col-sm-3\"> \n                    <b>{{ \'LINE_TX_DETAILS_HASH\' | translate }}</b>\n                </div>\n                <div class=\"col-sm-9\">\n                    <span ng-show=\"parent\"> {{meta.innerHash.data}} </span>\n                    <span ng-show=\"!parent\"> {{meta.hash.data}} </span>\n                </div>\n            </div>\n\n            <div class=\"row\" ng-show=\"parent\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_HASH\' | translate }}</b></div>\n                <div class=\"col-sm-9\"><tt>{{meta.hash.data}}</tt></div>\n            </div>\n\n    </div>\n\n    <div style=\"padding: 5px 30px;background-color: rgb(65, 191, 118);\" ng-show=\"needsSignature\">\n        <div class=\"input-group\">\n            <input type=\"password\" class=\"form-control ng-valid ng-touched ng-dirty ng-valid-parse\" ng-model=\"walletScope.common.password\" id=\"passwordDecoding\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" aria-invalid=\"false\">\n            <span class=\"input-group-btn\">\n                <button class=\"btn btn-default\" style=\"color: white; border-radius: 0px; border-color:#444;\" type=\"button\" ng-click=\"walletScope.cosign(parent, tx, meta)\">{{ \'LINE_TX_DETAILS_COSIGN\' | translate }}</button>\n            </span>\n        </div>\n    </div>\n\n</div>");
   $templateCache.put("layout/lines/lineProvisionNamespace.html", "<table id=\"NSTable\" class=\"table table-bordered table-hover\" data-toggle=\"tooltip\" data-placement=\"{{tooltipPosition}}\" title=\"{{ \'NAMESPACE_PROVISION_NAME\' | translate }}\" style=\"cursor:pointer;outline:0;margin-bottom:0;table-layout:fixed\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n    <tbody style=\"outline:0;\" class=\"text-center\">\n        <tr data-toggle=\"collapse\" data-target=\"#NStable{{number}}\">\n            <td style=\"overflow:hidden;text-overflow: ellipsis;\"><span class=\"fa fa-upload text-danger\" ng-show=\"!parent\"></span> <span class=\"fa fa-group text-danger\" ng-show=\"parent\"></span> <tt>{{ \'LINE_TX_DETAILS_NS_CREATE\' | translate }} \"<span class=\"text-muted\">{{tx.parent}}</span><span ng-show=\"tx.parent\">.</span><strong>{{tx.newPart}}</strong>\"</tt></td>\n            <td>\n                <span ng-show=\"!parent\">\n                    <strong>{{((tx.rentalFee+tx.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.rentalFee+tx.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <span ng-show=\"parent\">\n                    <strong>{{((tx.rentalFee+tx.fee+parent.fee) | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{((tx.rentalFee+tx.fee+parent.fee) | fmtNemValue)[1]}}</span> XEM\n                </span>\n                <div class=\"row\" ng-show=\"needsSignature\">\n                    <span style=\"color:red\">{{ \'LINE_TX_DETAILS_NEED_SIG_2\' | translate }}</span>\n                </div>\n            </td>\n            <td></td>\n            <td>{{tx.timeStamp |  fmtNemPayDate}}</td>\n        </tr>\n        </tody>\n</table>\n\n<div id=\"NStable{{number}}\" class=\"collapse\">\n    <div class=\"accordion-inner\" style=\"padding-left: 8px; background-color: #e3e0cf;\">\n                <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <strong>\n                            <span ng-show=\"!parent\">{{ \'NAMESPACE_PROVISION_NAME\' | translate }}</span>\n                            <span ng-show=\"parent\">{{ \'NAMESPACE_PROVISION_MULTISIG_NAME\' | translate }}</span>\n                        </strong>\n                    </div>\n                </div>\n\n                <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <hr style=\"border-style: dashed;margin:5px;\" />\n                    </div>\n                </div>\n\n                <div ng-show=\"parent\">\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-3\"><b>{{ \'GENERAL_MULTISIG_ACCOUNT\' | translate }}</b></div>\n                        <div class=\"col-sm-9\">\n                            <tt>{{tx.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                        </div>\n                    </div>\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_ISSUER\' | translate }}</b></div>\n                        <div class=\"col-sm-9\">\n                            <tt>{{parent.signer | fmtPubToAddress:networkId | fmtAddress}}</tt>\n                        </div>\n                    </div>\n\n                    <div class=\"row\">\n                        <div class=\"col-sm-12\">\n                            <hr style=\"border-style: dashed;margin:5px;\" />\n                        </div>\n                    </div>\n\n                </div>\n\n                <div class=\"row\">\n                    <div class=\"col-sm-3\"><b>{{ \'GENERAL_AMOUNT\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">\n                        <strong>{{(tx.rentalFee | fmtNemValue)[0]}}</strong>.<span class=\"text-muted\">{{(tx.rentalFee | fmtNemValue)[1]}}</span> XEM\n                    </div>\n                </div>\n                <div class=\"row\">\n                    <div class=\"col-sm-3\"><b>{{ \'GENERAL_FEE\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">\n                        {{(tx.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(tx.fee | fmtNemValue)[1]}}</span> XEM\n                    </div>\n                </div>\n\n                <div class=\"row\" ng-show=\"parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_FEE\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{(parent.fee | fmtNemValue)[0]}}.<span class=\"text-muted\">{{(parent.fee | fmtNemValue)[1]}}</span> XEM</div>\n                </div>\n\n                <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <hr style=\"border-style: dashed;margin:5px;\" />\n                    </div>\n                </div>\n\n                <div class=\"row\" ng-show=\"!tx.parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'NAMESPACE_PROVISION_NEW_ROOT\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{tx.newPart}}</div>\n                </div>\n\n                <div class=\"row\" ng-show=\"tx.parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_NS_ROOT\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{tx.parent}}</div>\n                </div>\n\n                <div class=\"row\" ng-show=\"tx.parent\">\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_NS_NEW_SUB\' | translate }}</b></div>\n                    <div class=\"col-sm-9\">{{tx.newPart}}</div>\n                </div>\n\n                <div class=\"row\" ng-show=\"parent.signatures.length\">\n\n                <div class=\"col-sm-12\">\n                    <hr style=\"border-style: dashed;margin:5px;\" />\n                </div>\n\n                <div class=\"col-sm-12\" >\n                    <strong>{{ \'LINE_TX_DETAILS_SIGNATURES\' | translate }}: </strong>\n                </div>\n            </div>\n\n            <div ng-repeat=\"sig in parent.signatures\">\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_COSIGNATORY\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.signer | fmtPubToAddress:networkId | fmtAddress}}</div>\n                </div>\n                <div class=\"row\">\n                    <div class=\"col-sm-1\">&nbsp;</div>\n                    <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_TIMESTAMP\' | translate }}</b></div>\n                    <div class=\"col-sm-8\">{{sig.timeStamp |  fmtNemPayDate}}</div>\n                </div>\n            </div>\n\n            <div class=\"row\">\n                    <div class=\"col-sm-12\">\n                        <hr style=\"border-style: dashed;margin:5px;\" />\n                    </div>\n                </div>\n        \n        <div class=\"row\">\n            <div class=\"col-sm-3\"><b>{{ \'GENERAL_BLOCK\' | translate }}</b></div>\n            <div class=\"col-sm-9\">\n                <span ng-show=\"{{meta.height}} !== 9007199254740991\">{{meta.height}}</span>\n                <span ng-show=\"{{meta.height}} === 9007199254740991\">{{ \'LINE_TX_DETAILS_WAITING\' | translate }} <span ng-show=\"parent\">- {{ \'LINE_TX_DETAILS_NEED_SIG\' | translate }}</span></span>\n            </div>\n        </div>\n\n        <div class=\"row\">\n                <div class=\"col-sm-3\"> \n                    <b>{{ \'LINE_TX_DETAILS_HASH\' | translate }}</b>\n                </div>\n                <div class=\"col-sm-9\">\n                    <span ng-show=\"parent\"> {{meta.innerHash.data}} </span>\n                    <span ng-show=\"!parent\"> {{meta.hash.data}} </span>\n                </div>\n            </div>\n\n            <div class=\"row\" ng-show=\"parent\">\n                <div class=\"col-sm-3\"><b>{{ \'LINE_TX_DETAILS_MULTISIG_HASH\' | translate }}</b></div>\n                <div class=\"col-sm-9\"><tt>{{meta.hash.data}}</tt></div>\n            </div>\n\n    </div>\n\n    <div style=\"padding: 5px 30px;background-color: rgb(65, 191, 118);\" ng-show=\"needsSignature\">\n        <div class=\"input-group\">\n            <input type=\"password\" class=\"form-control ng-valid ng-touched ng-dirty ng-valid-parse\" ng-model=\"walletScope.common.password\" id=\"passwordDecoding\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" aria-invalid=\"false\">\n            <span class=\"input-group-btn\">\n                <button class=\"btn btn-default\" style=\"color: white; border-radius: 0px; border-color:#444;\" type=\"button\" ng-click=\"walletScope.cosign(parent, tx, meta)\">{{ \'LINE_TX_DETAILS_COSIGN\' | translate }}</button>\n            </span>\n        </div>\n    </div>\n\n</div>");
   $templateCache.put("layout/lines/lineTransfer.html", "<table id=\"txTable\" class=\"table table-bordered table-hover transaction-row\"\n       title=\"{{ \'TRANSFER_TRANSACTION_NAME\' | translate }}\" ng-click=\"displayTransactionDetails(parent, tx, meta)\">\n    <tbody style=\"outline:0;\">\n    <tr data-toggle=\"collapse\" data-target=\"#table{{number}}\" style=\"outline:0\">\n        <td>\n            <div ng-class=\"{\'send-card\': tx.recipient !== mainAccount && !parent}\" class=\"transition-card\">\n\n\n         <span ng-show=\"tx.mosaics.length\">\n            <span ng-repeat=\"mos in tx.mosaics\">\n               <span>\n                  <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:mosaicDefinitionMetaDataPair)[0]}}</h2>\n                   <span class=\"text-lowercase mosaic-name\">{{mos.mosaicId.name}}</span>\n               </span>\n            </span>\n             <span class=\"pull-right\" ng-show=\"tx.mosaics.length\">\n                  {{tx.timeStamp | fmtNemPayDate}}\n                  <span ng-repeat=\"sig in parent.signatures\">\n                     <span>{{sig.timeStamp |  fmtNemPayDate}}</span>\n                  </span>\n             </span>\n         </span>\n            </div>\n            <div ng-class=\"{\'send-card\': tx.recipient !== mainAccount && !parent}\" class=\"transition-card\">\n            <span ng-hide=\"tx.mosaics.length\">\n                  <h2>{{(tx.amount) /1000000}}</h2>\n                  <span class=\"text-lowercase mosaic-name\"> xem</span>\n               <span class=\"pull-right\">\n                  {{tx.timeStamp | fmtNemPayDate}}\n                  <span ng-repeat=\"sig in parent.signatures\">\n                     <span>{{sig.timeStamp |  fmtNemPayDate}}klf</span>\n                  </span>\n               </span>\n            </span>\n            </div>\n            <div ng-show=\"(tx.recipient !== mainAccount && !parent) || (parent.otherTrans.recipient !== mainAccount && parent)\">\n                <small class=\"address\">\n                    <div class=\"text\">\n                        <span>{{ \'GENERAL_FEE\' | translate }}: </span>\n                        <span ng-show=\"!parent\">\n                            <span>{{(tx.fee)/1000000}}</span>\n                        </span>\n                        <span ng-show=\"parent\">\n                            <span>{{(tx.fee + parent.fee)/1000000}}</span>\n                        </span>\n                        <span class=\"text-lowercase mosaic-name\"> xem</span>\n\n                        <span ng-show=\"tx.mosaics.length\">\n                            <span ng-repeat=\"mos in tx.mosaics\">\n                                <tag-levy mos=\"mos\" tx=\"tx\" mosaics=\"mosaicDefinitionMetaDataPair\">\n                                    <div ng-show=\"levy.type\">\n                                        <span>{{ \'FORM_SIDE_BTN_LEVY_FEE\' | translate }}: </span>\n                                        {{mos | fmtLevyFee:tx.amount:levy:mosaics}} <span class=\"text-lowercase mosaic-name\"> {{levy.mosaicId.name}}</span>\n                                    </div>\n                                </tag-levy>\n                            </span>\n                        </span>\n                    </div>\n                </small>\n            </div>\n            <div>\n                <small class=\"address\" ng-show=\"tx.recipient !== mainAccount && !parent\"> <div class=\"text\"><b>To:</b> <span\n                        ng-bind-html=\'tx.recipient\'></span></div></small>\n                <small class=\"selectable address\" ng-show=\"tx.recipient === mainAccount && !parent\"><div\n                        class=\"text\"><b>{{ \'LINE_TX_DETAILS_FROM\' | translate }}:</b>  <span\n                        ng-bind-html=\'tx.signer | fmtPubToAddress:networkId\'></span></div></small>\n            </div>\n            <div>\n                <span class=\"transaction-message\" ng-show=\"tx.message.type === 1\">{{tx.message | fmtHexMessage}}</span>\n                <span ng-show=\"tx.message.type === 2\" id=\"line-{{tx.timeStamp}}\">\n               {{ \'LINE_TX_DETAILS_MESS_ENC\' | translate }}\n               <div ng-show=\"!requiresKey\">\n                  {{decoded | fmtHexMessage}}\n               </div>\n            </span>\n            </div>\n        </td>\n    </tr>\n    </tbody>\n</table>");
-  $templateCache.put("modules/account/account.html", "<ion-content class=\"has-header\">\n   <div class=\"page-account\">\n      <div class=\"container\">\n         <div class=\"content double-padding\">\n            <div id=\"accountInfoQR\"></div>\n            <div class=\"address separator\">\n               <h4>{{ \'GENERAL_ADDRESS\' | translate }}</h4>\n               <p><span show-account-data=\"address\" ng-class=\"selectable\"></span></p>\n               <button  ng-click=\"$ctrl.shareAnywhere()\" class=\"button button-block button-nem\">\n                  {{ \'ACCOUNT_SHARE_ADDRESS\' | translate }}</button>\n            </div>\n            <div class=\"private-key separator\">\n               <h4>{{ \'GENERAL_PRIVATE_KEY\' | translate }}</h4>\n               <div><small>\n                  {{ \'ACCOUNT_VIEW_PRIVATE_KEY_TEXT\' | translate }}</small></div>\n               <div class=\"input-group\">\n                  <input  class=\"item item-input item-floating-label full-width form-control-lg\" type=\"password\" ng-model=\"$ctrl.common.password\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" ng-show=\"!$ctrl.showPrivateKeyField\" style=\"width: 80%; float: left;\"/>\n                  <input class=\"item item-input item-floating-label full-width form-control-lg\" ng-show=\"$ctrl.showPrivateKeyField\" ng-model=\"$ctrl.common.privateKey\" readOnly style=\"width: 80%; float: left;\"></input>\n                  <span class=\"input-group-btn showHide\" style=\"width: 19%; margin-left:1%; float: left;\">\n                     <button class=\"button button-nem button-plus\" type=\"button\"  ng-show=\"!$ctrl.showPrivateKeyField\" ng-click=\"$ctrl.showPrivateKey()\" title=\"{{ \'ACCOUNT_PRIVATE_KEY_SHOW\' | translate }}\">\n                     <i class=\"fa fa-plus\"></i>\n                     </button>\n                     <button class=\"button button-nem button-plus\" type=\"button\" ng-show=\"$ctrl.showPrivateKeyField\" ng-click=\"$ctrl.clearSensitiveData()\" title=\"{{ \'GENERAL_CLEAR_ALL\' | translate }}\">\n                     <i class=\"fa fa-minus\"></i>\n                     </button>\n                     </span>\n               </div>\n            </div>\n            <button ng-click=\"$ctrl.logout()\" class=\"button button-block button-nem\">{{ \'LOGOUT\' | translate }}</button>\n         </div>\n      </div>\n   </div>\n</ion-content>");
   $templateCache.put("modules/balance/balance.html", "<ion-content class=\"has-header initial\">\n   <div class=\"page-balance\">\n      <div class=\"content double-padding\" >\n         <div class=\"list\"  ng-show=\"$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]\">\n            <div class=\"item item-avatar item-icon-right\" ng-repeat=\"mos in $ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]\" ng-click=\'$ctrl.moveToTransfer(mos)\'>\n               <img ng-src=\"images/assets/xem.png\"/>\n\n               <h2>{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[0]}}<span class=\"text-muted\"><span ng-if=\"(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1] && (mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1] != \'000000\'\">.</span><span ng-if=\"(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1] != \'000000\'\">{{(mos.quantity | fmtSupply:mos.mosaicId:$ctrl._DataBridge.mosaicDefinitionMetaDataPair)[1]}}</span></span> <span class=\"mosaic-name\">{{mos.mosaicId.name}}</span></h2>\n               <p><b>{{mos.mosaicId.namespaceId}}</b>:{{mos.mosaicId.name}}</p>\n            </div>\n         </div>\n      </div>\n   </div>\n</ion-content>\n<div class=\"button-bottom-container\" ng-show=\"$ctrl._DataBridge.mosaicOwned[$ctrl._Wallet.currentAccount.address]\">\n   <div class=\"button-position\"> <a ui-sref=\"app.transfer({selectedMosaic: \'nem:xem\'})\" class=\"button button-fab button-nem icon ion-paper-airplane\"></a></div>\n</div>");
+  $templateCache.put("modules/account/account.html", "<ion-content class=\"has-header\">\n   <div class=\"page-account\">\n      <div class=\"container\">\n         <div class=\"content double-padding\">\n            <div id=\"accountInfoQR\"></div>\n            <div class=\"address separator\">\n               <h4>{{ \'GENERAL_ADDRESS\' | translate }}</h4>\n               <p><span show-account-data=\"address\" ng-class=\"selectable\"></span></p>\n               <button  ng-click=\"$ctrl.shareAnywhere()\" class=\"button button-block button-nem\">\n                  {{ \'ACCOUNT_SHARE_ADDRESS\' | translate }}</button>\n            </div>\n            <div class=\"private-key separator\">\n               <h4>{{ \'GENERAL_PRIVATE_KEY\' | translate }}</h4>\n               <div><small>\n                  {{ \'ACCOUNT_VIEW_PRIVATE_KEY_TEXT\' | translate }}</small></div>\n               <div class=\"input-group\">\n                  <input  class=\"item item-input item-floating-label full-width form-control-lg\" type=\"password\" ng-model=\"$ctrl.common.password\" placeholder=\"{{\'FORM_PASSWORD_FIELD_PLACEHOLDER\' | translate }}\" ng-show=\"!$ctrl.showPrivateKeyField\" style=\"width: 80%; float: left;\"/>\n                  <input class=\"item item-input item-floating-label full-width form-control-lg\" ng-show=\"$ctrl.showPrivateKeyField\" ng-model=\"$ctrl.common.privateKey\" readOnly style=\"width: 80%; float: left;\"></input>\n                  <span class=\"input-group-btn showHide\" style=\"width: 19%; margin-left:1%; float: left;\">\n                     <button class=\"button button-nem button-plus\" type=\"button\"  ng-show=\"!$ctrl.showPrivateKeyField\" ng-click=\"$ctrl.showPrivateKey()\" title=\"{{ \'ACCOUNT_PRIVATE_KEY_SHOW\' | translate }}\">\n                     <i class=\"fa fa-plus\"></i>\n                     </button>\n                     <button class=\"button button-nem button-plus\" type=\"button\" ng-show=\"$ctrl.showPrivateKeyField\" ng-click=\"$ctrl.clearSensitiveData()\" title=\"{{ \'GENERAL_CLEAR_ALL\' | translate }}\">\n                     <i class=\"fa fa-minus\"></i>\n                     </button>\n                     </span>\n               </div>\n            </div>\n            <button ng-click=\"$ctrl.logout()\" class=\"button button-block button-nem\">{{ \'LOGOUT\' | translate }}</button>\n         </div>\n      </div>\n   </div>\n</ion-content>");
   $templateCache.put("modules/loadWallet/loadWallet.html", "<ion-content scroll=\"false\">\n   <div class=\"login-page text-center\">\n      <div class=\"hero no-header flat hide-on-keyboard-open\">\n         <div class=\"content\">\n            <img class=\"logo\" src=\"images/logo-b.png\"/>\n         </div>\n      </div>\n      <div class=\"list\">\n         <label class=\"item item-input item-md-label\" type=\"text\">\n            <select selectclick ng-model=\"$ctrl.selectedWallet\" ng-options=\"wallet.name group by (wallet.accounts[0].network | toNetworkName) for wallet in $ctrl._storage.wallets\">\n               <option value=\"\" disabled selected>{{ \'LOGIN_SELECT_WALLET_YOURS\' | translate }}</option>\n            </select>\n         </label>\n\n         <label class=\"item item-input item-md-label\" placeholder=\"Wallet Password\" highlight-color=\"energized\" type=\"password\">\n            <input type=\"password\" ng-model=\"$ctrl.common.password\" placeholder=\"Wallet Password\"  ng-keypress=\"$ctrl.onEnter($event)\"/>\n            <div class=\"highlight highlight-nem\"></div>\n         </label>\n      </div>\n      <div class=\"small-padding\">\n         <button class=\"button button-block button-light border-radius-none\"\n                 type=\"submit\" ng-click=\"$ctrl.login($ctrl.selectedWallet)\" ng-disabled=\"!$ctrl.selectedWallet\">\n            {{ \'LOGIN_LOGIN_BUTTON\' | translate }}\n         </button>\n      </div>\n\n\n      <div class=\"small-padding\">\n         <a  ui-sref=\"app.register\" class=\"button button-block button-light button-outline-light border-radius-none\" style=\"display: block;\">\n            {{ \'SIGNUP_SIGNUP\' | translate }}\n         </a>\n      </div>\n\n\n      <div class=\"padding\">\n         <div class=\"form-group\">\n            <button class=\"fileUpload btn-import\">\n               <span>{{ \'LOGIN_IMPORT_BUTTON\' | translate }}</span>\n               <input type=\"file\" accept=\"*/*\" class=\"upload\" multiple=\'multiple\' read-wallet-files=\"$ctrl.loadWallet($fileContent, $isNCC)\" />\n            </button>\n         </div>\n      </div>\n   </div>\n\n</ion-content>");
   $templateCache.put("modules/register/register.html", "<ion-content class=\"has-header\">\n\n  <div class=\"register-page\">\n\n    <div class=\"content double-padding\">\n\n      <div ng-show=\"$ctrl._selectedType.type == 1\">\n        <!-- SIMPLE WALLET -->\n        <form>\n          <!-- WALLET NAME -->\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\" placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\" ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n          <!-- SELECT NETWORK -->\n\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select  selectclick ng-model=\"$ctrl.network\"\n                     ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                     ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n\n          <!-- SIMPLE WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_CREATE_WALLET_WARNING\' | translate\"></span>\n          </p>\n\n          <div>\n            <button class=\"button button-block button-positive button-nem ink\"\n                    type=\"submit\" ng-click=\"$ctrl.createWallet()\"  ng-keypress=\"$ctrl.onEnter($event)\">\n              {{\'SIGNUP_CREATE_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n      <div ng-show=\"$ctrl._selectedType.type == 2\">\n        <!-- BRAIN WALLET -->\n        <form>\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\" ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n\n          <!-- SELECT NETWORK -->\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSPHRASE_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n          <!-- BRAIN WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_BRAIN_WALLET_WARNING\' | translate\"></span>\n          </p>\n          <!-- CONFIRM BUTTON -->\n          <div>\n\n            <button class=\"button button-block button-positive button-nem ink\"\n                    type=\"submit\" ng-click=\"$ctrl.createBrainWallet()\"  ng-keypress=\"$ctrl.onEnter($event)\">\n              {{\'SIGNUP_BRAIN_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n      <div ng-show=\"$ctrl._selectedType.type == 3\">\n        <!-- PRIVATE KEY WALLET -->\n        <form>\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"text\"\n                   placeholder=\"{{\'FORM_WALLET_NAME_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.walletName\"/>\n          </label>\n\n          <!-- PRIVATE KEY OF ADDRESS TO ADD -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{\'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER\' | translate}}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_PRIVATE_KEY_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.privateKey\" />\n\n          </label>\n\n          <!-- SELECT NETWORK -->\n          <label class=\"item item-input item-select\">\n            <span class=\"input-label\">{{\'SIGNUP_NETWORK_SELECT\' | translate}}</span>\n            <select selectclick ng-model=\"$ctrl.network\"\n                    ng-change=\"$ctrl.changeNetwork($ctrl.network)\"\n                    ng-options=\"network.id as (network.id | toNetworkName) for network in $ctrl.networks\">\n              <option value=\"\" disabled selected>{{\'SIGNUP_NETWORK_SELECT\' | translate}}</option>\n            </select>\n          </label>\n\n          <!-- PASSWORD FIELD -->\n\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">{{ \'FORM_PASSWORD\' | translate }}</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_SIGNUP_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.password\" ng-model=\"$ctrl.formData.password\"/>\n          </label>\n\n\n          <!-- PASSWORD FIELD CONFIRM -->\n          <label class=\"item item-input item-floating-label\">\n            <span class=\"input-label\">Confirm {{ \'FORM_PASSWORD\' | translate }}:</span>\n            <input type=\"password\"\n                   placeholder=\"{{\'FORM_CONFIRM_PASSWORD_FIELD_PLACEHOLDER\' | translate}}\"\n                   ng-model=\"$ctrl.formData.confirmPassword\"/>\n          </label>\n\n          <!-- PRIVATE KEY WALLET WARNING -->\n          <p class=\"bg-info\">\n            <i class=\"fa fa-exclamation-triangle\"></i>\n            <span ng-bind-html=\"\'SIGNUP_PRIVATE_KEY_WALLET_WARNING\' | translate\"></span>\n          </p>\n\n\n          <!-- CONFIRM BUTTON -->\n          <div>\n            <button class=\"button button-block button-positive button-nem\"\n                    type=\"submit\"\n                    ng-click=\"$ctrl.createPrivateKeyWallet()\"  ng-keypress=\"$ctrl.onEnter($event)\">\n              {{\'SIGNUP_PRIVATE_KEY_WALLET_BUTTON\' | translate}}\n            </button>\n          </div>\n        </form>\n      </div>\n\n    </div>\n  </div>\n\n  <a id=\"downloadWallet\" target=\"_blank\"></a>\n</ion-content>\n\n<div class=\"tabs\">\n\n  <ion-tabs class=\"tabs-positive  tabs-nem tabs-icon-top\">\n\n    <ion-tab title=\"{{\'SIGNUP_CREATE_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(1)\" icon-on=\"ion-ios-filing\" icon-off=\"ion-ios-filing-outline\"></ion-tab>\n\n    <ion-tab title=\"{{\'SIGNUP_BRAIN_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(2)\" icon-on=\"ion-ios-clock\" icon-off=\"ion-ios-clock-outline\"></ion-tab>\n\n    <ion-tab title=\"{{\'SIGNUP_PRIVATE_KEY_WALLET_TITLE\' | translate}}\" on-select=\"$ctrl.changeWalletType(3)\" icon-on=\"ion-key\" icon-off=\"ion-key\"></ion-tab>\n\n  </ion-tabs>\n\n</div>\n");
   $templateCache.put("modules/transactions/transactions.html", "<ion-content class=\"has-header\">\n    <div class=\"transactions-page\">\n        <div class=\"content double-padding\">\n            <div ng-show=\"$ctrl.transactionTab == 0\">\n                <table class=\"table\">\n                    <tbody>\n                        <div ng-repeat=\"tx in $ctrl._DataBridge.transactions | orderBy:\'-transaction.timeStamp\'\" class=\"nempay-transaction\" ng-if=\"tx.transaction.type == 257\">\n                            <!-- Only if is a XEM or Mosaic transacton -->\n                            <nempay-transaction d=\"tx\" z=\"$ctrl._Wallet.currentAccount.address\" h=\"$ctrl._DataBridge\" tooltip-position=\"\'left\'\"></nempay-transaction>\n                        </div>\n                    </tbody>\n                </table>\n\n                <div class=\"panel-body nothing\" ng-show=\"$ctrl._DataBridge.transactions.length == 0\">\n                    <p>{{ \'GENERAL_NO_RESULTS\' | translate }}</p>\n                </div>\n\n            </div>\n            <div ng-show=\"$ctrl.transactionTab == 1\">\n                <table class=\"table\">\n                    <tbody>\n                        <div ng-repeat=\"tx in $ctrl._DataBridge.unconfirmed | orderBy:\'-transaction.timeStamp\'\" class=\"nempay-transaction\" ng-if=\"tx.transaction.type == 257\">\n                            <!-- Only if is a XEM or Mosaic transacton -->\n                            <nempay-transaction d=\"tx\" z=\"$ctrl._Wallet.currentAccount.address\" h=\"$ctrl._DataBridge\" tooltip-position=\"\'left\'\"></nempay-transaction>\n                        </div>\n                    </tbody>\n                </table>\n\n                <div class=\"panel-body nothing\" ng-show=\"$ctrl._DataBridge.unconfirmed.length == 0\">\n                    <p>{{ \'GENERAL_NO_RESULTS\' | translate }}</p>\n                </div>\n            </div>\n\n        </div>\n    </div>\n</ion-content>\n\n<div class=\"tabs\">\n\n    <ion-tabs class=\"tabs-positive  tabs-nem tabs-icon-top\">\n\n        <ion-tab title=\"{{\'DASHBOARD_CONFIRMED\' | translate}}\" on-select=\"$ctrl.changeTransactionsTab(0)\" icon-on=\"ion-ios-filing\" icon-off=\"ion-ios-filing-outline\"></ion-tab>\n\n        <ion-tab title=\"{{\'DASHBOARD_UNCONFIRMED\' | translate}}\" on-select=\"$ctrl.changeTransactionsTab(1)\" icon-on=\"ion-ios-clock\" icon-off=\"ion-ios-clock-outline\"></ion-tab>\n\n    </ion-tabs>\n\n</div>");
@@ -216,7 +216,7 @@ function importAddressBookFile($parse, Alert) {
 
 exports.default = importAddressBookFile;
 
-},{"../utils/helpers":66}],5:[function(require,module,exports){
+},{"../utils/helpers":67}],5:[function(require,module,exports){
 'use strict';
 
 ImportApostilleFiles.$inject = ["$parse", "Alert"];
@@ -316,7 +316,7 @@ function importNtyFile($parse, Alert) {
 
 exports.default = importNtyFile;
 
-},{"../utils/helpers":66}],7:[function(require,module,exports){
+},{"../utils/helpers":67}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -430,7 +430,7 @@ componentsModule.directive('nempayTransaction', _nempayTransaction2.default);
 
 exports.default = componentsModule;
 
-},{"./appBackground.directive":3,"./importAddressBookFile.directive":4,"./importApostilleFiles.directive":5,"./importNtyFile.directive":6,"./nempayTransaction.directive":8,"./readWalletFiles.directive":9,"./show-authed.directive":10,"./showAccountData.directive":11,"./showBlockHeight.directive":12,"./showNetworkStatus.directive":13,"./tagLevy.directive":14,"./tagTransaction.directive":15,"angular":77}],8:[function(require,module,exports){
+},{"./appBackground.directive":3,"./importAddressBookFile.directive":4,"./importApostilleFiles.directive":5,"./importNtyFile.directive":6,"./nempayTransaction.directive":8,"./readWalletFiles.directive":9,"./show-authed.directive":10,"./showAccountData.directive":11,"./showBlockHeight.directive":12,"./showNetworkStatus.directive":13,"./tagLevy.directive":14,"./tagTransaction.directive":15,"angular":78}],8:[function(require,module,exports){
 'use strict';
 
 NemPayTransaction.$inject = ["NetworkRequests", "Alert", "Wallet", "$filter", "Transactions", "$timeout", "$state"];
@@ -627,7 +627,7 @@ function NemPayTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions
 
 exports.default = NemPayTransaction;
 
-},{"../utils/Address":58,"../utils/CryptoHelpers":59,"../utils/KeyPair":60,"../utils/Network":61,"../utils/helpers":66}],9:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/CryptoHelpers":60,"../utils/KeyPair":61,"../utils/Network":62,"../utils/helpers":67}],9:[function(require,module,exports){
 'use strict';
 
 ReadWalletFiles.$inject = ["$parse", "Alert"];
@@ -688,7 +688,7 @@ function ReadWalletFiles($parse, Alert) {
 
 exports.default = ReadWalletFiles;
 
-},{"../utils/helpers":66}],10:[function(require,module,exports){
+},{"../utils/helpers":67}],10:[function(require,module,exports){
 'use strict';
 
 ShowAuthed.$inject = ["Wallet"];
@@ -902,7 +902,7 @@ function TagLevy(AppConstants) {
 
 exports.default = TagLevy;
 
-},{"../utils/helpers":66}],15:[function(require,module,exports){
+},{"../utils/helpers":67}],15:[function(require,module,exports){
 'use strict';
 
 TagTransaction.$inject = ["NetworkRequests", "Alert", "Wallet", "$filter", "Transactions", "$timeout", "$state"];
@@ -1106,7 +1106,7 @@ function TagTransaction(NetworkRequests, Alert, Wallet, $filter, Transactions, $
 
 exports.default = TagTransaction;
 
-},{"../utils/Address":58,"../utils/CryptoHelpers":59,"../utils/KeyPair":60,"../utils/Network":61,"../utils/helpers":66}],16:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/CryptoHelpers":60,"../utils/KeyPair":61,"../utils/Network":62,"../utils/helpers":67}],16:[function(require,module,exports){
 'use strict';
 
 AppConfig.$inject = ["$httpProvider", "$stateProvider", "$locationProvider", "$urlRouterProvider", "ngToastProvider", "$translateProvider", "$ionicConfigProvider"];
@@ -1696,7 +1696,7 @@ module.exports = {
     fmtNemPayDate: fmtNemPayDate
 };
 
-},{"../utils/Address":58,"../utils/Network":61,"../utils/convert":65,"../utils/helpers":66}],20:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/Network":62,"../utils/convert":66,"../utils/helpers":67}],20:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1741,7 +1741,7 @@ filtersModule.filter('fmtAlias', _filters2.default.fmtAlias);
 
 exports.default = filtersModule;
 
-},{"./filters":19,"angular":77}],21:[function(require,module,exports){
+},{"./filters":19,"angular":78}],21:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -2019,7 +2019,7 @@ var AppHeader = {
 
 exports.default = AppHeader;
 
-},{"../utils/Network":61,"../utils/helpers":66,"../utils/nodes":68}],23:[function(require,module,exports){
+},{"../utils/Network":62,"../utils/helpers":67,"../utils/nodes":69}],23:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -2051,7 +2051,7 @@ layoutModule.component('appFooter', _footer2.default);
 
 exports.default = layoutModule;
 
-},{"./footer.component":21,"./header.component":22,"angular":77}],24:[function(require,module,exports){
+},{"./footer.component":21,"./header.component":22,"angular":78}],24:[function(require,module,exports){
 'use strict';
 
 AccountConfig.$inject = ["$stateProvider"];
@@ -2574,7 +2574,7 @@ var AccountCtrl = function () {
 
 exports.default = AccountCtrl;
 
-},{"../../utils/Address":58,"../../utils/CryptoHelpers":59,"../../utils/KeyPair":60,"../../utils/Network":61,"../../utils/helpers":66}],26:[function(require,module,exports){
+},{"../../utils/Address":59,"../../utils/CryptoHelpers":60,"../../utils/KeyPair":61,"../../utils/Network":62,"../../utils/helpers":67}],26:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -2608,7 +2608,7 @@ accountModule.controller('AccountCtrl', _account4.default);
 
 exports.default = accountModule;
 
-},{"./account.config":24,"./account.controller":25,"angular":77}],27:[function(require,module,exports){
+},{"./account.config":24,"./account.controller":25,"angular":78}],27:[function(require,module,exports){
 'use strict';
 
 BalanceConfig.$inject = ["$stateProvider"];
@@ -2729,7 +2729,7 @@ balanceModule.controller('BalanceCtrl', _balance4.default);
 
 exports.default = balanceModule;
 
-},{"./balance.config":27,"./balance.controller":28,"angular":77}],30:[function(require,module,exports){
+},{"./balance.config":27,"./balance.controller":28,"angular":78}],30:[function(require,module,exports){
 'use strict';
 
 EnglishProvider.$inject = ["$translateProvider"];
@@ -3018,7 +3018,7 @@ app.config(_en2.default);
 
 exports.default = app;
 
-},{"./en":30,"angular":77}],32:[function(require,module,exports){
+},{"./en":30,"angular":78}],32:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -3052,7 +3052,7 @@ loadWalletModule.controller('LoadWalletCtrl', _loadWallet4.default);
 
 exports.default = loadWalletModule;
 
-},{"./loadWallet.config":33,"./loadWallet.controller":34,"angular":77}],33:[function(require,module,exports){
+},{"./loadWallet.config":33,"./loadWallet.controller":34,"angular":78}],33:[function(require,module,exports){
 'use strict';
 
 LoadWalletConfig.$inject = ["$stateProvider"];
@@ -3103,8 +3103,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var LoadWalletCtrl = function () {
-    LoadWalletCtrl.$inject = ["$localStorage", "$location", "Alert", "Wallet", "$timeout", "AppConstants", "Connector", "DataBridge", "$ionicLoading", "$rootScope"];
-    function LoadWalletCtrl($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $ionicLoading, $rootScope) {
+    LoadWalletCtrl.$inject = ["$localStorage", "$location", "Alert", "Wallet", "$timeout", "AppConstants", "Connector", "DataBridge", "$ionicLoading", "$rootScope", "AppVersion"];
+    function LoadWalletCtrl($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $ionicLoading, $rootScope, AppVersion) {
         'ngInject';
 
         // Local storage
@@ -3149,6 +3149,14 @@ var LoadWalletCtrl = function () {
         this._rootScope.$on('RECENT_TRANSACTIONS_LOADED', function (event, data) {
             $ionicLoading.hide();
             $location.path('/balance');
+        });
+
+        AppVersion.fetchAppVersion().then(function (version) {
+            // Get current version
+            // Compare two versions
+            // Show popup
+            console.log("result");
+            console.log(version);
         });
     }
 
@@ -3381,7 +3389,7 @@ var LoadWalletCtrl = function () {
 
 exports.default = LoadWalletCtrl;
 
-},{"../../utils/CryptoHelpers":59,"../../utils/Network":61,"../../utils/helpers":66}],35:[function(require,module,exports){
+},{"../../utils/CryptoHelpers":60,"../../utils/Network":62,"../../utils/helpers":67}],35:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -3415,7 +3423,7 @@ registerModule.controller('RegisterCtrl', _register4.default);
 
 exports.default = registerModule;
 
-},{"./register.config":36,"./register.controller":37,"angular":77}],36:[function(require,module,exports){
+},{"./register.config":36,"./register.controller":37,"angular":78}],36:[function(require,module,exports){
 'use strict';
 
 RegisterConfig.$inject = ["$stateProvider"];
@@ -3796,7 +3804,7 @@ var RegisterCtrl = function () {
 
 exports.default = RegisterCtrl;
 
-},{"../..//utils/Network":61,"../../utils/Address":58,"../../utils/KeyPair":60,"../../utils/helpers":66}],38:[function(require,module,exports){
+},{"../..//utils/Network":62,"../../utils/Address":59,"../../utils/KeyPair":61,"../../utils/helpers":67}],38:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -3830,7 +3838,7 @@ transactionsModule.controller('TransactionsCtrl', _transactions4.default);
 
 exports.default = transactionsModule;
 
-},{"./transactions.config":39,"./transactions.controller":40,"angular":77}],39:[function(require,module,exports){
+},{"./transactions.config":39,"./transactions.controller":40,"angular":78}],39:[function(require,module,exports){
 'use strict';
 
 TransactionsConfig.$inject = ["$stateProvider"];
@@ -4015,7 +4023,7 @@ transferModule.controller('TransferCtrl', _transfer4.default);
 
 exports.default = transferModule;
 
-},{"./transfer.config":42,"./transfer.controller":43,"angular":77}],42:[function(require,module,exports){
+},{"./transfer.config":42,"./transfer.controller":43,"angular":78}],42:[function(require,module,exports){
 'use strict';
 
 TransferConfig.$inject = ["$stateProvider"];
@@ -4360,7 +4368,7 @@ var TransferTransactionCtrl = function () {
 
 exports.default = TransferTransactionCtrl;
 
-},{"../../utils/Address":58,"../../utils/CryptoHelpers":59,"../../utils/Network":61,"../../utils/helpers":66}],44:[function(require,module,exports){
+},{"../../utils/Address":59,"../../utils/CryptoHelpers":60,"../../utils/Network":62,"../../utils/helpers":67}],44:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -4394,7 +4402,7 @@ transferConfirmModule.controller('TransferConfirmCtrl', _transferConfirm4.defaul
 
 exports.default = transferConfirmModule;
 
-},{"./transferConfirm.config":45,"./transferConfirm.controller":46,"angular":77}],45:[function(require,module,exports){
+},{"./transferConfirm.config":45,"./transferConfirm.controller":46,"angular":78}],45:[function(require,module,exports){
 'use strict';
 
 TransferConfirmConfig.$inject = ["$stateProvider"];
@@ -4699,7 +4707,7 @@ var TransferConfirmCtrl = function () {
 
 exports.default = TransferConfirmCtrl;
 
-},{"../../utils/Address":58,"../../utils/CryptoHelpers":59,"../../utils/Network":61,"../../utils/helpers":66}],47:[function(require,module,exports){
+},{"../../utils/Address":59,"../../utils/CryptoHelpers":60,"../../utils/Network":62,"../../utils/helpers":67}],47:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -5652,7 +5660,7 @@ var Alias = function () {
 
 exports.default = Alias;
 
-},{"../utils/Address":58,"../utils/CryptoHelpers":59,"../utils/KeyPair":60,"../utils/Network":61,"../utils/Serialization":62,"../utils/TransactionTypes":63,"../utils/convert":65,"../utils/helpers":66}],49:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/CryptoHelpers":60,"../utils/KeyPair":61,"../utils/Network":62,"../utils/Serialization":63,"../utils/TransactionTypes":64,"../utils/convert":66,"../utils/helpers":67}],49:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -5783,6 +5791,124 @@ var AliasAlert = function () {
 exports.default = AliasAlert;
 
 },{}],50:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Network = require('../utils/Network');
+
+var _Network2 = _interopRequireDefault(_Network);
+
+var _nodes = require('../utils/nodes');
+
+var _nodes2 = _interopRequireDefault(_nodes);
+
+var _helpers = require('../utils/helpers');
+
+var _helpers2 = _interopRequireDefault(_helpers);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/** Service to build transactions */
+var AppVersion = function () {
+
+    /**
+     * Initialize services and properties
+     *
+     * @param {service} Wallet - The Wallet service
+     * @param {service} NetworkRequests - The NetworkRequests service
+     */
+    AppVersion.$inject = ["Wallet", "NetworkRequests", "Alert", "$filter"];
+    function AppVersion(Wallet, NetworkRequests, Alert, $filter) {
+        'ngInject';
+        /***
+         * Declare services
+         */
+
+        _classCallCheck(this, AppVersion);
+
+        this._Wallet = Wallet;
+        this._NetworkRequests = NetworkRequests;
+
+        this._Alert = Alert;
+
+        this._$filter = $filter;
+
+        // Set Root Index depending on the network
+        this.APP_VERSION_ROOT_INDEX = "";
+        this.node = undefined;
+    }
+
+    /**
+     * fetchAppVersion() Get last app version and show if should be updated
+     *
+     */
+
+
+    _createClass(AppVersion, [{
+        key: 'fetchAppVersion',
+        value: function fetchAppVersion() {
+            var _this = this;
+
+            var production = false;
+            if (production) {
+                this.APP_VERSION_ROOT_INDEX = "NCOTBA2NOU5N6HELGC2QSB57EBQRYZ6AVKIYJNYL";
+                this.node = _nodes2.default.defaultMainnetNode;
+            } else {
+                this.APP_VERSION_ROOT_INDEX = "TDAV26O6FISNC7VTGXLE62XLDBVV3X3LIM4XTL7C";
+                this.node = _nodes2.default.defaultTestnetNode;
+            }
+            var signatoryPublicKey = "";
+
+            return this._NetworkRequests.getAccountData(_helpers2.default.getHostname(this.node), this.APP_VERSION_ROOT_INDEX).then(function (data) {
+
+                signatoryPublicKey = data.account.publicKey;
+                return _this._NetworkRequests.getAllTransactionsFromID(_helpers2.default.getHostname(_this.node), _this.APP_VERSION_ROOT_INDEX, null);
+            }).then(function (result) {
+                var transactions = result.data;
+                // If there transactions were returned and the limit was not reached
+                if (transactions.length == 0) throw Error("No version found");
+
+                // Order transactions chronologically
+                transactions.sort(function (a, b) {
+                    return b.transaction.timeStamp - a.transaction.timeStamp;
+                });
+                var validTransactions = [];
+
+                transactions.forEach(function (transaction) {
+                    var tx = transaction.transaction;
+                    if (tx.type == 257) {
+                        // On this version we are only using decoded messages!
+                        var msg = _this._$filter('fmtHexMessage')(tx.message);
+
+                        // Check if transaction should be added depending on the message and its signer
+                        if (msg.indexOf("version") != -1 && signatoryPublicKey == tx.signer) {
+                            // We store
+                            transaction.transaction.message = msg;
+                            validTransactions.push(msg);
+                        }
+                    }
+                });
+
+                var message = JSON.parse(validTransactions[0]);
+
+                return message.version;
+            }).catch();
+        }
+    }]);
+
+    return AppVersion;
+}();
+
+exports.default = AppVersion;
+
+},{"../utils/Network":62,"../utils/helpers":67,"../utils/nodes":69}],51:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -6057,7 +6183,7 @@ var Connector = function () {
 
 exports.default = Connector;
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6364,6 +6490,18 @@ var DataBridge = function () {
                     _this._$timeout(function () {
                         console.log(d);
                         _this.transactions = d.data;
+
+                        _this.transactions.forEach(function (t) {
+                            if (undefined !== t.transaction.mosaics && t.transaction.mosaics.length) {
+                                for (var i = 0; i < t.transaction.mosaics.length; i++) {
+                                    var mos = t.transaction.mosaics[i];
+                                    if (undefined === _this.mosaicDefinitionMetaDataPair[_helpers2.default.mosaicIdToName(mos.mosaicId)]) {
+                                        // Fetch definition from network
+                                        getMosaicDefinitionMetaDataPair(mos);
+                                    }
+                                }
+                            }
+                        });
                     });
                     _this._$rootScope.$emit('RECENT_TRANSACTIONS_LOADED', '');
                     console.log("recenttransactions data: ", d);
@@ -6563,7 +6701,7 @@ var DataBridge = function () {
 
 exports.default = DataBridge;
 
-},{"../utils/Address":58,"../utils/helpers":66}],52:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/helpers":67}],53:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -6614,6 +6752,10 @@ var _aliasAlert = require('./aliasAlert.service');
 
 var _aliasAlert2 = _interopRequireDefault(_aliasAlert);
 
+var _appVersion = require('./appVersion.service');
+
+var _appVersion2 = _interopRequireDefault(_appVersion);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // Create the module where our functionality can attach to
@@ -6659,9 +6801,13 @@ servicesModule.service('Alias', _alias2.default);
 
 servicesModule.service('AliasAlert', _aliasAlert2.default);
 
+// Set Alias service
+
+servicesModule.service('AppVersion', _appVersion2.default);
+
 exports.default = servicesModule;
 
-},{"./alert.service":47,"./alias.service":48,"./aliasAlert.service":49,"./connector.service":50,"./dataBridge.service":51,"./nemUtils.service":53,"./networkRequests.service":54,"./transactions.service":55,"./wallet.service":56,"./walletBuilder.service":57,"angular":77}],53:[function(require,module,exports){
+},{"./alert.service":47,"./alias.service":48,"./aliasAlert.service":49,"./appVersion.service":50,"./connector.service":51,"./dataBridge.service":52,"./nemUtils.service":54,"./networkRequests.service":55,"./transactions.service":56,"./wallet.service":57,"./walletBuilder.service":58,"angular":78}],54:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -7273,7 +7419,7 @@ var nemUtils = function () {
 
 exports.default = nemUtils;
 
-},{"../utils/Address":58,"../utils/CryptoHelpers":59,"../utils/KeyPair":60,"../utils/Network":61,"../utils/Serialization":62,"../utils/TransactionTypes":63,"../utils/convert":65,"../utils/helpers":66}],54:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/CryptoHelpers":60,"../utils/KeyPair":61,"../utils/Network":62,"../utils/Serialization":63,"../utils/TransactionTypes":64,"../utils/convert":66,"../utils/helpers":67}],55:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -7844,7 +7990,7 @@ var NetworkRequests = function () {
 
 exports.default = NetworkRequests;
 
-},{"../utils/Network":61,"../utils/nodes":68}],55:[function(require,module,exports){
+},{"../utils/Network":62,"../utils/nodes":69}],56:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -8604,7 +8750,7 @@ var Transactions = function () {
 
 exports.default = Transactions;
 
-},{"../utils/Address":58,"../utils/CryptoHelpers":59,"../utils/KeyPair":60,"../utils/Network":61,"../utils/Serialization":62,"../utils/TransactionTypes":63,"../utils/convert":65,"../utils/helpers":66}],56:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/CryptoHelpers":60,"../utils/KeyPair":61,"../utils/Network":62,"../utils/Serialization":63,"../utils/TransactionTypes":64,"../utils/convert":66,"../utils/helpers":67}],57:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -8855,7 +9001,7 @@ var Wallet = function () {
 
 exports.default = Wallet;
 
-},{"../utils/Network":61,"../utils/helpers":66,"../utils/nodes":68}],57:[function(require,module,exports){
+},{"../utils/Network":62,"../utils/helpers":67,"../utils/nodes":69}],58:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9073,7 +9219,7 @@ var WalletBuilder = function () {
 
 exports.default = WalletBuilder;
 
-},{"../utils/Address":58,"../utils/CryptoHelpers":59,"../utils/KeyPair":60,"../utils/convert":65,"../utils/nacl-fast":67}],58:[function(require,module,exports){
+},{"../utils/Address":59,"../utils/CryptoHelpers":60,"../utils/KeyPair":61,"../utils/convert":66,"../utils/nacl-fast":68}],59:[function(require,module,exports){
 'use strict';
 
 var _convert = require('./convert');
@@ -9226,7 +9372,7 @@ module.exports = {
     isValid: isValid
 };
 
-},{"./Network":61,"./convert":65}],59:[function(require,module,exports){
+},{"./Network":62,"./convert":66}],60:[function(require,module,exports){
 'use strict';
 
 var _KeyPair = require('./KeyPair');
@@ -9763,7 +9909,7 @@ module.exports = {
     BIP32derivation: BIP32derivation
 };
 
-},{"./Address":58,"./KeyPair":60,"./Network":61,"./bip32":64,"./convert":65,"./nacl-fast":67}],60:[function(require,module,exports){
+},{"./Address":59,"./KeyPair":61,"./Network":62,"./bip32":65,"./convert":66,"./nacl-fast":68}],61:[function(require,module,exports){
 'use strict';
 
 var _naclFast = require('./nacl-fast');
@@ -9874,7 +10020,7 @@ module.exports = {
     create: create
 };
 
-},{"./convert":65,"./nacl-fast":67}],61:[function(require,module,exports){
+},{"./convert":66,"./nacl-fast":68}],62:[function(require,module,exports){
 "use strict";
 
 /** @module utils/Network */
@@ -9960,7 +10106,7 @@ module.exports = {
     char2Id: char2Id
 };
 
-},{}],62:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 'use strict';
 
 var _convert = require('./convert');
@@ -10448,7 +10594,7 @@ module.exports = {
     serializeTransaction: serializeTransaction
 };
 
-},{"./TransactionTypes":63,"./convert":65,"./helpers":66}],63:[function(require,module,exports){
+},{"./TransactionTypes":64,"./convert":66,"./helpers":67}],64:[function(require,module,exports){
 "use strict";
 
 /** @module utils/TransactionTypes */
@@ -10536,7 +10682,7 @@ module.exports = {
   MosaicSupply: MosaicSupply
 };
 
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 'use strict';
 
 var _KeyPair = require('./KeyPair');
@@ -10892,7 +11038,7 @@ module.exports = {
     BIP32: BIP32
 };
 
-},{"./Address":58,"./KeyPair":60}],65:[function(require,module,exports){
+},{"./Address":59,"./KeyPair":61}],66:[function(require,module,exports){
 'use strict';
 
 /** @module utils/convert */
@@ -11095,7 +11241,7 @@ module.exports = {
     utf82rstr: utf82rstr
 };
 
-},{}],66:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 'use strict';
 
 var _convert = require('./convert');
@@ -11524,7 +11670,7 @@ module.exports = {
     getContact: getContact
 };
 
-},{"./CryptoHelpers":59,"./TransactionTypes":63,"./convert":65}],67:[function(require,module,exports){
+},{"./CryptoHelpers":60,"./TransactionTypes":64,"./convert":66}],68:[function(require,module,exports){
 'use strict';
 
 (function (nacl) {
@@ -12673,7 +12819,7 @@ module.exports = {
   })();
 })(typeof module !== 'undefined' && module.exports ? module.exports : window.nacl = window.nacl || {});
 
-},{"crypto":144}],68:[function(require,module,exports){
+},{"crypto":145}],69:[function(require,module,exports){
 'use strict';
 
 /** @module utils/nodes */
@@ -12852,7 +12998,7 @@ module.exports = {
   apostilleAuditServer: apostilleAuditServer
 };
 
-},{}],69:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 /**
  * @license AngularJS v1.5.3
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -16969,11 +17115,11 @@ angular.module('ngAnimate', [])
 
 })(window, window.angular);
 
-},{}],70:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 require('./angular-animate');
 module.exports = 'ngAnimate';
 
-},{"./angular-animate":69}],71:[function(require,module,exports){
+},{"./angular-animate":70}],72:[function(require,module,exports){
 /**
  * @license AngularJS v1.5.8
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -20101,7 +20247,7 @@ angular.mock.$RootScopeDecorator = ['$delegate', function($delegate) {
 
 })(window, window.angular);
 
-},{}],72:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 /**
  * @license AngularJS v1.5.3
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -20820,11 +20966,11 @@ angular.module('ngSanitize').filter('linky', ['$sanitize', function($sanitize) {
 
 })(window, window.angular);
 
-},{}],73:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 require('./angular-sanitize');
 module.exports = 'ngSanitize';
 
-},{"./angular-sanitize":72}],74:[function(require,module,exports){
+},{"./angular-sanitize":73}],75:[function(require,module,exports){
 /*!
  * angular-translate - v2.11.0 - 2016-03-20
  * 
@@ -24230,7 +24376,7 @@ return 'pascalprecht.translate';
 
 }));
 
-},{}],75:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 /**
  * State-based routing for AngularJS
  * @version v0.3.2
@@ -28840,7 +28986,7 @@ angular.module('ui.router.state')
   .filter('isState', $IsStateFilter)
   .filter('includedByState', $IncludedByStateFilter);
 })(window, window.angular);
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 /**
  * @license AngularJS v1.5.3
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -59555,11 +59701,11 @@ $provide.value("$locale", {
 })(window, document);
 
 !window.angular.$$csp().noInlineStyle && window.angular.element(document.head).prepend('<style type="text/css">@charset "UTF-8";[ng\\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>');
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 require('./angular');
 module.exports = angular;
 
-},{"./angular":76}],78:[function(require,module,exports){
+},{"./angular":77}],79:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
@@ -59570,7 +59716,7 @@ asn1.constants = require('./asn1/constants');
 asn1.decoders = require('./asn1/decoders');
 asn1.encoders = require('./asn1/encoders');
 
-},{"./asn1/api":79,"./asn1/base":81,"./asn1/constants":85,"./asn1/decoders":87,"./asn1/encoders":90,"bn.js":93}],79:[function(require,module,exports){
+},{"./asn1/api":80,"./asn1/base":82,"./asn1/constants":86,"./asn1/decoders":88,"./asn1/encoders":91,"bn.js":94}],80:[function(require,module,exports){
 var asn1 = require('../asn1');
 var inherits = require('inherits');
 
@@ -59633,7 +59779,7 @@ Entity.prototype.encode = function encode(data, enc, /* internal */ reporter) {
   return this._getEncoder(enc).encode(data, reporter);
 };
 
-},{"../asn1":78,"inherits":182,"vm":230}],80:[function(require,module,exports){
+},{"../asn1":79,"inherits":183,"vm":231}],81:[function(require,module,exports){
 var inherits = require('inherits');
 var Reporter = require('../base').Reporter;
 var Buffer = require('buffer').Buffer;
@@ -59751,7 +59897,7 @@ EncoderBuffer.prototype.join = function join(out, offset) {
   return out;
 };
 
-},{"../base":81,"buffer":136,"inherits":182}],81:[function(require,module,exports){
+},{"../base":82,"buffer":137,"inherits":183}],82:[function(require,module,exports){
 var base = exports;
 
 base.Reporter = require('./reporter').Reporter;
@@ -59759,7 +59905,7 @@ base.DecoderBuffer = require('./buffer').DecoderBuffer;
 base.EncoderBuffer = require('./buffer').EncoderBuffer;
 base.Node = require('./node');
 
-},{"./buffer":80,"./node":82,"./reporter":83}],82:[function(require,module,exports){
+},{"./buffer":81,"./node":83,"./reporter":84}],83:[function(require,module,exports){
 var Reporter = require('../base').Reporter;
 var EncoderBuffer = require('../base').EncoderBuffer;
 var DecoderBuffer = require('../base').DecoderBuffer;
@@ -60395,7 +60541,7 @@ Node.prototype._isPrintstr = function isPrintstr(str) {
   return /^[A-Za-z0-9 '\(\)\+,\-\.\/:=\?]*$/.test(str);
 };
 
-},{"../base":81,"minimalistic-assert":187}],83:[function(require,module,exports){
+},{"../base":82,"minimalistic-assert":188}],84:[function(require,module,exports){
 var inherits = require('inherits');
 
 function Reporter(options) {
@@ -60518,7 +60664,7 @@ ReporterError.prototype.rethrow = function rethrow(msg) {
   return this;
 };
 
-},{"inherits":182}],84:[function(require,module,exports){
+},{"inherits":183}],85:[function(require,module,exports){
 var constants = require('../constants');
 
 exports.tagClass = {
@@ -60562,7 +60708,7 @@ exports.tag = {
 };
 exports.tagByName = constants._reverse(exports.tag);
 
-},{"../constants":85}],85:[function(require,module,exports){
+},{"../constants":86}],86:[function(require,module,exports){
 var constants = exports;
 
 // Helper
@@ -60583,7 +60729,7 @@ constants._reverse = function reverse(map) {
 
 constants.der = require('./der');
 
-},{"./der":84}],86:[function(require,module,exports){
+},{"./der":85}],87:[function(require,module,exports){
 var inherits = require('inherits');
 
 var asn1 = require('../../asn1');
@@ -60909,13 +61055,13 @@ function derDecodeLen(buf, primitive, fail) {
   return len;
 }
 
-},{"../../asn1":78,"inherits":182}],87:[function(require,module,exports){
+},{"../../asn1":79,"inherits":183}],88:[function(require,module,exports){
 var decoders = exports;
 
 decoders.der = require('./der');
 decoders.pem = require('./pem');
 
-},{"./der":86,"./pem":88}],88:[function(require,module,exports){
+},{"./der":87,"./pem":89}],89:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -60966,7 +61112,7 @@ PEMDecoder.prototype.decode = function decode(data, options) {
   return DERDecoder.prototype.decode.call(this, input, options);
 };
 
-},{"./der":86,"buffer":136,"inherits":182}],89:[function(require,module,exports){
+},{"./der":87,"buffer":137,"inherits":183}],90:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -61263,13 +61409,13 @@ function encodeTag(tag, primitive, cls, reporter) {
   return res;
 }
 
-},{"../../asn1":78,"buffer":136,"inherits":182}],90:[function(require,module,exports){
+},{"../../asn1":79,"buffer":137,"inherits":183}],91:[function(require,module,exports){
 var encoders = exports;
 
 encoders.der = require('./der');
 encoders.pem = require('./pem');
 
-},{"./der":89,"./pem":91}],91:[function(require,module,exports){
+},{"./der":90,"./pem":92}],92:[function(require,module,exports){
 var inherits = require('inherits');
 
 var DEREncoder = require('./der');
@@ -61292,7 +61438,7 @@ PEMEncoder.prototype.encode = function encode(data, options) {
   return out.join('\n');
 };
 
-},{"./der":89,"inherits":182}],92:[function(require,module,exports){
+},{"./der":90,"inherits":183}],93:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -61408,7 +61554,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],93:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 (function (module, exports) {
   'use strict';
 
@@ -64837,7 +64983,7 @@ function fromByteArray (uint8) {
   };
 })(typeof module === 'undefined' || module, this);
 
-},{}],94:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 // This file is autogenerated via the `commonjs` Grunt task. You can require() this file in a CommonJS environment.
 require('../../js/transition.js')
 require('../../js/alert.js')
@@ -64851,7 +64997,7 @@ require('../../js/popover.js')
 require('../../js/scrollspy.js')
 require('../../js/tab.js')
 require('../../js/affix.js')
-},{"../../js/affix.js":95,"../../js/alert.js":96,"../../js/button.js":97,"../../js/carousel.js":98,"../../js/collapse.js":99,"../../js/dropdown.js":100,"../../js/modal.js":101,"../../js/popover.js":102,"../../js/scrollspy.js":103,"../../js/tab.js":104,"../../js/tooltip.js":105,"../../js/transition.js":106}],95:[function(require,module,exports){
+},{"../../js/affix.js":96,"../../js/alert.js":97,"../../js/button.js":98,"../../js/carousel.js":99,"../../js/collapse.js":100,"../../js/dropdown.js":101,"../../js/modal.js":102,"../../js/popover.js":103,"../../js/scrollspy.js":104,"../../js/tab.js":105,"../../js/tooltip.js":106,"../../js/transition.js":107}],96:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: affix.js v3.3.6
  * http://getbootstrap.com/javascript/#affix
@@ -65015,7 +65161,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],96:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: alert.js v3.3.6
  * http://getbootstrap.com/javascript/#alerts
@@ -65111,7 +65257,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],97:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: button.js v3.3.6
  * http://getbootstrap.com/javascript/#buttons
@@ -65233,7 +65379,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],98:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: carousel.js v3.3.6
  * http://getbootstrap.com/javascript/#carousel
@@ -65472,7 +65618,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],99:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: collapse.js v3.3.6
  * http://getbootstrap.com/javascript/#collapse
@@ -65685,7 +65831,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],100:[function(require,module,exports){
+},{}],101:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: dropdown.js v3.3.6
  * http://getbootstrap.com/javascript/#dropdowns
@@ -65852,7 +65998,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],101:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: modal.js v3.3.6
  * http://getbootstrap.com/javascript/#modals
@@ -66191,7 +66337,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],102:[function(require,module,exports){
+},{}],103:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: popover.js v3.3.6
  * http://getbootstrap.com/javascript/#popovers
@@ -66301,7 +66447,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],103:[function(require,module,exports){
+},{}],104:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: scrollspy.js v3.3.6
  * http://getbootstrap.com/javascript/#scrollspy
@@ -66475,7 +66621,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],104:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: tab.js v3.3.6
  * http://getbootstrap.com/javascript/#tabs
@@ -66632,7 +66778,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],105:[function(require,module,exports){
+},{}],106:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: tooltip.js v3.3.6
  * http://getbootstrap.com/javascript/#tooltip
@@ -67148,7 +67294,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],106:[function(require,module,exports){
+},{}],107:[function(require,module,exports){
 /* ========================================================================
  * Bootstrap: transition.js v3.3.6
  * http://getbootstrap.com/javascript/#transitions
@@ -67209,7 +67355,7 @@ require('../../js/affix.js')
 
 }(jQuery);
 
-},{}],107:[function(require,module,exports){
+},{}],108:[function(require,module,exports){
 var r;
 
 module.exports = function rand(len) {
@@ -67276,9 +67422,9 @@ if (typeof self === 'object') {
   }
 }
 
-},{"crypto":108}],108:[function(require,module,exports){
+},{"crypto":109}],109:[function(require,module,exports){
 
-},{}],109:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 (function (Buffer){
 // based on the aes implimentation in triple sec
 // https://github.com/keybase/triplesec
@@ -67459,7 +67605,7 @@ AES.prototype._doCryptBlock = function (M, keySchedule, SUB_MIX, SBOX) {
 exports.AES = AES
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],110:[function(require,module,exports){
+},{"buffer":137}],111:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -67560,7 +67706,7 @@ function xorTest (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":109,"./ghash":114,"buffer":136,"buffer-xor":135,"cipher-base":137,"inherits":182}],111:[function(require,module,exports){
+},{"./aes":110,"./ghash":115,"buffer":137,"buffer-xor":136,"cipher-base":138,"inherits":183}],112:[function(require,module,exports){
 var ciphers = require('./encrypter')
 exports.createCipher = exports.Cipher = ciphers.createCipher
 exports.createCipheriv = exports.Cipheriv = ciphers.createCipheriv
@@ -67573,7 +67719,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"./decrypter":112,"./encrypter":113,"./modes":115}],112:[function(require,module,exports){
+},{"./decrypter":113,"./encrypter":114,"./modes":116}],113:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -67714,7 +67860,7 @@ exports.createDecipher = createDecipher
 exports.createDecipheriv = createDecipheriv
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":109,"./authCipher":110,"./modes":115,"./modes/cbc":116,"./modes/cfb":117,"./modes/cfb1":118,"./modes/cfb8":119,"./modes/ctr":120,"./modes/ecb":121,"./modes/ofb":122,"./streamCipher":123,"buffer":136,"cipher-base":137,"evp_bytestokey":172,"inherits":182}],113:[function(require,module,exports){
+},{"./aes":110,"./authCipher":111,"./modes":116,"./modes/cbc":117,"./modes/cfb":118,"./modes/cfb1":119,"./modes/cfb8":120,"./modes/ctr":121,"./modes/ecb":122,"./modes/ofb":123,"./streamCipher":124,"buffer":137,"cipher-base":138,"evp_bytestokey":173,"inherits":183}],114:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -67840,7 +67986,7 @@ exports.createCipheriv = createCipheriv
 exports.createCipher = createCipher
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":109,"./authCipher":110,"./modes":115,"./modes/cbc":116,"./modes/cfb":117,"./modes/cfb1":118,"./modes/cfb8":119,"./modes/ctr":120,"./modes/ecb":121,"./modes/ofb":122,"./streamCipher":123,"buffer":136,"cipher-base":137,"evp_bytestokey":172,"inherits":182}],114:[function(require,module,exports){
+},{"./aes":110,"./authCipher":111,"./modes":116,"./modes/cbc":117,"./modes/cfb":118,"./modes/cfb1":119,"./modes/cfb8":120,"./modes/ctr":121,"./modes/ecb":122,"./modes/ofb":123,"./streamCipher":124,"buffer":137,"cipher-base":138,"evp_bytestokey":173,"inherits":183}],115:[function(require,module,exports){
 (function (Buffer){
 var zeros = new Buffer(16)
 zeros.fill(0)
@@ -67942,7 +68088,7 @@ function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],115:[function(require,module,exports){
+},{"buffer":137}],116:[function(require,module,exports){
 exports['aes-128-ecb'] = {
   cipher: 'AES',
   key: 128,
@@ -68115,7 +68261,7 @@ exports['aes-256-gcm'] = {
   type: 'auth'
 }
 
-},{}],116:[function(require,module,exports){
+},{}],117:[function(require,module,exports){
 var xor = require('buffer-xor')
 
 exports.encrypt = function (self, block) {
@@ -68134,7 +68280,7 @@ exports.decrypt = function (self, block) {
   return xor(out, pad)
 }
 
-},{"buffer-xor":135}],117:[function(require,module,exports){
+},{"buffer-xor":136}],118:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -68169,7 +68315,7 @@ function encryptStart (self, data, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"buffer-xor":135}],118:[function(require,module,exports){
+},{"buffer":137,"buffer-xor":136}],119:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad
@@ -68207,7 +68353,7 @@ function shiftIn (buffer, value) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],119:[function(require,module,exports){
+},{"buffer":137}],120:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad = self._cipher.encryptBlock(self._prev)
@@ -68226,7 +68372,7 @@ exports.encrypt = function (self, chunk, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],120:[function(require,module,exports){
+},{"buffer":137}],121:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -68261,7 +68407,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"buffer-xor":135}],121:[function(require,module,exports){
+},{"buffer":137,"buffer-xor":136}],122:[function(require,module,exports){
 exports.encrypt = function (self, block) {
   return self._cipher.encryptBlock(block)
 }
@@ -68269,7 +68415,7 @@ exports.decrypt = function (self, block) {
   return self._cipher.decryptBlock(block)
 }
 
-},{}],122:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -68289,7 +68435,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"buffer-xor":135}],123:[function(require,module,exports){
+},{"buffer":137,"buffer-xor":136}],124:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -68318,7 +68464,7 @@ StreamCipher.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":109,"buffer":136,"cipher-base":137,"inherits":182}],124:[function(require,module,exports){
+},{"./aes":110,"buffer":137,"cipher-base":138,"inherits":183}],125:[function(require,module,exports){
 var ebtk = require('evp_bytestokey')
 var aes = require('browserify-aes/browser')
 var DES = require('browserify-des')
@@ -68393,7 +68539,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"browserify-aes/browser":111,"browserify-aes/modes":115,"browserify-des":125,"browserify-des/modes":126,"evp_bytestokey":172}],125:[function(require,module,exports){
+},{"browserify-aes/browser":112,"browserify-aes/modes":116,"browserify-des":126,"browserify-des/modes":127,"evp_bytestokey":173}],126:[function(require,module,exports){
 (function (Buffer){
 var CipherBase = require('cipher-base')
 var des = require('des.js')
@@ -68440,7 +68586,7 @@ DES.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"cipher-base":137,"des.js":145,"inherits":182}],126:[function(require,module,exports){
+},{"buffer":137,"cipher-base":138,"des.js":146,"inherits":183}],127:[function(require,module,exports){
 exports['des-ecb'] = {
   key: 8,
   iv: 0
@@ -68466,7 +68612,7 @@ exports['des-ede'] = {
   iv: 0
 }
 
-},{}],127:[function(require,module,exports){
+},{}],128:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 var randomBytes = require('randombytes');
@@ -68510,10 +68656,10 @@ function getr(priv) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":93,"buffer":136,"randombytes":206}],128:[function(require,module,exports){
+},{"bn.js":94,"buffer":137,"randombytes":207}],129:[function(require,module,exports){
 module.exports = require('./browser/algorithms.json')
 
-},{"./browser/algorithms.json":129}],129:[function(require,module,exports){
+},{"./browser/algorithms.json":130}],130:[function(require,module,exports){
 module.exports={
   "sha224WithRSAEncryption": {
     "sign": "rsa",
@@ -68667,7 +68813,7 @@ module.exports={
   }
 }
 
-},{}],130:[function(require,module,exports){
+},{}],131:[function(require,module,exports){
 module.exports={
   "1.3.132.0.10": "secp256k1",
   "1.3.132.0.33": "p224",
@@ -68677,7 +68823,7 @@ module.exports={
   "1.3.132.0.35": "p521"
 }
 
-},{}],131:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash')
 var stream = require('stream')
@@ -68772,7 +68918,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./algorithms.json":129,"./sign":132,"./verify":133,"buffer":136,"create-hash":140,"inherits":182,"stream":227}],132:[function(require,module,exports){
+},{"./algorithms.json":130,"./sign":133,"./verify":134,"buffer":137,"create-hash":141,"inherits":183,"stream":228}],133:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var createHmac = require('create-hmac')
@@ -68921,7 +69067,7 @@ module.exports.getKey = getKey
 module.exports.makeKey = makeKey
 
 }).call(this,require("buffer").Buffer)
-},{"./curves.json":130,"bn.js":93,"browserify-rsa":127,"buffer":136,"create-hmac":143,"elliptic":155,"parse-asn1":195}],133:[function(require,module,exports){
+},{"./curves.json":131,"bn.js":94,"browserify-rsa":128,"buffer":137,"create-hmac":144,"elliptic":156,"parse-asn1":196}],134:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var BN = require('bn.js')
@@ -69008,7 +69154,7 @@ function checkValue (b, q) {
 module.exports = verify
 
 }).call(this,require("buffer").Buffer)
-},{"./curves.json":130,"bn.js":93,"buffer":136,"elliptic":155,"parse-asn1":195}],134:[function(require,module,exports){
+},{"./curves.json":131,"bn.js":94,"buffer":137,"elliptic":156,"parse-asn1":196}],135:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -69120,7 +69266,7 @@ exports.allocUnsafeSlow = function allocUnsafeSlow(size) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"buffer":136}],135:[function(require,module,exports){
+},{"buffer":137}],136:[function(require,module,exports){
 (function (Buffer){
 module.exports = function xor (a, b) {
   var length = Math.min(a.length, b.length)
@@ -69134,7 +69280,7 @@ module.exports = function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],136:[function(require,module,exports){
+},{"buffer":137}],137:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -70927,7 +71073,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":92,"ieee754":180,"isarray":184}],137:[function(require,module,exports){
+},{"base64-js":93,"ieee754":181,"isarray":185}],138:[function(require,module,exports){
 (function (Buffer){
 var Transform = require('stream').Transform
 var inherits = require('inherits')
@@ -71021,7 +71167,7 @@ CipherBase.prototype._toString = function (value, enc, fin) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"inherits":182,"stream":227,"string_decoder":228}],138:[function(require,module,exports){
+},{"buffer":137,"inherits":183,"stream":228,"string_decoder":229}],139:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -71132,7 +71278,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":183}],139:[function(require,module,exports){
+},{"../../is-buffer/index.js":184}],140:[function(require,module,exports){
 (function (Buffer){
 var elliptic = require('elliptic');
 var BN = require('bn.js');
@@ -71258,7 +71404,7 @@ function formatReturnValue(bn, enc, len) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":93,"buffer":136,"elliptic":155}],140:[function(require,module,exports){
+},{"bn.js":94,"buffer":137,"elliptic":156}],141:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var inherits = require('inherits')
@@ -71314,7 +71460,7 @@ module.exports = function createHash (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":142,"buffer":136,"cipher-base":137,"inherits":182,"ripemd160":218,"sha.js":220}],141:[function(require,module,exports){
+},{"./md5":143,"buffer":137,"cipher-base":138,"inherits":183,"ripemd160":219,"sha.js":221}],142:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var intSize = 4;
@@ -71351,7 +71497,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 }
 exports.hash = hash;
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],142:[function(require,module,exports){
+},{"buffer":137}],143:[function(require,module,exports){
 'use strict';
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
@@ -71508,7 +71654,7 @@ function bit_rol(num, cnt)
 module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
-},{"./helpers":141}],143:[function(require,module,exports){
+},{"./helpers":142}],144:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var createHash = require('create-hash/browser');
@@ -71580,7 +71726,7 @@ module.exports = function createHmac(alg, key) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"create-hash/browser":140,"inherits":182,"stream":227}],144:[function(require,module,exports){
+},{"buffer":137,"create-hash/browser":141,"inherits":183,"stream":228}],145:[function(require,module,exports){
 'use strict'
 
 exports.randomBytes = exports.rng = exports.pseudoRandomBytes = exports.prng = require('randombytes')
@@ -71659,7 +71805,7 @@ var publicEncrypt = require('public-encrypt')
   }
 })
 
-},{"browserify-cipher":124,"browserify-sign":131,"browserify-sign/algos":128,"create-ecdh":139,"create-hash":140,"create-hmac":143,"diffie-hellman":151,"pbkdf2":196,"public-encrypt":200,"randombytes":206}],145:[function(require,module,exports){
+},{"browserify-cipher":125,"browserify-sign":132,"browserify-sign/algos":129,"create-ecdh":140,"create-hash":141,"create-hmac":144,"diffie-hellman":152,"pbkdf2":197,"public-encrypt":201,"randombytes":207}],146:[function(require,module,exports){
 'use strict';
 
 exports.utils = require('./des/utils');
@@ -71668,7 +71814,7 @@ exports.DES = require('./des/des');
 exports.CBC = require('./des/cbc');
 exports.EDE = require('./des/ede');
 
-},{"./des/cbc":146,"./des/cipher":147,"./des/des":148,"./des/ede":149,"./des/utils":150}],146:[function(require,module,exports){
+},{"./des/cbc":147,"./des/cipher":148,"./des/des":149,"./des/ede":150,"./des/utils":151}],147:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -71735,7 +71881,7 @@ proto._update = function _update(inp, inOff, out, outOff) {
   }
 };
 
-},{"inherits":182,"minimalistic-assert":187}],147:[function(require,module,exports){
+},{"inherits":183,"minimalistic-assert":188}],148:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -71878,7 +72024,7 @@ Cipher.prototype._finalDecrypt = function _finalDecrypt() {
   return this._unpad(out);
 };
 
-},{"minimalistic-assert":187}],148:[function(require,module,exports){
+},{"minimalistic-assert":188}],149:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -72023,7 +72169,7 @@ DES.prototype._decrypt = function _decrypt(state, lStart, rStart, out, off) {
   utils.rip(l, r, out, off);
 };
 
-},{"../des":145,"inherits":182,"minimalistic-assert":187}],149:[function(require,module,exports){
+},{"../des":146,"inherits":183,"minimalistic-assert":188}],150:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -72080,7 +72226,7 @@ EDE.prototype._update = function _update(inp, inOff, out, outOff) {
 EDE.prototype._pad = DES.prototype._pad;
 EDE.prototype._unpad = DES.prototype._unpad;
 
-},{"../des":145,"inherits":182,"minimalistic-assert":187}],150:[function(require,module,exports){
+},{"../des":146,"inherits":183,"minimalistic-assert":188}],151:[function(require,module,exports){
 'use strict';
 
 exports.readUInt32BE = function readUInt32BE(bytes, off) {
@@ -72338,7 +72484,7 @@ exports.padSplit = function padSplit(num, size, group) {
   return out.join(' ');
 };
 
-},{}],151:[function(require,module,exports){
+},{}],152:[function(require,module,exports){
 (function (Buffer){
 var generatePrime = require('./lib/generatePrime')
 var primes = require('./lib/primes.json')
@@ -72384,7 +72530,7 @@ exports.DiffieHellmanGroup = exports.createDiffieHellmanGroup = exports.getDiffi
 exports.createDiffieHellman = exports.DiffieHellman = createDiffieHellman
 
 }).call(this,require("buffer").Buffer)
-},{"./lib/dh":152,"./lib/generatePrime":153,"./lib/primes.json":154,"buffer":136}],152:[function(require,module,exports){
+},{"./lib/dh":153,"./lib/generatePrime":154,"./lib/primes.json":155,"buffer":137}],153:[function(require,module,exports){
 (function (Buffer){
 var BN = require('bn.js');
 var MillerRabin = require('miller-rabin');
@@ -72552,7 +72698,7 @@ function formatReturnValue(bn, enc) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./generatePrime":153,"bn.js":93,"buffer":136,"miller-rabin":186,"randombytes":206}],153:[function(require,module,exports){
+},{"./generatePrime":154,"bn.js":94,"buffer":137,"miller-rabin":187,"randombytes":207}],154:[function(require,module,exports){
 var randomBytes = require('randombytes');
 module.exports = findPrime;
 findPrime.simpleSieve = simpleSieve;
@@ -72659,7 +72805,7 @@ function findPrime(bits, gen) {
 
 }
 
-},{"bn.js":93,"miller-rabin":186,"randombytes":206}],154:[function(require,module,exports){
+},{"bn.js":94,"miller-rabin":187,"randombytes":207}],155:[function(require,module,exports){
 module.exports={
     "modp1": {
         "gen": "02",
@@ -72694,7 +72840,7 @@ module.exports={
         "prime": "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c93402849236c3fab4d27c7026c1d4dcb2602646dec9751e763dba37bdf8ff9406ad9e530ee5db382f413001aeb06a53ed9027d831179727b0865a8918da3edbebcf9b14ed44ce6cbaced4bb1bdb7f1447e6cc254b332051512bd7af426fb8f401378cd2bf5983ca01c64b92ecf032ea15d1721d03f482d7ce6e74fef6d55e702f46980c82b5a84031900b1c9e59e7c97fbec7e8f323a97a7e36cc88be0f1d45b7ff585ac54bd407b22b4154aacc8f6d7ebf48e1d814cc5ed20f8037e0a79715eef29be32806a1d58bb7c5da76f550aa3d8a1fbff0eb19ccb1a313d55cda56c9ec2ef29632387fe8d76e3c0468043e8f663f4860ee12bf2d5b0b7474d6e694f91e6dbe115974a3926f12fee5e438777cb6a932df8cd8bec4d073b931ba3bc832b68d9dd300741fa7bf8afc47ed2576f6936ba424663aab639c5ae4f5683423b4742bf1c978238f16cbe39d652de3fdb8befc848ad922222e04a4037c0713eb57a81a23f0c73473fc646cea306b4bcbc8862f8385ddfa9d4b7fa2c087e879683303ed5bdd3a062b3cf5b3a278a66d2a13f83f44f82ddf310ee074ab6a364597e899a0255dc164f31cc50846851df9ab48195ded7ea1b1d510bd7ee74d73faf36bc31ecfa268359046f4eb879f924009438b481c6cd7889a002ed5ee382bc9190da6fc026e479558e4475677e9aa9e3050e2765694dfc81f56e880b96e7160c980dd98edd3dfffffffffffffffff"
     }
 }
-},{}],155:[function(require,module,exports){
+},{}],156:[function(require,module,exports){
 'use strict';
 
 var elliptic = exports;
@@ -72709,7 +72855,7 @@ elliptic.curves = require('./elliptic/curves');
 elliptic.ec = require('./elliptic/ec');
 elliptic.eddsa = require('./elliptic/eddsa');
 
-},{"../package.json":170,"./elliptic/curve":158,"./elliptic/curves":161,"./elliptic/ec":162,"./elliptic/eddsa":165,"./elliptic/utils":169,"brorand":107}],156:[function(require,module,exports){
+},{"../package.json":171,"./elliptic/curve":159,"./elliptic/curves":162,"./elliptic/ec":163,"./elliptic/eddsa":166,"./elliptic/utils":170,"brorand":108}],157:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -73086,7 +73232,7 @@ BasePoint.prototype.dblp = function dblp(k) {
   return r;
 };
 
-},{"../../elliptic":155,"bn.js":93}],157:[function(require,module,exports){
+},{"../../elliptic":156,"bn.js":94}],158:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -73521,7 +73667,7 @@ Point.prototype.eqXToP = function eqXToP(x) {
 Point.prototype.toP = Point.prototype.normalize;
 Point.prototype.mixedAdd = Point.prototype.add;
 
-},{"../../elliptic":155,"../curve":158,"bn.js":93,"inherits":182}],158:[function(require,module,exports){
+},{"../../elliptic":156,"../curve":159,"bn.js":94,"inherits":183}],159:[function(require,module,exports){
 'use strict';
 
 var curve = exports;
@@ -73531,7 +73677,7 @@ curve.short = require('./short');
 curve.mont = require('./mont');
 curve.edwards = require('./edwards');
 
-},{"./base":156,"./edwards":157,"./mont":159,"./short":160}],159:[function(require,module,exports){
+},{"./base":157,"./edwards":158,"./mont":160,"./short":161}],160:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -73713,7 +73859,7 @@ Point.prototype.getX = function getX() {
   return this.x.fromRed();
 };
 
-},{"../../elliptic":155,"../curve":158,"bn.js":93,"inherits":182}],160:[function(require,module,exports){
+},{"../../elliptic":156,"../curve":159,"bn.js":94,"inherits":183}],161:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -74653,7 +74799,7 @@ JPoint.prototype.isInfinity = function isInfinity() {
   return this.z.cmpn(0) === 0;
 };
 
-},{"../../elliptic":155,"../curve":158,"bn.js":93,"inherits":182}],161:[function(require,module,exports){
+},{"../../elliptic":156,"../curve":159,"bn.js":94,"inherits":183}],162:[function(require,module,exports){
 'use strict';
 
 var curves = exports;
@@ -74860,7 +75006,7 @@ defineCurve('secp256k1', {
   ]
 });
 
-},{"../elliptic":155,"./precomputed/secp256k1":168,"hash.js":173}],162:[function(require,module,exports){
+},{"../elliptic":156,"./precomputed/secp256k1":169,"hash.js":174}],163:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -75102,7 +75248,7 @@ EC.prototype.getKeyRecoveryParam = function(e, signature, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-},{"../../elliptic":155,"./key":163,"./signature":164,"bn.js":93,"hmac-drbg":179}],163:[function(require,module,exports){
+},{"../../elliptic":156,"./key":164,"./signature":165,"bn.js":94,"hmac-drbg":180}],164:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -75223,7 +75369,7 @@ KeyPair.prototype.inspect = function inspect() {
          ' pub: ' + (this.pub && this.pub.inspect()) + ' >';
 };
 
-},{"../../elliptic":155,"bn.js":93}],164:[function(require,module,exports){
+},{"../../elliptic":156,"bn.js":94}],165:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -75360,7 +75506,7 @@ Signature.prototype.toDER = function toDER(enc) {
   return utils.encode(res, enc);
 };
 
-},{"../../elliptic":155,"bn.js":93}],165:[function(require,module,exports){
+},{"../../elliptic":156,"bn.js":94}],166:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -75480,7 +75626,7 @@ EDDSA.prototype.isPoint = function isPoint(val) {
   return val instanceof this.pointClass;
 };
 
-},{"../../elliptic":155,"./key":166,"./signature":167,"hash.js":173}],166:[function(require,module,exports){
+},{"../../elliptic":156,"./key":167,"./signature":168,"hash.js":174}],167:[function(require,module,exports){
 'use strict';
 
 var elliptic = require('../../elliptic');
@@ -75578,7 +75724,7 @@ KeyPair.prototype.getPublic = function getPublic(enc) {
 
 module.exports = KeyPair;
 
-},{"../../elliptic":155}],167:[function(require,module,exports){
+},{"../../elliptic":156}],168:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -75646,7 +75792,7 @@ Signature.prototype.toHex = function toHex() {
 
 module.exports = Signature;
 
-},{"../../elliptic":155,"bn.js":93}],168:[function(require,module,exports){
+},{"../../elliptic":156,"bn.js":94}],169:[function(require,module,exports){
 module.exports = {
   doubles: {
     step: 4,
@@ -76428,7 +76574,7 @@ module.exports = {
   }
 };
 
-},{}],169:[function(require,module,exports){
+},{}],170:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -76550,7 +76696,7 @@ function intFromLE(bytes) {
 utils.intFromLE = intFromLE;
 
 
-},{"bn.js":93,"minimalistic-assert":187,"minimalistic-crypto-utils":188}],170:[function(require,module,exports){
+},{"bn.js":94,"minimalistic-assert":188,"minimalistic-crypto-utils":189}],171:[function(require,module,exports){
 module.exports={
   "_args": [
     [
@@ -76674,7 +76820,7 @@ module.exports={
   "version": "6.4.0"
 }
 
-},{}],171:[function(require,module,exports){
+},{}],172:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -76978,7 +77124,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],172:[function(require,module,exports){
+},{}],173:[function(require,module,exports){
 (function (Buffer){
 var md5 = require('create-hash/md5')
 module.exports = EVP_BytesToKey
@@ -77050,7 +77196,7 @@ function EVP_BytesToKey (password, salt, keyLen, ivLen) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"create-hash/md5":142}],173:[function(require,module,exports){
+},{"buffer":137,"create-hash/md5":143}],174:[function(require,module,exports){
 var hash = exports;
 
 hash.utils = require('./hash/utils');
@@ -77067,7 +77213,7 @@ hash.sha384 = hash.sha.sha384;
 hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 
-},{"./hash/common":174,"./hash/hmac":175,"./hash/ripemd":176,"./hash/sha":177,"./hash/utils":178}],174:[function(require,module,exports){
+},{"./hash/common":175,"./hash/hmac":176,"./hash/ripemd":177,"./hash/sha":178,"./hash/utils":179}],175:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -77160,7 +77306,7 @@ BlockHash.prototype._pad = function pad() {
   return res;
 };
 
-},{"../hash":173}],175:[function(require,module,exports){
+},{"../hash":174}],176:[function(require,module,exports){
 var hmac = exports;
 
 var hash = require('../hash');
@@ -77210,7 +77356,7 @@ Hmac.prototype.digest = function digest(enc) {
   return this.outer.digest(enc);
 };
 
-},{"../hash":173}],176:[function(require,module,exports){
+},{"../hash":174}],177:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 
@@ -77356,7 +77502,7 @@ var sh = [
   8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
 ];
 
-},{"../hash":173}],177:[function(require,module,exports){
+},{"../hash":174}],178:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -77922,7 +78068,7 @@ function g1_512_lo(xh, xl) {
   return r;
 }
 
-},{"../hash":173}],178:[function(require,module,exports){
+},{"../hash":174}],179:[function(require,module,exports){
 var utils = exports;
 var inherits = require('inherits');
 
@@ -78181,7 +78327,7 @@ function shr64_lo(ah, al, num) {
 };
 exports.shr64_lo = shr64_lo;
 
-},{"inherits":182}],179:[function(require,module,exports){
+},{"inherits":183}],180:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -78296,7 +78442,7 @@ HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
   return utils.encode(res, enc);
 };
 
-},{"hash.js":173,"minimalistic-assert":187,"minimalistic-crypto-utils":188}],180:[function(require,module,exports){
+},{"hash.js":174,"minimalistic-assert":188,"minimalistic-crypto-utils":189}],181:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -78382,7 +78528,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],181:[function(require,module,exports){
+},{}],182:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -78393,7 +78539,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],182:[function(require,module,exports){
+},{}],183:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -78418,7 +78564,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],183:[function(require,module,exports){
+},{}],184:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -78441,14 +78587,14 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],184:[function(require,module,exports){
+},{}],185:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],185:[function(require,module,exports){
+},{}],186:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.0.0
  * https://jquery.com/
@@ -88487,7 +88633,7 @@ if ( !noGlobal ) {
 return jQuery;
 } ) );
 
-},{}],186:[function(require,module,exports){
+},{}],187:[function(require,module,exports){
 var bn = require('bn.js');
 var brorand = require('brorand');
 
@@ -88602,7 +88748,7 @@ MillerRabin.prototype.getDivisor = function getDivisor(n, k) {
   return false;
 };
 
-},{"bn.js":93,"brorand":107}],187:[function(require,module,exports){
+},{"bn.js":94,"brorand":108}],188:[function(require,module,exports){
 module.exports = assert;
 
 function assert(val, msg) {
@@ -88615,7 +88761,7 @@ assert.equal = function assertEqual(l, r, msg) {
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
 };
 
-},{}],188:[function(require,module,exports){
+},{}],189:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -88675,7 +88821,7 @@ utils.encode = function encode(arr, enc) {
     return arr;
 };
 
-},{}],189:[function(require,module,exports){
+},{}],190:[function(require,module,exports){
 /*!
  * ngToast v2.0.0 (http://tameraydin.github.io/ngToast)
  * Copyright 2016 Tamer Aydin (http://tamerayd.in)
@@ -88961,7 +89107,7 @@ utils.encode = function encode(arr, enc) {
 
 })(window, window.angular);
 
-},{}],190:[function(require,module,exports){
+},{}],191:[function(require,module,exports){
 (function (root, factory) {
   'use strict';
 
@@ -89184,7 +89330,7 @@ utils.encode = function encode(arr, enc) {
 
 }));
 
-},{"angular":77}],191:[function(require,module,exports){
+},{"angular":78}],192:[function(require,module,exports){
 module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.2": "aes-128-cbc",
 "2.16.840.1.101.3.4.1.3": "aes-128-ofb",
@@ -89198,7 +89344,7 @@ module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.43": "aes-256-ofb",
 "2.16.840.1.101.3.4.1.44": "aes-256-cfb"
 }
-},{}],192:[function(require,module,exports){
+},{}],193:[function(require,module,exports){
 // from https://github.com/indutny/self-signed/blob/gh-pages/lib/asn1.js
 // Fedor, you are amazing.
 'use strict'
@@ -89322,7 +89468,7 @@ exports.signature = asn1.define('signature', function () {
   )
 })
 
-},{"./certificate":193,"asn1.js":78}],193:[function(require,module,exports){
+},{"./certificate":194,"asn1.js":79}],194:[function(require,module,exports){
 // from https://github.com/Rantanen/node-dtls/blob/25a7dc861bda38cfeac93a723500eea4f0ac2e86/Certificate.js
 // thanks to @Rantanen
 
@@ -89412,7 +89558,7 @@ var X509Certificate = asn.define('X509Certificate', function () {
 
 module.exports = X509Certificate
 
-},{"asn1.js":78}],194:[function(require,module,exports){
+},{"asn1.js":79}],195:[function(require,module,exports){
 (function (Buffer){
 // adapted from https://github.com/apatil/pemstrip
 var findProc = /Proc-Type: 4,ENCRYPTED\n\r?DEK-Info: AES-((?:128)|(?:192)|(?:256))-CBC,([0-9A-H]+)\n\r?\n\r?([0-9A-z\n\r\+\/\=]+)\n\r?/m
@@ -89446,7 +89592,7 @@ module.exports = function (okey, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"browserify-aes":111,"buffer":136,"evp_bytestokey":172}],195:[function(require,module,exports){
+},{"browserify-aes":112,"buffer":137,"evp_bytestokey":173}],196:[function(require,module,exports){
 (function (Buffer){
 var asn1 = require('./asn1')
 var aesid = require('./aesid.json')
@@ -89556,7 +89702,7 @@ function decrypt (data, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aesid.json":191,"./asn1":192,"./fixProc":194,"browserify-aes":111,"buffer":136,"pbkdf2":196}],196:[function(require,module,exports){
+},{"./aesid.json":192,"./asn1":193,"./fixProc":195,"browserify-aes":112,"buffer":137,"pbkdf2":197}],197:[function(require,module,exports){
 (function (process,Buffer){
 var createHmac = require('create-hmac')
 var checkParameters = require('./precondition')
@@ -89628,7 +89774,7 @@ exports.pbkdf2Sync = function (password, salt, iterations, keylen, digest) {
 }
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"./precondition":197,"_process":199,"buffer":136,"create-hmac":143}],197:[function(require,module,exports){
+},{"./precondition":198,"_process":200,"buffer":137,"create-hmac":144}],198:[function(require,module,exports){
 var MAX_ALLOC = Math.pow(2, 30) - 1 // default in iojs
 module.exports = function (iterations, keylen) {
   if (typeof iterations !== 'number') {
@@ -89648,7 +89794,7 @@ module.exports = function (iterations, keylen) {
   }
 }
 
-},{}],198:[function(require,module,exports){
+},{}],199:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -89695,7 +89841,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":199}],199:[function(require,module,exports){
+},{"_process":200}],200:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -89877,7 +90023,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],200:[function(require,module,exports){
+},{}],201:[function(require,module,exports){
 exports.publicEncrypt = require('./publicEncrypt');
 exports.privateDecrypt = require('./privateDecrypt');
 
@@ -89888,7 +90034,7 @@ exports.privateEncrypt = function privateEncrypt(key, buf) {
 exports.publicDecrypt = function publicDecrypt(key, buf) {
   return exports.privateDecrypt(key, buf, true);
 };
-},{"./privateDecrypt":202,"./publicEncrypt":203}],201:[function(require,module,exports){
+},{"./privateDecrypt":203,"./publicEncrypt":204}],202:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash');
 module.exports = function (seed, len) {
@@ -89907,7 +90053,7 @@ function i2ops(c) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"buffer":136,"create-hash":140}],202:[function(require,module,exports){
+},{"buffer":137,"create-hash":141}],203:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var mgf = require('./mgf');
@@ -90018,7 +90164,7 @@ function compare(a, b){
   return dif;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":201,"./withPublic":204,"./xor":205,"bn.js":93,"browserify-rsa":127,"buffer":136,"create-hash":140,"parse-asn1":195}],203:[function(require,module,exports){
+},{"./mgf":202,"./withPublic":205,"./xor":206,"bn.js":94,"browserify-rsa":128,"buffer":137,"create-hash":141,"parse-asn1":196}],204:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var randomBytes = require('randombytes');
@@ -90116,7 +90262,7 @@ function nonZero(len, crypto) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":201,"./withPublic":204,"./xor":205,"bn.js":93,"browserify-rsa":127,"buffer":136,"create-hash":140,"parse-asn1":195,"randombytes":206}],204:[function(require,module,exports){
+},{"./mgf":202,"./withPublic":205,"./xor":206,"bn.js":94,"browserify-rsa":128,"buffer":137,"create-hash":141,"parse-asn1":196,"randombytes":207}],205:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 function withPublic(paddedMsg, key) {
@@ -90129,7 +90275,7 @@ function withPublic(paddedMsg, key) {
 
 module.exports = withPublic;
 }).call(this,require("buffer").Buffer)
-},{"bn.js":93,"buffer":136}],205:[function(require,module,exports){
+},{"bn.js":94,"buffer":137}],206:[function(require,module,exports){
 module.exports = function xor(a, b) {
   var len = a.length;
   var i = -1;
@@ -90138,7 +90284,7 @@ module.exports = function xor(a, b) {
   }
   return a
 };
-},{}],206:[function(require,module,exports){
+},{}],207:[function(require,module,exports){
 (function (process,global,Buffer){
 'use strict'
 
@@ -90178,10 +90324,10 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"_process":199,"buffer":136}],207:[function(require,module,exports){
+},{"_process":200,"buffer":137}],208:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":208}],208:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":209}],209:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -90257,7 +90403,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":210,"./_stream_writable":212,"core-util-is":138,"inherits":182,"process-nextick-args":198}],209:[function(require,module,exports){
+},{"./_stream_readable":211,"./_stream_writable":213,"core-util-is":139,"inherits":183,"process-nextick-args":199}],210:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -90284,7 +90430,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":211,"core-util-is":138,"inherits":182}],210:[function(require,module,exports){
+},{"./_stream_transform":212,"core-util-is":139,"inherits":183}],211:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -91228,7 +91374,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":208,"./internal/streams/BufferList":213,"_process":199,"buffer":136,"buffer-shims":134,"core-util-is":138,"events":171,"inherits":182,"isarray":184,"process-nextick-args":198,"string_decoder/":228,"util":108}],211:[function(require,module,exports){
+},{"./_stream_duplex":209,"./internal/streams/BufferList":214,"_process":200,"buffer":137,"buffer-shims":135,"core-util-is":139,"events":172,"inherits":183,"isarray":185,"process-nextick-args":199,"string_decoder/":229,"util":109}],212:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -91411,7 +91557,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":208,"core-util-is":138,"inherits":182}],212:[function(require,module,exports){
+},{"./_stream_duplex":209,"core-util-is":139,"inherits":183}],213:[function(require,module,exports){
 (function (process){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, encoding, cb), and it'll handle all
@@ -91965,7 +92111,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":208,"_process":199,"buffer":136,"buffer-shims":134,"core-util-is":138,"events":171,"inherits":182,"process-nextick-args":198,"util-deprecate":229}],213:[function(require,module,exports){
+},{"./_stream_duplex":209,"_process":200,"buffer":137,"buffer-shims":135,"core-util-is":139,"events":172,"inherits":183,"process-nextick-args":199,"util-deprecate":230}],214:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('buffer').Buffer;
@@ -92030,10 +92176,10 @@ BufferList.prototype.concat = function (n) {
   }
   return ret;
 };
-},{"buffer":136,"buffer-shims":134}],214:[function(require,module,exports){
+},{"buffer":137,"buffer-shims":135}],215:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":209}],215:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":210}],216:[function(require,module,exports){
 (function (process){
 var Stream = (function (){
   try {
@@ -92053,13 +92199,13 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/_stream_duplex.js":208,"./lib/_stream_passthrough.js":209,"./lib/_stream_readable.js":210,"./lib/_stream_transform.js":211,"./lib/_stream_writable.js":212,"_process":199}],216:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":209,"./lib/_stream_passthrough.js":210,"./lib/_stream_readable.js":211,"./lib/_stream_transform.js":212,"./lib/_stream_writable.js":213,"_process":200}],217:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":211}],217:[function(require,module,exports){
+},{"./lib/_stream_transform.js":212}],218:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":212}],218:[function(require,module,exports){
+},{"./lib/_stream_writable.js":213}],219:[function(require,module,exports){
 (function (Buffer){
 /*
 CryptoJS v3.1.2
@@ -92273,7 +92419,7 @@ function ripemd160 (message) {
 module.exports = ripemd160
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],219:[function(require,module,exports){
+},{"buffer":137}],220:[function(require,module,exports){
 (function (Buffer){
 // prototype class for hash functions
 function Hash (blockSize, finalSize) {
@@ -92346,7 +92492,7 @@ Hash.prototype._update = function () {
 module.exports = Hash
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":136}],220:[function(require,module,exports){
+},{"buffer":137}],221:[function(require,module,exports){
 var exports = module.exports = function SHA (algorithm) {
   algorithm = algorithm.toLowerCase()
 
@@ -92363,7 +92509,7 @@ exports.sha256 = require('./sha256')
 exports.sha384 = require('./sha384')
 exports.sha512 = require('./sha512')
 
-},{"./sha":221,"./sha1":222,"./sha224":223,"./sha256":224,"./sha384":225,"./sha512":226}],221:[function(require,module,exports){
+},{"./sha":222,"./sha1":223,"./sha224":224,"./sha256":225,"./sha384":226,"./sha512":227}],222:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-0, as defined
@@ -92460,7 +92606,7 @@ Sha.prototype._hash = function () {
 module.exports = Sha
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":219,"buffer":136,"inherits":182}],222:[function(require,module,exports){
+},{"./hash":220,"buffer":137,"inherits":183}],223:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
@@ -92562,7 +92708,7 @@ Sha1.prototype._hash = function () {
 module.exports = Sha1
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":219,"buffer":136,"inherits":182}],223:[function(require,module,exports){
+},{"./hash":220,"buffer":137,"inherits":183}],224:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -92618,7 +92764,7 @@ Sha224.prototype._hash = function () {
 module.exports = Sha224
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":219,"./sha256":224,"buffer":136,"inherits":182}],224:[function(require,module,exports){
+},{"./hash":220,"./sha256":225,"buffer":137,"inherits":183}],225:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -92756,7 +92902,7 @@ Sha256.prototype._hash = function () {
 module.exports = Sha256
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":219,"buffer":136,"inherits":182}],225:[function(require,module,exports){
+},{"./hash":220,"buffer":137,"inherits":183}],226:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var SHA512 = require('./sha512')
@@ -92816,7 +92962,7 @@ Sha384.prototype._hash = function () {
 module.exports = Sha384
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":219,"./sha512":226,"buffer":136,"inherits":182}],226:[function(require,module,exports){
+},{"./hash":220,"./sha512":227,"buffer":137,"inherits":183}],227:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var Hash = require('./hash')
@@ -93079,7 +93225,7 @@ Sha512.prototype._hash = function () {
 module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":219,"buffer":136,"inherits":182}],227:[function(require,module,exports){
+},{"./hash":220,"buffer":137,"inherits":183}],228:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -93208,7 +93354,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":171,"inherits":182,"readable-stream/duplex.js":207,"readable-stream/passthrough.js":214,"readable-stream/readable.js":215,"readable-stream/transform.js":216,"readable-stream/writable.js":217}],228:[function(require,module,exports){
+},{"events":172,"inherits":183,"readable-stream/duplex.js":208,"readable-stream/passthrough.js":215,"readable-stream/readable.js":216,"readable-stream/transform.js":217,"readable-stream/writable.js":218}],229:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -93431,7 +93577,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":136}],229:[function(require,module,exports){
+},{"buffer":137}],230:[function(require,module,exports){
 (function (global){
 
 /**
@@ -93502,7 +93648,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],230:[function(require,module,exports){
+},{}],231:[function(require,module,exports){
 var indexOf = require('indexof');
 
 var Object_keys = function (obj) {
@@ -93642,4 +93788,4 @@ exports.createContext = Script.createContext = function (context) {
     return copy;
 };
 
-},{"indexof":181}]},{},[1]);
+},{"indexof":182}]},{},[1]);
