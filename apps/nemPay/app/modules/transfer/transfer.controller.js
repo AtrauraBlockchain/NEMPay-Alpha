@@ -264,7 +264,33 @@ class TransferTransactionCtrl {
     onInitSelector(){
         return this._$state.params.selectedMosaic;
     }
-
+    /**
+     * scanQR() Scans NEMQR and sets recipient
+     */
+    scanQR(){
+        var _this = this;
+        if(window.cordova) {
+            cordova.plugins.barcodeScanner.scan(
+                function (result) {
+                    var addresObject = JSON.parse(result.text);
+                    _this.formData.rawRecipient = addresObject.data.addr;
+                    _this.processRecipientInput();
+                },
+                function (error) {
+                    alert("Scanning failed: " + error);
+                },
+                {
+                    showFlipCameraButton: true, // iOS and Android
+                    showTorchButton: true, // iOS and Android
+                    prompt: "Place a NEM QR inside the scan area", // Android
+                    resultDisplayDuration: 500, // Android, display scanned text for X ms. 0 suppresses it entirely, default 1500
+                    formats: "QR_CODE,PDF_417", // default: all but PDF_417 and RSS_EXPANDED
+                    disableAnimations: true, // iOS
+                    disableSuccessBeep: false // iOS
+                }
+            );
+        }
+    }
 }
 
 export default TransferTransactionCtrl;

@@ -22,19 +22,7 @@ const AppConstants = {
     languages: [{
         name: "English",
         key: "en"
-    }, {
-        name: "Chinese",
-        key: "cn"
-    }, {
-        name: "Polish",
-        key: "pl"
-    }, {
-        name: "Japanese",
-        key: "jp"
-    }/*, {
-        name: "Français",
-        key: "fr"
-    }*/],
+    }],
 
 };
 
