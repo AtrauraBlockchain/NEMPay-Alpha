@@ -3,7 +3,7 @@ import CryptoHelpers from '../../utils/CryptoHelpers';
 import Network from '../../utils/Network';
 
 class LoadWalletCtrl {
-    constructor($localStorage, $location, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $ionicLoading, $rootScope, AppVersion) {
+    constructor($localStorage, $location, $ionicPopup, Alert, Wallet, $timeout, AppConstants, Connector, DataBridge, $ionicLoading, $rootScope, AppVersion, $cordovaAppVersion) {
         'ngInject';
 
         // Local storage
@@ -30,6 +30,9 @@ class LoadWalletCtrl {
         // Login properties
         this.selectedWallet = "";
 
+        this._$ionicPopup = $ionicPopup;
+        this._$cordovaAppVersion = $cordovaAppVersion;
+
         // Get wallets from local storage or create empty array
         this._storage.wallets = this._storage.wallets || [];
 
@@ -46,13 +49,39 @@ class LoadWalletCtrl {
             $ionicLoading.hide();
             $location.path('/balance');
         });
-
+        let _this = this;
         AppVersion.fetchAppVersion().then(version => {
-            // Get current version
-            // Compare two versions
-            // Show popup
-            console.log("result");
-            console.log(version);
+            _this._$cordovaAppVersion.getVersionNumber().then(function (appVersion) {
+                if (version != appVersion) {
+                    _this._$ionicPopup.show({
+                        title: "Update NEMPay!",
+                        template: '<div style="text-align: center;">New app version! <br> Please, download it.</div>',
+                        buttons: [
+                            {
+                                text: "<b>Update</b>",
+                                type: 'button-positive',
+                                onTap: function(e) {
+                                    if (ionic.Platform.platform() == "android") {
+                                        cordova.plugins.market.open("com.atraura.nanowalletmobile", {
+                                            success: function() {
+                                                navigator.app.exitApp();
+                                            },
+                                            failure: function() {
+                                                navigator.app.exitApp();
+                                            }
+                                        });
+                                    }
+                                    else {
+                                        cordova.plugins.market.open("com.atraura.nanowalletmobile");
+                                    }
+                                }
+                            }
+                        ]
+                    });
+                }
+            }, function(error){
+
+            });
         });
     }
 

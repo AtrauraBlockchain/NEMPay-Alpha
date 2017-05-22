@@ -83,6 +83,14 @@ h2 {
 .ion-navicon:before {
   content: "\f2ca" !important; }
 
+.appleLinks a {
+  color: #000000;
+  text-decoration: none; }
+
+.appleLinksWhite a {
+  color: #ffffff;
+  text-decoration: none; }
+
 /* ALERTS */
 .ng-toast.ng-toast--right .ng-toast__list {
   display: block !important;
@@ -324,6 +332,13 @@ h2 {
 
 .transactions-page .transaction-message {
   text-align: justify; }
+
+.transactions-page .appleLinks a {
+  color: #009688;
+  text-decoration: none; }
+
+.transactions-page .send-card .appleLinks a {
+  color: #C0392B; }
 
 .transaction-row {
   cursor: pointer;
