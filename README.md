@@ -1,6 +1,6 @@
 # NemPay #
 
-**Warning:** NemPay Ionic is currently in beta. We don't recommend to use NemPay in Mainnet enviroment yet.
+**Warning:** NemPay Ionic is currently in development, don't use it in the MainNet. If you want to try it, TestNet enviroment is recommended.
 
 ### What is NemPay ? ###
 NemPay is an app to transfer assets in an easy way directly from mobile devices, using NEM blockchain.
