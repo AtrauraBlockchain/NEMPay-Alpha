@@ -1,6 +1,8 @@
-# NemPay #
+# NemPay Alpha#
 
-**Warning:** NemPay Ionic is currently in development, don't use it in the MainNet. If you want to try it, TestNet enviroment is recommended.
+**Warning:** This version of NEMPay it is a first POC we developed in order to test NEM and Ionic capabilities. NEMPay beta will be launched soon. 
+
+**Don't use it in the MainNet.** If you want to try the previous version, TestNet enviroment is recommended.
 
 ### What is NemPay ? ###
 NemPay is an app to transfer assets in an easy way directly from mobile devices, using NEM blockchain.
@@ -12,24 +14,7 @@ NemPay is based on NanoWallet project, and wrapped with Ionic, a boilerplate to 
 About Ionic Framework:
 https://ionicframework.com/
 
-# Developers #
-### Build from source ###
-1) Install all the needed dependencies
-<pre>npm install</pre>
-<pre>bower install</pre>
-
-2) Build:
-<pre>gulp</pre>
-
-3) Run:
-<pre>ionic serve</pre>
-
-
-# Known issues #
-### Multisig behaviour is not implemented yet ###
-
-
 ### Thanks ###
-- <b>QuantumMechanics: https://github.com/QuantumMechanics</b>  for building NanoWallet
+- <b>QuantumMechanics: https://github.com/QuantumMechanics</b> for building NanoWallet
 
 - <b>saulgray:  https://github.com/saulgray/NanoWallet  </b> for building an a usable template for NanoWallet, which has been helful for begining programming this app.
