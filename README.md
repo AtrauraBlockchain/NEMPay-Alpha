@@ -1,4 +1,4 @@
-# NemPay Alpha#
+# NemPay Alpha
 
 **Warning:** This version of NEMPay it is a first POC we developed in order to test NEM and Ionic capabilities. NEMPay beta will be launched soon. 
 
